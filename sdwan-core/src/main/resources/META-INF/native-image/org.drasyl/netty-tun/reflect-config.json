@@ -1,0 +1,8 @@
+[
+  {
+    "name": "org.drasyl.channel.tun.TunChannel",
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true,
+    "allDeclaredConstructors": true
+  }
+]

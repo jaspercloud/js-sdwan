@@ -1,0 +1,39 @@
+syntax = "proto2";
+option java_package = "io.jaspercloud.sdwan.core.proto";
+option java_outer_classname = "SDWanProtos";
+
+enum MsgType {
+  AuthReq = 1;
+  AuthResp = 2;
+  NodeList = 3;
+  Heart = 4;
+  TunnelData = 5;
+}
+
+message SDWanMessage {
+  required MsgType type = 1;
+  required string channelId = 2;
+  optional bytes data = 3;
+}
+
+message SDWanAuthReq {
+  required string nodeName = 1;
+}
+
+message SDWanAuthResp {
+  required string nodeIP = 1;
+  required string vip = 2;
+  required int32 netmaskPrefix = 3;
+}
+
+message SDWanNode {
+  required string nodeName = 1;
+  required string vip = 2;
+}
+
+message SDWanNodeList {
+  repeated SDWanNode node = 1;
+}
+
+message SDWanHeart {
+}
