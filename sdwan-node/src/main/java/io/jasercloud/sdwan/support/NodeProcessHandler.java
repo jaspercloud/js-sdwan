@@ -6,6 +6,9 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Slf4j
 public class NodeProcessHandler extends SimpleChannelInboundHandler<SDWanProtos.SDWanMessage> {
 
@@ -53,6 +56,7 @@ public class NodeProcessHandler extends SimpleChannelInboundHandler<SDWanProtos.
             }
             case SDWanProtos.MsgType.NodeList_VALUE: {
                 SDWanProtos.SDWanNodeList nodeList = SDWanProtos.SDWanNodeList.parseFrom(msg.getData());
+                List<SDWanNodeInfo> nodeInfoList = new ArrayList<>();
                 for (SDWanProtos.SDWanNode node : nodeList.getNodeList()) {
                     log.info("nodeList: nodeId={}, nodeIP={}, vip={}, nodeUdpPort={}",
                             node.getNodeId(), node.getNodeIP(), node.getVip(), node.getNodeUdpPort());
@@ -61,8 +65,9 @@ public class NodeProcessHandler extends SimpleChannelInboundHandler<SDWanProtos.
                     nodeInfo.setNodeIP(node.getNodeIP());
                     nodeInfo.setVip(node.getVip());
                     nodeInfo.setNodeUdpPort(node.getNodeUdpPort());
-                    nodeManager.add(nodeInfo);
+                    nodeInfoList.add(nodeInfo);
                 }
+                nodeManager.updateList(nodeInfoList);
                 break;
             }
         }
