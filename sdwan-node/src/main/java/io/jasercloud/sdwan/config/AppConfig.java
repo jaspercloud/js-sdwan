@@ -61,7 +61,7 @@ public class AppConfig {
     public WinTun winTun(SDWanNodeProperties properties,
                          SDWanNodeInfoManager nodeManager,
                          ObjectProvider<UdpNode> provider) {
-        return new WinTun(properties.getNodeName(), new WinTun.TunnelDataHandler() {
+        return new WinTun(properties.getNodeId(), new WinTun.TunnelDataHandler() {
             @Override
             public void process(SDWanProtos.UdpTunnelData tunnelData) {
                 UdpNode udpNode = provider.getIfAvailable();

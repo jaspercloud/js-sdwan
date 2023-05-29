@@ -10,8 +10,8 @@ public class AttributeKeys {
 
     }
 
-    public static Attribute<String> nodeName(Channel channel) {
-        Attribute<String> attr = channel.attr(AttributeKey.valueOf("nodeName"));
+    public static Attribute<String> nodeId(Channel channel) {
+        Attribute<String> attr = channel.attr(AttributeKey.valueOf("nodeId"));
         return attr;
     }
 

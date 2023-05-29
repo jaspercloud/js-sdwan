@@ -2,17 +2,17 @@ package io.jasercloud.sdwan.support;
 
 public class SDWanNodeInfo {
 
-    private String nodeName;
+    private String nodeId;
     private String nodeIP;
     private String vip;
     private Integer nodeUdpPort;
 
-    public String getNodeName() {
-        return nodeName;
+    public String getNodeId() {
+        return nodeId;
     }
 
-    public void setNodeName(String nodeName) {
-        this.nodeName = nodeName;
+    public void setNodeId(String nodeId) {
+        this.nodeId = nodeId;
     }
 
     public String getNodeIP() {

@@ -27,7 +27,7 @@ public class NodeProcessHandler extends SimpleChannelInboundHandler<SDWanProtos.
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         SDWanProtos.SDWanAuthReq authReq = SDWanProtos.SDWanAuthReq.newBuilder()
-                .setNodeName(properties.getNodeName())
+                .setNodeId(properties.getNodeId())
                 .setNodeUdpPort(properties.getNodeUdpPort())
                 .build();
         SDWanProtos.SDWanMessage message = SDWanProtos.SDWanMessage.newBuilder()
@@ -50,10 +50,10 @@ public class NodeProcessHandler extends SimpleChannelInboundHandler<SDWanProtos.
             case SDWanProtos.MsgType.NodeList_VALUE: {
                 SDWanProtos.SDWanNodeList nodeList = SDWanProtos.SDWanNodeList.parseFrom(msg.getData());
                 for (SDWanProtos.SDWanNode node : nodeList.getNodeList()) {
-                    log.info("nodeList: nodeName={}, nodeIP={}, vip={}, nodeUdpPort={}",
-                            node.getNodeName(), node.getNodeIP(), node.getVip(), node.getNodeUdpPort());
+                    log.info("nodeList: nodeId={}, nodeIP={}, vip={}, nodeUdpPort={}",
+                            node.getNodeId(), node.getNodeIP(), node.getVip(), node.getNodeUdpPort());
                     SDWanNodeInfo nodeInfo = new SDWanNodeInfo();
-                    nodeInfo.setNodeName(node.getNodeName());
+                    nodeInfo.setNodeId(node.getNodeId());
                     nodeInfo.setNodeIP(node.getNodeIP());
                     nodeInfo.setVip(node.getVip());
                     nodeInfo.setNodeUdpPort(node.getNodeUdpPort());

@@ -17,7 +17,7 @@ message SDWanMessage {
 }
 
 message SDWanAuthReq {
-  required string nodeName = 1;
+  required string nodeId = 1;
   required int32 nodeUdpPort = 2;
 }
 
@@ -28,7 +28,7 @@ message SDWanAuthResp {
 }
 
 message SDWanNode {
-  required string nodeName = 1;
+  required string nodeId = 1;
   required string nodeIP = 2;
   required string vip = 3;
   required int32 nodeUdpPort = 4;

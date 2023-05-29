@@ -17,15 +17,15 @@ public class SDWanNodeManager {
         return channelMap;
     }
 
-    public void add(String nodeName, Channel channel) {
+    public void add(String nodeId, Channel channel) {
         channel.closeFuture().addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture future) throws Exception {
-                channelMap.remove(nodeName);
+                channelMap.remove(nodeId);
             }
         });
-        Attribute<String> nodeNameAttr = AttributeKeys.nodeName(channel);
-        nodeNameAttr.set(nodeName);
-        channelMap.put(nodeName, channel);
+        Attribute<String> nodeIdAttr = AttributeKeys.nodeId(channel);
+        nodeIdAttr.set(nodeId);
+        channelMap.put(nodeId, channel);
     }
 }

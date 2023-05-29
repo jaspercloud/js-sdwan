@@ -26,12 +26,12 @@ public class ControllerProcessHandler extends SimpleChannelInboundHandler<SDWanP
         switch (msg.getType().getNumber()) {
             case SDWanProtos.MsgType.AuthReq_VALUE: {
                 SDWanProtos.SDWanAuthReq authReq = SDWanProtos.SDWanAuthReq.parseFrom(msg.getData());
-                String nodeName = authReq.getNodeName();
+                String nodeId = authReq.getNodeId();
                 AttributeKeys.nodeIP(ctx.channel()).set(address.getHostName());
-                String vip = properties.getNodeIpMap().get(nodeName);
+                String vip = properties.getNodeIpMap().get(nodeId);
                 AttributeKeys.vip(ctx.channel()).set(vip);
                 AttributeKeys.nodeUdpPort(ctx.channel()).set(authReq.getNodeUdpPort());
-                nodeManager.add(nodeName, ctx.channel());
+                nodeManager.add(nodeId, ctx.channel());
                 {
                     SDWanProtos.SDWanAuthResp authResp = SDWanProtos.SDWanAuthResp
                             .newBuilder()
@@ -51,13 +51,13 @@ public class ControllerProcessHandler extends SimpleChannelInboundHandler<SDWanP
                     SDWanProtos.SDWanNodeList.Builder builder = SDWanProtos.SDWanNodeList.newBuilder();
                     Map<String, Channel> channelMap = nodeManager.getChannelMap();
                     for (Map.Entry<String, Channel> entry : channelMap.entrySet()) {
-                        String itemNodeName = entry.getKey();
+                        String itemNodeId = entry.getKey();
                         Channel channel = entry.getValue();
                         String nodeIP = AttributeKeys.nodeIP(channel).get();
                         String itemVip = AttributeKeys.vip(channel).get();
                         Integer nodeUdpPort = AttributeKeys.nodeUdpPort(channel).get();
                         builder.addNode(SDWanProtos.SDWanNode.newBuilder()
-                                .setNodeName(itemNodeName)
+                                .setNodeId(itemNodeId)
                                 .setNodeIP(nodeIP)
                                 .setVip(itemVip)
                                 .setNodeUdpPort(nodeUdpPort)

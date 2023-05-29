@@ -9,7 +9,7 @@ public class SDWanNodeProperties {
     private String controllerHost;
     private int controllerPort;
     private int connectTimeout;
-    private String nodeName;
+    private String nodeId;
     private int nodeUdpPort;
     private String vip;
 
@@ -37,12 +37,12 @@ public class SDWanNodeProperties {
         this.connectTimeout = connectTimeout;
     }
 
-    public String getNodeName() {
-        return nodeName;
+    public String getNodeId() {
+        return nodeId;
     }
 
-    public void setNodeName(String nodeName) {
-        this.nodeName = nodeName;
+    public void setNodeId(String nodeId) {
+        this.nodeId = nodeId;
     }
 
     public int getNodeUdpPort() {
