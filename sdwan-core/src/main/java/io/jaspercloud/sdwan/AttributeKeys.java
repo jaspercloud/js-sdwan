@@ -20,6 +20,11 @@ public class AttributeKeys {
         return attr;
     }
 
+    public static Attribute<String> channelId(Channel channel) {
+        Attribute<String> attr = channel.attr(AttributeKey.valueOf("channelId"));
+        return attr;
+    }
+
     public static Attribute<String> vip(Channel channel) {
         Attribute<String> attr = channel.attr(AttributeKey.valueOf("vip"));
         return attr;

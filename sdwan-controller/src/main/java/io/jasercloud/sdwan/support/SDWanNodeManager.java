@@ -24,8 +24,6 @@ public class SDWanNodeManager {
                 channelMap.remove(nodeId);
             }
         });
-        Attribute<String> nodeIdAttr = AttributeKeys.nodeId(channel);
-        nodeIdAttr.set(nodeId);
         channelMap.put(nodeId, channel);
     }
 }

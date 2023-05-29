@@ -41,10 +41,14 @@ public class NodeProcessHandler extends SimpleChannelInboundHandler<SDWanProtos.
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, SDWanProtos.SDWanMessage msg) throws Exception {
         switch (msg.getType().getNumber()) {
-            case SDWanProtos.MsgType.AuthResp_VALUE: {
+            case SDWanProtos.MsgType.AuthRespSuccess_VALUE: {
                 SDWanProtos.SDWanAuthResp authResp = SDWanProtos.SDWanAuthResp.parseFrom(msg.getData());
                 log.info("authResp: nodeIP={}, vip={}", authResp.getNodeIP(), authResp.getVip());
                 winTun.start(authResp.getVip(), authResp.getNetmaskPrefix());
+                break;
+            }
+            case SDWanProtos.MsgType.AuthRespFail_VALUE: {
+                log.info("authResp failed");
                 break;
             }
             case SDWanProtos.MsgType.NodeList_VALUE: {
