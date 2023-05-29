@@ -16,6 +16,7 @@
         <module>sdwan-core</module>
         <module>sdwan-controller</module>
         <module>sdwan-node</module>
+        <module>sdwan-demo</module>
     </modules>
 
     <build>

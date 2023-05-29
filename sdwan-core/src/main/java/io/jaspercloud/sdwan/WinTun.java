@@ -1,11 +1,13 @@
-package demo;
+package io.jaspercloud.sdwan;
 
+import com.google.protobuf.ByteString;
 import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
-import io.jaspercloud.sdwan.NioEventLoopFactory;
+import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.util.internal.PlatformDependent;
+import lombok.extern.slf4j.Slf4j;
 import org.drasyl.AddressAndNetmaskHelper;
 import org.drasyl.channel.tun.InetProtocol;
 import org.drasyl.channel.tun.Tun4Packet;
@@ -18,18 +20,19 @@ import java.io.IOException;
 
 import static org.drasyl.channel.tun.jna.windows.Wintun.WintunGetAdapterLUID;
 
+@Slf4j
 public class WinTun {
 
+    private String ifName;
+    private TunnelDataHandler handler;
     private Channel channel;
-    private String address;
-    private int netmaskPrefix;
 
-    public WinTun(String address, int netmaskPrefix) {
-        this.address = address;
-        this.netmaskPrefix = netmaskPrefix;
+    public WinTun(String ifName, TunnelDataHandler handler) {
+        this.ifName = ifName;
+        this.handler = handler;
     }
 
-    public void start(String ifName) throws IOException {
+    public void start(String address, int netmaskPrefix) throws IOException {
         DefaultEventLoopGroup loopGroup = new DefaultEventLoopGroup();
         Bootstrap bootstrap = new Bootstrap()
                 .group(loopGroup)
@@ -38,7 +41,7 @@ public class WinTun {
                     @Override
                     protected void initChannel(final Channel ch) {
                         ChannelPipeline pipeline = ch.pipeline();
-                        pipeline.addLast(new Ping4Handler(address, WinTun.this));
+                        pipeline.addLast(new TunProcessHandler(ifName, handler));
                     }
                 });
         ChannelFuture future = bootstrap.bind(new TunAddress(ifName));
@@ -61,52 +64,58 @@ public class WinTun {
             final Pointer interfaceLuid = new Memory(8);
             WintunGetAdapterLUID(adapter, interfaceLuid);
             AddressAndNetmaskHelper.setIPv4AndNetmask(interfaceLuid, address, netmaskPrefix);
+            exec(String.format("netsh interface ipv4 set subinterface \"%s\" mtu=1400 store=persistent", ifName));
         } else {
             // Linux
-            exec("/sbin/ip", "addr", "add", address + '/' + netmaskPrefix, "dev", name);
-            exec("/sbin/ip", "link", "set", "dev", name, "up");
+            exec(String.format("/sbin/ip addr add %s/%s dev %s", address, netmaskPrefix, ifName));
+            exec(String.format("/sbin/ip link set dev %s up", ifName));
+            exec(String.format("ifconfig %s mtu 1400 up", ifName));
         }
         System.out.println("Address and netmask assigned: " + address + '/' + netmaskPrefix);
     }
 
-    private static class Ping4Handler extends SimpleChannelInboundHandler<Tun4Packet> {
+    private static class TunProcessHandler extends SimpleChannelInboundHandler<Tun4Packet> {
 
-        private String address;
-        private WinTun winTun;
+        private String ifName;
+        private TunnelDataHandler handler;
 
-        public Ping4Handler(String address, WinTun winTun) {
-            this.address = address;
-            this.winTun = winTun;
-        }
-
-        @Override
-        public void channelActive(ChannelHandlerContext ctx) throws Exception {
-            super.channelActive(ctx);
-            WinTunManager.addWinTun(address, winTun);
+        public TunProcessHandler(String ifName, TunnelDataHandler handler) {
+            this.ifName = ifName;
+            this.handler = handler;
         }
 
         @Override
         protected void channelRead0(final ChannelHandlerContext ctx,
                                     final Tun4Packet packet) {
-            if (packet.protocol() == InetProtocol.ICMP.decimal) {
-            } else if (packet.protocol() == InetProtocol.TCP.decimal) {
-                System.out.println(String.format("rec: protocol=%s, src=%s, dest=%s",
-                        InetProtocol.protocolByDecimal(packet.protocol()).toString(),
-                        packet.sourceAddress().getHostAddress(),
-                        packet.destinationAddress().getHostAddress()));
-                WinTun winTun = WinTunManager.getWinTun(packet.destinationAddress().getHostAddress());
-                winTun.write(packet);
-            } else {
-                ctx.fireChannelRead(packet.retain());
+            if (packet.protocol() != InetProtocol.TCP.decimal) {
+                return;
             }
+            String srcAddr = packet.sourceAddress().getHostAddress();
+            String destAddr = packet.destinationAddress().getHostAddress();
+            int readableBytes = packet.content().readableBytes();
+            log.debug("recv: ifName={}, src={}, dest={}, size={}", ifName, srcAddr, destAddr, readableBytes);
+            byte[] bytes = new byte[readableBytes];
+            packet.content().readBytes(bytes);
+            SDWanProtos.UdpTunnelData tunnelData = SDWanProtos.UdpTunnelData.newBuilder()
+                    .setType(SDWanProtos.MsgType.TunnelData)
+                    .setSrc(srcAddr)
+                    .setDest(destAddr)
+                    .setData(ByteString.copyFrom(bytes))
+                    .build();
+            handler.process(tunnelData);
         }
     }
 
-    private void write(Tun4Packet packet) {
-        channel.writeAndFlush(packet.retain());
+    public void write(Tun4Packet packet) {
+        log.debug("send: ifName={}, dest={} size={}", ifName, packet.destinationAddress().getHostAddress(), packet.content().readableBytes());
+        channel.writeAndFlush(packet);
     }
 
-    private static void exec(final String... command) throws IOException {
+    private static void exec(String command) throws IOException {
+        exec(command.split(" "));
+    }
+
+    private static void exec(String... command) throws IOException {
         try {
             final int exitCode = Runtime.getRuntime().exec(command).waitFor();
             if (exitCode != 0) {
@@ -115,5 +124,10 @@ public class WinTun {
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+    }
+
+    public interface TunnelDataHandler {
+
+        void process(SDWanProtos.UdpTunnelData tunnelData);
     }
 }

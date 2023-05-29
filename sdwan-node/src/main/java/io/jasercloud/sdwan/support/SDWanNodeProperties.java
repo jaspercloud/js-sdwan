@@ -10,6 +10,7 @@ public class SDWanNodeProperties {
     private int controllerPort;
     private int connectTimeout;
     private String nodeName;
+    private int nodeUdpPort;
     private String vip;
 
     public String getControllerHost() {
@@ -42,6 +43,14 @@ public class SDWanNodeProperties {
 
     public void setNodeName(String nodeName) {
         this.nodeName = nodeName;
+    }
+
+    public int getNodeUdpPort() {
+        return nodeUdpPort;
+    }
+
+    public void setNodeUdpPort(int nodeUdpPort) {
+        this.nodeUdpPort = nodeUdpPort;
     }
 
     public String getVip() {

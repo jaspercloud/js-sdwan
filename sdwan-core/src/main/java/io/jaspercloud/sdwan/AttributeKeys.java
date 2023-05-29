@@ -15,8 +15,18 @@ public class AttributeKeys {
         return attr;
     }
 
+    public static Attribute<String> nodeIP(Channel channel) {
+        Attribute<String> attr = channel.attr(AttributeKey.valueOf("nodeIP"));
+        return attr;
+    }
+
     public static Attribute<String> vip(Channel channel) {
         Attribute<String> attr = channel.attr(AttributeKey.valueOf("vip"));
+        return attr;
+    }
+
+    public static Attribute<Integer> nodeUdpPort(Channel channel) {
+        Attribute<Integer> attr = channel.attr(AttributeKey.valueOf("nodeUdpPort"));
         return attr;
     }
 }

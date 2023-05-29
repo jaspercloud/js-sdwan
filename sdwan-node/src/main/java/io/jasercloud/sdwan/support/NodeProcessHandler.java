@@ -1,6 +1,6 @@
 package io.jasercloud.sdwan.support;
 
-import demo.WinTun;
+import io.jaspercloud.sdwan.WinTun;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -10,18 +10,25 @@ import lombok.extern.slf4j.Slf4j;
 public class NodeProcessHandler extends SimpleChannelInboundHandler<SDWanProtos.SDWanMessage> {
 
     private SDWanNodeProperties properties;
-    private MemberNodeManager nodeManager;
+    private SDWanNodeInfoManager nodeManager;
+    private WinTun winTun;
+    private UdpNode udpNode;
 
     public NodeProcessHandler(SDWanNodeProperties properties,
-                              MemberNodeManager nodeManager) {
+                              SDWanNodeInfoManager nodeManager,
+                              WinTun winTun,
+                              UdpNode udpNode) {
         this.properties = properties;
         this.nodeManager = nodeManager;
+        this.winTun = winTun;
+        this.udpNode = udpNode;
     }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         SDWanProtos.SDWanAuthReq authReq = SDWanProtos.SDWanAuthReq.newBuilder()
                 .setNodeName(properties.getNodeName())
+                .setNodeUdpPort(properties.getNodeUdpPort())
                 .build();
         SDWanProtos.SDWanMessage message = SDWanProtos.SDWanMessage.newBuilder()
                 .setChannelId(ctx.channel().id().asShortText())
@@ -37,15 +44,20 @@ public class NodeProcessHandler extends SimpleChannelInboundHandler<SDWanProtos.
             case SDWanProtos.MsgType.AuthResp_VALUE: {
                 SDWanProtos.SDWanAuthResp authResp = SDWanProtos.SDWanAuthResp.parseFrom(msg.getData());
                 log.info("authResp: nodeIP={}, vip={}", authResp.getNodeIP(), authResp.getVip());
-                WinTun winTun = new WinTun(authResp.getVip(), authResp.getNetmaskPrefix());
-                winTun.start(properties.getNodeName());
+                winTun.start(authResp.getVip(), authResp.getNetmaskPrefix());
                 break;
             }
             case SDWanProtos.MsgType.NodeList_VALUE: {
                 SDWanProtos.SDWanNodeList nodeList = SDWanProtos.SDWanNodeList.parseFrom(msg.getData());
                 for (SDWanProtos.SDWanNode node : nodeList.getNodeList()) {
-                    log.info("nodeList: nodeName={}, vip={}", node.getNodeName(), node.getVip());
-                    nodeManager.add(node.getNodeName(), node.getVip());
+                    log.info("nodeList: nodeName={}, nodeIP={}, vip={}, nodeUdpPort={}",
+                            node.getNodeName(), node.getNodeIP(), node.getVip(), node.getNodeUdpPort());
+                    SDWanNodeInfo nodeInfo = new SDWanNodeInfo();
+                    nodeInfo.setNodeName(node.getNodeName());
+                    nodeInfo.setNodeIP(node.getNodeIP());
+                    nodeInfo.setVip(node.getVip());
+                    nodeInfo.setNodeUdpPort(node.getNodeUdpPort());
+                    nodeManager.add(nodeInfo);
                 }
                 break;
             }

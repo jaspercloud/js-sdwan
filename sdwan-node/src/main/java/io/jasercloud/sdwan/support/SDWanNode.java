@@ -1,6 +1,7 @@
 package io.jasercloud.sdwan.support;
 
 import io.jaspercloud.sdwan.NioEventLoopFactory;
+import io.jaspercloud.sdwan.WinTun;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -28,7 +29,13 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
     private Channel channel;
 
     @Autowired
-    private MemberNodeManager nodeManager;
+    private SDWanNodeInfoManager nodeManager;
+
+    @Autowired
+    private WinTun winTun;
+
+    @Autowired
+    private UdpNode udpNode;
 
     public SDWanNode(SDWanNodeProperties properties) {
         this.properties = properties;
@@ -51,7 +58,7 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                         pipeline.addLast(new ProtobufDecoder(SDWanProtos.SDWanMessage.getDefaultInstance()));
                         pipeline.addLast(new ProtobufVarint32LengthFieldPrepender());
                         pipeline.addLast(new ProtobufEncoder());
-                        pipeline.addLast(new NodeProcessHandler(properties, nodeManager));
+                        pipeline.addLast(new NodeProcessHandler(properties, nodeManager, winTun, udpNode));
                     }
                 });
         InetSocketAddress address = new InetSocketAddress(properties.getControllerHost(), properties.getControllerPort());

@@ -27,8 +27,10 @@ public class ControllerProcessHandler extends SimpleChannelInboundHandler<SDWanP
             case SDWanProtos.MsgType.AuthReq_VALUE: {
                 SDWanProtos.SDWanAuthReq authReq = SDWanProtos.SDWanAuthReq.parseFrom(msg.getData());
                 String nodeName = authReq.getNodeName();
+                AttributeKeys.nodeIP(ctx.channel()).set(address.getHostName());
                 String vip = properties.getNodeIpMap().get(nodeName);
                 AttributeKeys.vip(ctx.channel()).set(vip);
+                AttributeKeys.nodeUdpPort(ctx.channel()).set(authReq.getNodeUdpPort());
                 nodeManager.add(nodeName, ctx.channel());
                 {
                     SDWanProtos.SDWanAuthResp authResp = SDWanProtos.SDWanAuthResp
@@ -50,10 +52,15 @@ public class ControllerProcessHandler extends SimpleChannelInboundHandler<SDWanP
                     Map<String, Channel> channelMap = nodeManager.getChannelMap();
                     for (Map.Entry<String, Channel> entry : channelMap.entrySet()) {
                         String itemNodeName = entry.getKey();
-                        String itemVip = AttributeKeys.vip(entry.getValue()).get();
+                        Channel channel = entry.getValue();
+                        String nodeIP = AttributeKeys.nodeIP(channel).get();
+                        String itemVip = AttributeKeys.vip(channel).get();
+                        Integer nodeUdpPort = AttributeKeys.nodeUdpPort(channel).get();
                         builder.addNode(SDWanProtos.SDWanNode.newBuilder()
                                 .setNodeName(itemNodeName)
+                                .setNodeIP(nodeIP)
                                 .setVip(itemVip)
+                                .setNodeUdpPort(nodeUdpPort)
                                 .build());
                     }
                     SDWanProtos.SDWanNodeList nodeList = builder.build();

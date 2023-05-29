@@ -18,6 +18,7 @@ message SDWanMessage {
 
 message SDWanAuthReq {
   required string nodeName = 1;
+  required int32 nodeUdpPort = 2;
 }
 
 message SDWanAuthResp {
@@ -28,7 +29,9 @@ message SDWanAuthResp {
 
 message SDWanNode {
   required string nodeName = 1;
-  required string vip = 2;
+  required string nodeIP = 2;
+  required string vip = 3;
+  required int32 nodeUdpPort = 4;
 }
 
 message SDWanNodeList {
@@ -36,4 +39,11 @@ message SDWanNodeList {
 }
 
 message SDWanHeart {
+}
+
+message UdpTunnelData {
+  required MsgType type = 1;
+  required string src = 2;
+  required string dest = 3;
+  optional bytes data = 4;
 }
