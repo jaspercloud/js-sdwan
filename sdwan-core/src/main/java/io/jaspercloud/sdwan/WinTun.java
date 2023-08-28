@@ -1,9 +1,7 @@
 package io.jaspercloud.sdwan;
 
-import com.google.protobuf.ByteString;
 import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
-import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.util.internal.PlatformDependent;
@@ -27,6 +25,10 @@ public class WinTun {
     private TunnelDataHandler handler;
     private Channel channel;
 
+    public Channel getChannel() {
+        return channel;
+    }
+
     public WinTun(String ifName, TunnelDataHandler handler) {
         this.ifName = ifName;
         this.handler = handler;
@@ -41,7 +43,27 @@ public class WinTun {
                     @Override
                     protected void initChannel(final Channel ch) {
                         ChannelPipeline pipeline = ch.pipeline();
-                        pipeline.addLast(new TunProcessHandler(ifName, handler));
+                        pipeline.addLast(new TunWriteHandler(ifName));
+                        pipeline.addLast(new TunReadHandler(ifName, handler));
+                        pipeline.addLast(new ChannelInboundHandlerAdapter() {
+                            @Override
+                            public void channelActive(ChannelHandlerContext ctx) throws Exception {
+                                super.channelActive(ctx);
+                                System.out.println(String.format("channelActive: %s", ifName));
+                            }
+
+                            @Override
+                            public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+                                super.channelInactive(ctx);
+                                System.out.println(String.format("channelInactive: %s", ifName));
+                            }
+
+                            @Override
+                            public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+                                super.exceptionCaught(ctx, cause);
+                                System.out.println(String.format("exceptionCaught: %s", ifName));
+                            }
+                        });
                     }
                 });
         ChannelFuture future = bootstrap.bind(new TunAddress(ifName));
@@ -64,7 +86,7 @@ public class WinTun {
             final Pointer interfaceLuid = new Memory(8);
             WintunGetAdapterLUID(adapter, interfaceLuid);
             AddressAndNetmaskHelper.setIPv4AndNetmask(interfaceLuid, address, netmaskPrefix);
-            exec(String.format("netsh interface ipv4 set subinterface \"%s\" mtu=1400 store=persistent", ifName));
+            exec(String.format("netsh interface ipv4 set subinterface \"%s\" mtu=1400 store=active", ifName));
         } else {
             // Linux
             exec(String.format("/sbin/ip addr add %s/%s dev %s", address, netmaskPrefix, ifName));
@@ -74,44 +96,78 @@ public class WinTun {
         System.out.println("Address and netmask assigned: " + address + '/' + netmaskPrefix);
     }
 
-    private static class TunProcessHandler extends SimpleChannelInboundHandler<Tun4Packet> {
+    private static class TunWriteHandler extends ChannelOutboundHandlerAdapter {
+
+        private String ifName;
+
+        public TunWriteHandler(String ifName) {
+            this.ifName = ifName;
+        }
+
+        @Override
+        public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+            if (msg instanceof Tun4Packet) {
+                Tun4Packet packet = (Tun4Packet) msg;
+                String protocol = InetProtocol.protocolByDecimal(packet.protocol());
+                String srcAddr = packet.sourceAddress().getHostAddress();
+                String destAddr = packet.destinationAddress().getHostAddress();
+                int readableBytes = packet.content().readableBytes();
+                log.debug("send: ifName={}, protocol={}, src={}, dest={}, size={}",
+                        ifName, protocol, srcAddr, destAddr, readableBytes);
+                super.write(ctx, msg, promise);
+            } else {
+                super.write(ctx, msg, promise);
+            }
+        }
+    }
+
+    private static class TunReadHandler extends ChannelInboundHandlerAdapter {
 
         private String ifName;
         private TunnelDataHandler handler;
 
-        public TunProcessHandler(String ifName, TunnelDataHandler handler) {
+        public TunReadHandler(String ifName, TunnelDataHandler handler) {
             this.ifName = ifName;
             this.handler = handler;
         }
 
         @Override
-        protected void channelRead0(final ChannelHandlerContext ctx,
-                                    final Tun4Packet packet) {
-            if (packet.protocol() != InetProtocol.TCP.decimal) {
-                return;
+        public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+            if (msg instanceof Tun4Packet) {
+                Tun4Packet packet = (Tun4Packet) msg;
+                String protocol = InetProtocol.protocolByDecimal(packet.protocol());
+                String srcAddr = packet.sourceAddress().getHostAddress();
+                String destAddr = packet.destinationAddress().getHostAddress();
+                if (destAddr.startsWith("224.0.0.")) {
+                    return;
+                }
+                if ("10.1.0.255".equals(destAddr)) {
+                    return;
+                }
+                if ("10.2.0.255".equals(destAddr)) {
+                    return;
+                }
+                if ("239.255.255.250".equals(destAddr)) {
+                    return;
+                }
+//                if (!Arrays.asList("TCP", "ICMP").contains(protocol)) {
+//                    return;
+//                }
+                int readableBytes = packet.content().readableBytes();
+                log.debug("recv: ifName={}, protocol={}, src={}, dest={}, size={}",
+                        ifName, protocol, srcAddr, destAddr, readableBytes);
+                handler.process(ctx, packet);
+            } else {
+                super.channelRead(ctx, msg);
             }
-            String srcAddr = packet.sourceAddress().getHostAddress();
-            String destAddr = packet.destinationAddress().getHostAddress();
-            int readableBytes = packet.content().readableBytes();
-            log.debug("recv: ifName={}, src={}, dest={}, size={}", ifName, srcAddr, destAddr, readableBytes);
-            byte[] bytes = new byte[readableBytes];
-            packet.content().readBytes(bytes);
-            SDWanProtos.UdpTunnelData tunnelData = SDWanProtos.UdpTunnelData.newBuilder()
-                    .setType(SDWanProtos.MsgType.TunnelData)
-                    .setSrc(srcAddr)
-                    .setDest(destAddr)
-                    .setData(ByteString.copyFrom(bytes))
-                    .build();
-            handler.process(tunnelData);
         }
     }
 
-    public void write(Tun4Packet packet) {
-        log.debug("send: ifName={}, dest={} size={}", ifName, packet.destinationAddress().getHostAddress(), packet.content().readableBytes());
+    public void writeAndFlush(Tun4Packet packet) {
         channel.writeAndFlush(packet);
     }
 
-    private static void exec(String command) throws IOException {
+    public static void exec(String command) throws IOException {
         exec(command.split(" "));
     }
 
@@ -128,6 +184,6 @@ public class WinTun {
 
     public interface TunnelDataHandler {
 
-        void process(SDWanProtos.UdpTunnelData tunnelData);
+        void process(ChannelHandlerContext ctx, Tun4Packet packet) throws Exception;
     }
 }
