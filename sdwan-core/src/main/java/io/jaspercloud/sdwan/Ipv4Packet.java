@@ -2,6 +2,7 @@ package io.jaspercloud.sdwan;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import org.springframework.util.Assert;
 
 import java.net.InetAddress;
 
@@ -73,6 +74,7 @@ public class Ipv4Packet {
     }
 
     public ByteBuf getPayload() {
+        payload.resetReaderIndex();
         return payload;
     }
 
@@ -97,7 +99,9 @@ public class Ipv4Packet {
         ipv4Packet.srcIP = InetAddress.getByAddress(tmp);
         byteBuf.readBytes(tmp);
         ipv4Packet.dstIP = InetAddress.getByAddress(tmp);
-        ipv4Packet.payload = byteBuf.readBytes(byteBuf.readableBytes());
+        ByteBuf buf = byteBuf.readBytes(byteBuf.readableBytes());
+        buf.markReaderIndex();
+        ipv4Packet.payload = buf;
         return ipv4Packet;
     }
 
@@ -111,12 +115,20 @@ public class Ipv4Packet {
         byteBuf.writeShort(flags);
         byteBuf.writeByte(liveTime);
         byteBuf.writeByte(protocol);
-        byteBuf.writeShort(calcChecksum());
+        int calcChecksum = calcChecksum();
+        Assert.isTrue(calcChecksum == checksum);
+        byteBuf.writeShort(calcChecksum);
         byteBuf.writeBytes(srcIP.getAddress());
         byteBuf.writeBytes(dstIP.getAddress());
-        payload.readerIndex(0);
-        byteBuf.writeBytes(payload);
+        byteBuf.writeBytes(getPayload());
         return byteBuf;
+    }
+
+    public byte[] encodeBytes() {
+        ByteBuf byteBuf = encode();
+        byte[] bytes = new byte[byteBuf.readableBytes()];
+        byteBuf.readBytes(bytes);
+        return bytes;
     }
 
     public int calcChecksum() {
@@ -137,8 +149,8 @@ public class Ipv4Packet {
             sum += byteBuf.readUnsignedShort();
         }
         int h = sum >> 16;
-        int l = sum & 0xffff;
-        int s = 0xffff - (h + l);
+        int l = sum & 0b1111111111111111;
+        int s = 0b1111111111111111 - (h + l);
         return s;
     }
 }
