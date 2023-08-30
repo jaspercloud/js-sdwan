@@ -149,8 +149,9 @@ public class Ipv4Packet {
             sum += byteBuf.readUnsignedShort();
         }
         int h = sum >> 16;
-        int l = sum & 0b1111111111111111;
-        int s = 0b1111111111111111 - (h + l);
-        return s;
+        int l = sum & 0b11111111_11111111;
+        sum = (h + l);
+        sum = 0b11111111_11111111 & ~sum;
+        return sum;
     }
 }
