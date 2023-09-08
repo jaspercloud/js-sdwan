@@ -2,7 +2,6 @@ package io.jaspercloud.sdwan;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import org.springframework.util.Assert;
 
 import java.net.InetAddress;
 
@@ -78,6 +77,10 @@ public class Ipv4Packet {
         return payload;
     }
 
+    public void setPayload(ByteBuf payload) {
+        this.payload = payload;
+    }
+
     private Ipv4Packet() {
 
     }
@@ -116,7 +119,7 @@ public class Ipv4Packet {
         byteBuf.writeByte(liveTime);
         byteBuf.writeByte(protocol);
         int calcChecksum = calcChecksum();
-        Assert.isTrue(calcChecksum == checksum);
+//        Assert.isTrue(calcChecksum == checksum);
         byteBuf.writeShort(calcChecksum);
         byteBuf.writeBytes(srcIP.getAddress());
         byteBuf.writeBytes(dstIP.getAddress());
