@@ -14,7 +14,7 @@ public class Ipv4Packet {
     private int id;
     private int flags;
     private short liveTime;
-    private short protocol;
+    private int protocol;
     private int checksum;
     private InetAddress srcIP;
     private InetAddress dstIP;
@@ -36,6 +36,10 @@ public class Ipv4Packet {
         return totalLen;
     }
 
+    public void setTotalLen(int totalLen) {
+        this.totalLen = totalLen;
+    }
+
     public int getId() {
         return id;
     }
@@ -48,8 +52,12 @@ public class Ipv4Packet {
         return liveTime;
     }
 
-    public short getProtocol() {
+    public int getProtocol() {
         return protocol;
+    }
+
+    public void setProtocol(int protocol) {
+        this.protocol = protocol;
     }
 
     public int getChecksum() {

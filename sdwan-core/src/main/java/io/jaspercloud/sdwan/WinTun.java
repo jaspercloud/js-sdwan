@@ -22,16 +22,14 @@ import static org.drasyl.channel.tun.jna.windows.Wintun.WintunGetAdapterLUID;
 public class WinTun {
 
     private String ifName;
-    private TunnelDataHandler handler;
     private Channel channel;
 
     public Channel getChannel() {
         return channel;
     }
 
-    public WinTun(String ifName, TunnelDataHandler handler) {
+    public WinTun(String ifName) {
         this.ifName = ifName;
-        this.handler = handler;
     }
 
     public void start(String address, int netmaskPrefix) throws IOException {
@@ -44,7 +42,7 @@ public class WinTun {
                     protected void initChannel(final Channel ch) {
                         ChannelPipeline pipeline = ch.pipeline();
                         pipeline.addLast(new TunWriteHandler(ifName));
-                        pipeline.addLast(new TunReadHandler(ifName, handler));
+                        pipeline.addLast(new TunReadHandler(ifName));
                         pipeline.addLast(new ChannelInboundHandlerAdapter() {
                             @Override
                             public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -124,11 +122,9 @@ public class WinTun {
     private static class TunReadHandler extends ChannelInboundHandlerAdapter {
 
         private String ifName;
-        private TunnelDataHandler handler;
 
-        public TunReadHandler(String ifName, TunnelDataHandler handler) {
+        public TunReadHandler(String ifName) {
             this.ifName = ifName;
-            this.handler = handler;
         }
 
         @Override
@@ -138,25 +134,10 @@ public class WinTun {
                 String protocol = InetProtocol.protocolByDecimal(packet.protocol());
                 String srcAddr = packet.sourceAddress().getHostAddress();
                 String destAddr = packet.destinationAddress().getHostAddress();
-                if (destAddr.startsWith("224.0.0.")) {
-                    return;
-                }
-                if ("10.1.0.255".equals(destAddr)) {
-                    return;
-                }
-                if ("10.2.0.255".equals(destAddr)) {
-                    return;
-                }
-                if ("239.255.255.250".equals(destAddr)) {
-                    return;
-                }
-//                if (!Arrays.asList("TCP", "ICMP").contains(protocol)) {
-//                    return;
-//                }
                 int readableBytes = packet.content().readableBytes();
                 log.debug("recv: ifName={}, protocol={}, src={}, dest={}, size={}",
                         ifName, protocol, srcAddr, destAddr, readableBytes);
-                handler.process(ctx, packet);
+                super.channelRead(ctx, msg);
             } else {
                 super.channelRead(ctx, msg);
             }
@@ -180,10 +161,5 @@ public class WinTun {
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-    }
-
-    public interface TunnelDataHandler {
-
-        void process(ChannelHandlerContext ctx, Tun4Packet packet) throws Exception;
     }
 }
