@@ -24,6 +24,7 @@ public class TcpPacket {
     private int checksum;
     private int urgentPointer;
     private ByteBuf optionsByteBuf;
+    private ByteBuf payload;
 
     public int getSrcPort() {
         return srcPort;
@@ -102,6 +103,11 @@ public class TcpPacket {
         return optionsByteBuf;
     }
 
+    public ByteBuf getPayload() {
+        payload.resetReaderIndex();
+        return payload;
+    }
+
     private TcpPacket() {
 
     }
@@ -114,7 +120,8 @@ public class TcpPacket {
         tcpPacket.ack = byteBuf.readUnsignedInt();
         int flags = byteBuf.readUnsignedShort();
         tcpPacket.flags = flags;
-        tcpPacket.headLen = ((flags & 0b11110000_00000000) >> 12) * 4;
+        int headLen = ((flags & 0b11110000_00000000) >> 12) * 4;
+        tcpPacket.headLen = headLen;
         tcpPacket.reservedFlag = (flags & 0b00000001_00000000) >> 8;
         tcpPacket.accurateECNFlag = (flags & 0b00000000_10000000) >> 7;
         tcpPacket.echoFlag = (flags & 0b00000000_01000000) >> 6;
@@ -127,9 +134,12 @@ public class TcpPacket {
         tcpPacket.window = byteBuf.readUnsignedShort();
         tcpPacket.checksum = byteBuf.readUnsignedShort();
         tcpPacket.urgentPointer = byteBuf.readUnsignedShort();
-        ByteBuf buf = byteBuf.readBytes(byteBuf.readableBytes());
-        buf.markReaderIndex();
-        tcpPacket.optionsByteBuf = buf;
+        ByteBuf optionsByteBuf = byteBuf.readBytes(headLen - 20);
+        optionsByteBuf.markReaderIndex();
+        tcpPacket.optionsByteBuf = optionsByteBuf;
+        ByteBuf payload = byteBuf.readBytes(byteBuf.readableBytes());
+        payload.markReaderIndex();
+        tcpPacket.payload = payload;
         return tcpPacket;
     }
 
