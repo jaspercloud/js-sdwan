@@ -30,72 +30,144 @@ public class TcpPacket {
         return srcPort;
     }
 
+    public void setSrcPort(int srcPort) {
+        this.srcPort = srcPort;
+    }
+
     public int getDstPort() {
         return dstPort;
+    }
+
+    public void setDstPort(int dstPort) {
+        this.dstPort = dstPort;
     }
 
     public long getSeq() {
         return seq;
     }
 
+    public void setSeq(long seq) {
+        this.seq = seq;
+    }
+
     public long getAck() {
         return ack;
+    }
+
+    public void setAck(long ack) {
+        this.ack = ack;
     }
 
     public int getFlags() {
         return flags;
     }
 
+    public void setFlags(int flags) {
+        this.flags = flags;
+    }
+
     public int getHeadLen() {
         return headLen;
+    }
+
+    public void setHeadLen(int headLen) {
+        this.headLen = headLen;
     }
 
     public int getReservedFlag() {
         return reservedFlag;
     }
 
+    public void setReservedFlag(int reservedFlag) {
+        this.reservedFlag = reservedFlag;
+    }
+
     public int getAccurateECNFlag() {
         return accurateECNFlag;
+    }
+
+    public void setAccurateECNFlag(int accurateECNFlag) {
+        this.accurateECNFlag = accurateECNFlag;
     }
 
     public int getEchoFlag() {
         return echoFlag;
     }
 
+    public void setEchoFlag(int echoFlag) {
+        this.echoFlag = echoFlag;
+    }
+
     public int getUrgFlag() {
         return urgFlag;
+    }
+
+    public void setUrgFlag(int urgFlag) {
+        this.urgFlag = urgFlag;
     }
 
     public int getAckFlag() {
         return ackFlag;
     }
 
+    public void setAckFlag(int ackFlag) {
+        this.ackFlag = ackFlag;
+    }
+
     public int getPshFlag() {
         return pshFlag;
+    }
+
+    public void setPshFlag(int pshFlag) {
+        this.pshFlag = pshFlag;
     }
 
     public int getRstFlag() {
         return rstFlag;
     }
 
+    public void setRstFlag(int rstFlag) {
+        this.rstFlag = rstFlag;
+    }
+
     public int getSynFlag() {
         return synFlag;
+    }
+
+    public void setSynFlag(int synFlag) {
+        this.synFlag = synFlag;
     }
 
     public int getFinFlag() {
         return finFlag;
     }
 
+    public void setFinFlag(int finFlag) {
+        this.finFlag = finFlag;
+    }
+
     public int getWindow() {
         return window;
+    }
+
+    public void setWindow(int window) {
+        this.window = window;
     }
 
     public int getChecksum() {
         return checksum;
     }
 
+    public void setChecksum(int checksum) {
+        this.checksum = checksum;
+    }
+
     public int getUrgentPointer() {
         return urgentPointer;
+    }
+
+    public void setUrgentPointer(int urgentPointer) {
+        this.urgentPointer = urgentPointer;
     }
 
     public ByteBuf getOptionsByteBuf() {
@@ -103,16 +175,26 @@ public class TcpPacket {
         return optionsByteBuf;
     }
 
+    public void setOptionsByteBuf(ByteBuf optionsByteBuf) {
+        optionsByteBuf.markReaderIndex();
+        this.optionsByteBuf = optionsByteBuf;
+    }
+
     public ByteBuf getPayload() {
         payload.resetReaderIndex();
         return payload;
+    }
+
+    public void setPayload(ByteBuf payload) {
+        payload.markReaderIndex();
+        this.payload = payload;
     }
 
     private TcpPacket() {
 
     }
 
-    public static TcpPacket decode(ByteBuf byteBuf) throws Exception {
+    public static TcpPacket decode(ByteBuf byteBuf) {
         TcpPacket tcpPacket = new TcpPacket();
         tcpPacket.srcPort = byteBuf.readUnsignedShort();
         tcpPacket.dstPort = byteBuf.readUnsignedShort();
@@ -160,7 +242,7 @@ public class TcpPacket {
         return byteBuf;
     }
 
-    public int calcChecksum(Ipv4Packet ipv4Packet) {
+    private int calcChecksum(Ipv4Packet ipv4Packet) {
         ByteBuf byteBuf = Unpooled.buffer();
         byteBuf.writeBytes(ipv4Packet.getSrcIP().getAddress());
         byteBuf.writeBytes(ipv4Packet.getDstIP().getAddress());

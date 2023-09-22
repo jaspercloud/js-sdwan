@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 public class Ipv4Packet {
 
@@ -20,16 +21,28 @@ public class Ipv4Packet {
     private InetAddress dstIP;
     private ByteBuf payload;
 
-    public int getVersion() {
+    public short getVersion() {
         return version;
     }
 
-    public int getHeaderLen() {
+    public void setVersion(short version) {
+        this.version = version;
+    }
+
+    public short getHeaderLen() {
         return headerLen;
+    }
+
+    public void setHeaderLen(short headerLen) {
+        this.headerLen = headerLen;
     }
 
     public short getDiffServices() {
         return diffServices;
+    }
+
+    public void setDiffServices(short diffServices) {
+        this.diffServices = diffServices;
     }
 
     public int getTotalLen() {
@@ -44,12 +57,24 @@ public class Ipv4Packet {
         return id;
     }
 
+    public void setId(int id) {
+        this.id = id;
+    }
+
     public int getFlags() {
         return flags;
     }
 
+    public void setFlags(int flags) {
+        this.flags = flags;
+    }
+
     public short getLiveTime() {
         return liveTime;
+    }
+
+    public void setLiveTime(short liveTime) {
+        this.liveTime = liveTime;
     }
 
     public int getProtocol() {
@@ -64,16 +89,20 @@ public class Ipv4Packet {
         return checksum;
     }
 
+    public void setChecksum(int checksum) {
+        this.checksum = checksum;
+    }
+
     public InetAddress getSrcIP() {
         return srcIP;
     }
 
-    public InetAddress getDstIP() {
-        return dstIP;
-    }
-
     public void setSrcIP(InetAddress srcIP) {
         this.srcIP = srcIP;
+    }
+
+    public InetAddress getDstIP() {
+        return dstIP;
     }
 
     public void setDstIP(InetAddress dstIP) {
@@ -86,6 +115,7 @@ public class Ipv4Packet {
     }
 
     public void setPayload(ByteBuf payload) {
+        payload.markReaderIndex();
         this.payload = payload;
     }
 
@@ -93,7 +123,7 @@ public class Ipv4Packet {
 
     }
 
-    public static Ipv4Packet decode(ByteBuf byteBuf) throws Exception {
+    public static Ipv4Packet decode(ByteBuf byteBuf) {
         Ipv4Packet ipv4Packet = new Ipv4Packet();
         short head = byteBuf.readUnsignedByte();
         ipv4Packet.version = (byte) (head >> 4);
@@ -107,9 +137,9 @@ public class Ipv4Packet {
         ipv4Packet.checksum = byteBuf.readUnsignedShort();
         byte[] tmp = new byte[4];
         byteBuf.readBytes(tmp);
-        ipv4Packet.srcIP = InetAddress.getByAddress(tmp);
+        ipv4Packet.srcIP = getByAddress(tmp);
         byteBuf.readBytes(tmp);
-        ipv4Packet.dstIP = InetAddress.getByAddress(tmp);
+        ipv4Packet.dstIP = getByAddress(tmp);
         ByteBuf buf = byteBuf.readBytes(byteBuf.readableBytes());
         buf.markReaderIndex();
         ipv4Packet.payload = buf;
@@ -135,14 +165,7 @@ public class Ipv4Packet {
         return byteBuf;
     }
 
-    public byte[] encodeBytes() {
-        ByteBuf byteBuf = encode();
-        byte[] bytes = new byte[byteBuf.readableBytes()];
-        byteBuf.readBytes(bytes);
-        return bytes;
-    }
-
-    public int calcChecksum() {
+    private int calcChecksum() {
         ByteBuf byteBuf = Unpooled.buffer();
         byte head = (byte) ((version << 4) | (headerLen / 4));
         byteBuf.writeByte(head);
@@ -152,9 +175,14 @@ public class Ipv4Packet {
         byteBuf.writeShort(flags);
         byteBuf.writeByte(liveTime);
         byteBuf.writeByte(protocol);
+        //checksum字段置为0
         byteBuf.writeShort(0);
         byteBuf.writeBytes(srcIP.getAddress());
         byteBuf.writeBytes(dstIP.getAddress());
+        //数据长度为奇数，在该字节之后补一个字节
+        if (0 != byteBuf.readableBytes() % 2) {
+            byteBuf.writeByte(0);
+        }
         int sum = 0;
         while (byteBuf.readableBytes() > 0) {
             sum += byteBuf.readUnsignedShort();
@@ -164,5 +192,14 @@ public class Ipv4Packet {
         sum = (h + l);
         sum = 0b11111111_11111111 & ~sum;
         return sum;
+    }
+
+    private static InetAddress getByAddress(byte[] bytes) {
+        try {
+            InetAddress address = InetAddress.getByAddress(bytes);
+            return address;
+        } catch (UnknownHostException e) {
+            return null;
+        }
     }
 }
