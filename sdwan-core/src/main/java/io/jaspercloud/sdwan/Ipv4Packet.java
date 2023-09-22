@@ -1,7 +1,6 @@
 package io.jaspercloud.sdwan;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -126,28 +125,27 @@ public class Ipv4Packet {
     public static Ipv4Packet decode(ByteBuf byteBuf) {
         Ipv4Packet ipv4Packet = new Ipv4Packet();
         short head = byteBuf.readUnsignedByte();
-        ipv4Packet.version = (byte) (head >> 4);
-        ipv4Packet.headerLen = (byte) ((head & 0b00001111) * 4);
-        ipv4Packet.diffServices = byteBuf.readUnsignedByte();
-        ipv4Packet.totalLen = byteBuf.readUnsignedShort();
-        ipv4Packet.id = byteBuf.readUnsignedShort();
-        ipv4Packet.flags = byteBuf.readUnsignedShort();
-        ipv4Packet.liveTime = byteBuf.readUnsignedByte();
-        ipv4Packet.protocol = byteBuf.readUnsignedByte();
-        ipv4Packet.checksum = byteBuf.readUnsignedShort();
+        ipv4Packet.setVersion((byte) (head >> 4));
+        ipv4Packet.setHeaderLen((byte) ((head & 0b00001111) * 4));
+        ipv4Packet.setDiffServices(byteBuf.readUnsignedByte());
+        ipv4Packet.setTotalLen(byteBuf.readUnsignedShort());
+        ipv4Packet.setId(byteBuf.readUnsignedShort());
+        ipv4Packet.setFlags(byteBuf.readUnsignedShort());
+        ipv4Packet.setLiveTime(byteBuf.readUnsignedByte());
+        ipv4Packet.setProtocol(byteBuf.readUnsignedByte());
+        ipv4Packet.setChecksum(byteBuf.readUnsignedShort());
         byte[] tmp = new byte[4];
         byteBuf.readBytes(tmp);
-        ipv4Packet.srcIP = getByAddress(tmp);
+        ipv4Packet.setSrcIP(getByAddress(tmp));
         byteBuf.readBytes(tmp);
-        ipv4Packet.dstIP = getByAddress(tmp);
-        ByteBuf buf = byteBuf.readBytes(byteBuf.readableBytes());
-        buf.markReaderIndex();
-        ipv4Packet.payload = buf;
+        ipv4Packet.setDstIP(getByAddress(tmp));
+        ByteBuf payload = byteBuf.readBytes(byteBuf.readableBytes());
+        ipv4Packet.setPayload(payload);
         return ipv4Packet;
     }
 
     public ByteBuf encode() {
-        ByteBuf byteBuf = Unpooled.buffer();
+        ByteBuf byteBuf = ByteBufUtil.newPacketBuf();
         byte head = (byte) ((version << 4) | (headerLen / 4));
         byteBuf.writeByte(head);
         byteBuf.writeByte(diffServices);
@@ -157,7 +155,6 @@ public class Ipv4Packet {
         byteBuf.writeByte(liveTime);
         byteBuf.writeByte(protocol);
         int calcChecksum = calcChecksum();
-//        Assert.isTrue(calcChecksum == checksum);
         byteBuf.writeShort(calcChecksum);
         byteBuf.writeBytes(srcIP.getAddress());
         byteBuf.writeBytes(dstIP.getAddress());
@@ -166,7 +163,7 @@ public class Ipv4Packet {
     }
 
     private int calcChecksum() {
-        ByteBuf byteBuf = Unpooled.buffer();
+        ByteBuf byteBuf = ByteBufUtil.newPacketBuf();
         byte head = (byte) ((version << 4) | (headerLen / 4));
         byteBuf.writeByte(head);
         byteBuf.writeByte(diffServices);

@@ -1,7 +1,6 @@
 package io.jaspercloud.sdwan;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 
 public class TcpPacket {
 
@@ -196,37 +195,35 @@ public class TcpPacket {
 
     public static TcpPacket decode(ByteBuf byteBuf) {
         TcpPacket tcpPacket = new TcpPacket();
-        tcpPacket.srcPort = byteBuf.readUnsignedShort();
-        tcpPacket.dstPort = byteBuf.readUnsignedShort();
-        tcpPacket.seq = byteBuf.readUnsignedInt();
-        tcpPacket.ack = byteBuf.readUnsignedInt();
+        tcpPacket.setSrcPort(byteBuf.readUnsignedShort());
+        tcpPacket.setDstPort(byteBuf.readUnsignedShort());
+        tcpPacket.setSeq(byteBuf.readUnsignedInt());
+        tcpPacket.setAck(byteBuf.readUnsignedInt());
         int flags = byteBuf.readUnsignedShort();
-        tcpPacket.flags = flags;
+        tcpPacket.setFlags(flags);
         int headLen = ((flags & 0b11110000_00000000) >> 12) * 4;
-        tcpPacket.headLen = headLen;
-        tcpPacket.reservedFlag = (flags & 0b00000001_00000000) >> 8;
-        tcpPacket.accurateECNFlag = (flags & 0b00000000_10000000) >> 7;
-        tcpPacket.echoFlag = (flags & 0b00000000_01000000) >> 6;
-        tcpPacket.urgFlag = (flags & 0b00000000_00100000) >> 5;
-        tcpPacket.ackFlag = (flags & 0b00000000_00010000) >> 4;
-        tcpPacket.pshFlag = (flags & 0b00000000_00001000) >> 3;
-        tcpPacket.rstFlag = (flags & 0b00000000_00000100) >> 2;
-        tcpPacket.synFlag = (flags & 0b00000000_00000010) >> 1;
-        tcpPacket.finFlag = (flags & 0b00000000_00000001) >> 0;
-        tcpPacket.window = byteBuf.readUnsignedShort();
-        tcpPacket.checksum = byteBuf.readUnsignedShort();
-        tcpPacket.urgentPointer = byteBuf.readUnsignedShort();
+        tcpPacket.setHeadLen(headLen);
+        tcpPacket.setReservedFlag((flags & 0b00000001_00000000) >> 8);
+        tcpPacket.setAccurateECNFlag((flags & 0b00000000_10000000) >> 7);
+        tcpPacket.setEchoFlag((flags & 0b00000000_01000000) >> 6);
+        tcpPacket.setUrgFlag((flags & 0b00000000_00100000) >> 5);
+        tcpPacket.setAckFlag((flags & 0b00000000_00010000) >> 4);
+        tcpPacket.setPshFlag((flags & 0b00000000_00001000) >> 3);
+        tcpPacket.setRstFlag((flags & 0b00000000_00000100) >> 2);
+        tcpPacket.setSynFlag((flags & 0b00000000_00000010) >> 1);
+        tcpPacket.setFinFlag((flags & 0b00000000_00000001) >> 0);
+        tcpPacket.setWindow(byteBuf.readUnsignedShort());
+        tcpPacket.setChecksum(byteBuf.readUnsignedShort());
+        tcpPacket.setUrgentPointer(byteBuf.readUnsignedShort());
         ByteBuf optionsByteBuf = byteBuf.readBytes(headLen - 20);
-        optionsByteBuf.markReaderIndex();
-        tcpPacket.optionsByteBuf = optionsByteBuf;
+        tcpPacket.setOptionsByteBuf(optionsByteBuf);
         ByteBuf payload = byteBuf.readBytes(byteBuf.readableBytes());
-        payload.markReaderIndex();
-        tcpPacket.payload = payload;
+        tcpPacket.setPayload(payload);
         return tcpPacket;
     }
 
     public ByteBuf encode(Ipv4Packet ipv4Packet) {
-        ByteBuf byteBuf = Unpooled.buffer();
+        ByteBuf byteBuf = ByteBufUtil.newPacketBuf();
         byteBuf.writeShort(srcPort);
         byteBuf.writeShort(dstPort);
         byteBuf.writeInt((int) seq);
@@ -234,7 +231,6 @@ public class TcpPacket {
         byteBuf.writeShort(flags);
         byteBuf.writeShort(window);
         int calcChecksum = calcChecksum(ipv4Packet);
-//        Assert.isTrue(calcChecksum == checksum);
         byteBuf.writeShort(calcChecksum);
         byteBuf.writeShort(urgentPointer);
         byteBuf.writeBytes(getOptionsByteBuf());
@@ -243,7 +239,7 @@ public class TcpPacket {
     }
 
     private int calcChecksum(Ipv4Packet ipv4Packet) {
-        ByteBuf byteBuf = Unpooled.buffer();
+        ByteBuf byteBuf = ByteBufUtil.newPacketBuf();
         byteBuf.writeBytes(ipv4Packet.getSrcIP().getAddress());
         byteBuf.writeBytes(ipv4Packet.getDstIP().getAddress());
         byteBuf.writeByte(0);
