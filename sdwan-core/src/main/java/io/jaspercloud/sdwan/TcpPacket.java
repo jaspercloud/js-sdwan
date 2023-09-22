@@ -156,6 +156,7 @@ public class TcpPacket {
         byteBuf.writeShort(calcChecksum);
         byteBuf.writeShort(urgentPointer);
         byteBuf.writeBytes(getOptionsByteBuf());
+        byteBuf.writeBytes(getPayload());
         return byteBuf;
     }
 
@@ -172,9 +173,12 @@ public class TcpPacket {
         byteBuf.writeInt((int) ack);
         byteBuf.writeShort(flags);
         byteBuf.writeShort(window);
+        //checksum字段置为0
         byteBuf.writeShort(0);
         byteBuf.writeShort(urgentPointer);
         byteBuf.writeBytes(getOptionsByteBuf());
+        byteBuf.writeBytes(getPayload());
+        //数据长度为奇数，在该字节之后补一个字节
         if (0 != byteBuf.readableBytes() % 2) {
             byteBuf.writeByte(0);
         }
