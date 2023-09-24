@@ -1,4 +1,4 @@
-package io.jaspercloud.sdwan;
+package io.jaspercloud.sdwan.tun;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;

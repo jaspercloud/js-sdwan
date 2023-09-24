@@ -1,22 +1,15 @@
-package io.jaspercloud.sdwan;
+package io.jaspercloud.sdwan.tun;
 
-import com.sun.jna.Memory;
-import com.sun.jna.Pointer;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.util.internal.PlatformDependent;
 import lombok.extern.slf4j.Slf4j;
-import org.drasyl.AddressAndNetmaskHelper;
 import org.drasyl.channel.tun.InetProtocol;
 import org.drasyl.channel.tun.Tun4Packet;
 import org.drasyl.channel.tun.TunAddress;
 import org.drasyl.channel.tun.TunChannel;
-import org.drasyl.channel.tun.jna.windows.WindowsTunDevice;
-import org.drasyl.channel.tun.jna.windows.Wintun;
 
 import java.io.IOException;
-
-import static org.drasyl.channel.tun.jna.windows.Wintun.WintunGetAdapterLUID;
 
 @Slf4j
 public class WinTun {
@@ -80,10 +73,7 @@ public class WinTun {
             exec("/sbin/route", "add", "-net", address + '/' + netmaskPrefix, "-iface", name);
         } else if (PlatformDependent.isWindows()) {
             // Windows
-            final Wintun.WINTUN_ADAPTER_HANDLE adapter = ((WindowsTunDevice) ((TunChannel) channel).device()).adapter();
-            final Pointer interfaceLuid = new Memory(8);
-            WintunGetAdapterLUID(adapter, interfaceLuid);
-            AddressAndNetmaskHelper.setIPv4AndNetmask(interfaceLuid, address, netmaskPrefix);
+            exec(String.format("netsh interface ipv4 set address name=\"%s\" static %s/%s", ifName, address, netmaskPrefix));
             exec(String.format("netsh interface ipv4 set subinterface \"%s\" mtu=1400 store=active", ifName));
         } else {
             // Linux
