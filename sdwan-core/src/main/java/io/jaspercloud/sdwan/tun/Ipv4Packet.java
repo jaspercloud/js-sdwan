@@ -8,6 +8,7 @@ import java.net.UnknownHostException;
 public class Ipv4Packet {
 
     private short version;
+    //IPV4+(TCP/UDP)
     private short headerLen;
     private short diffServices;
     private int totalLen;

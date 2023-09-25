@@ -9,6 +9,7 @@ public class TcpPacket {
     private long seq;
     private long ack;
     private int flags;
+    //TCPHead+Options
     private int headLen;
     private int reservedFlag;
     private int accurateECNFlag;
@@ -201,8 +202,8 @@ public class TcpPacket {
         tcpPacket.setAck(byteBuf.readUnsignedInt());
         int flags = byteBuf.readUnsignedShort();
         tcpPacket.setFlags(flags);
-        int headLen = ((flags & 0b11110000_00000000) >> 12) * 4;
-        tcpPacket.setHeadLen(headLen);
+        int tcpHeadLen = ((flags & 0b11110000_00000000) >> 12) * 4;
+        tcpPacket.setHeadLen(tcpHeadLen);
         tcpPacket.setReservedFlag((flags & 0b00000001_00000000) >> 8);
         tcpPacket.setAccurateECNFlag((flags & 0b00000000_10000000) >> 7);
         tcpPacket.setEchoFlag((flags & 0b00000000_01000000) >> 6);
@@ -215,7 +216,7 @@ public class TcpPacket {
         tcpPacket.setWindow(byteBuf.readUnsignedShort());
         tcpPacket.setChecksum(byteBuf.readUnsignedShort());
         tcpPacket.setUrgentPointer(byteBuf.readUnsignedShort());
-        ByteBuf optionsByteBuf = byteBuf.readSlice(headLen - 20);
+        ByteBuf optionsByteBuf = byteBuf.readSlice(tcpHeadLen - 20);
         tcpPacket.setOptionsByteBuf(optionsByteBuf);
         ByteBuf payload = byteBuf.readSlice(byteBuf.readableBytes());
         tcpPacket.setPayload(payload);
