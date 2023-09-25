@@ -8,8 +8,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.util.ReferenceCountUtil;
-import org.drasyl.channel.tun.jna.shared.If;
-import org.drasyl.channel.tun.jna.shared.LibC;
 
 import java.util.UUID;
 
@@ -47,7 +45,7 @@ public class LinuxTunDevice extends TunDevice {
         @Structure.FieldOrder({"ifr_name", "ifr_ifru"})
         public static class Ifreq extends Structure {
             public byte[] ifr_name;
-            public If.Ifreq.FfrIfru ifr_ifru;
+            public FfrIfru ifr_ifru;
 
             public Ifreq(final String ifr_name, final short flags) {
                 this.ifr_name = new byte[IFNAMSIZ];
@@ -59,6 +57,9 @@ public class LinuxTunDevice extends TunDevice {
                 this.ifr_ifru.ifru_flags = flags;
             }
 
+            public static class FfrIfru extends Union {
+                public short ifru_flags;
+            }
         }
     }
 
@@ -71,8 +72,8 @@ public class LinuxTunDevice extends TunDevice {
 
     @Override
     public void open() throws Exception {
-        fd = LibC.open("/dev/net/tun", LinuxC.O_RDWR);
-        If.Ifreq ifreq = new If.Ifreq(getName(), (short) (LinuxC.IFF_TUN | LinuxC.IFF_NO_PI));
+        fd = LinuxC.open("/dev/net/tun", LinuxC.O_RDWR);
+        LinuxC.Ifreq ifreq = new LinuxC.Ifreq(getName(), (short) (LinuxC.IFF_TUN | LinuxC.IFF_NO_PI));
         LinuxC.ioctl(fd, LinuxC.TUNSETIFF, ifreq);
         setActive(true);
     }
