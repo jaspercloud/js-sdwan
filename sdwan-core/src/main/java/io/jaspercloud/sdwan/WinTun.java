@@ -1,4 +1,4 @@
-package io.jaspercloud.sdwan.tun;
+package io.jaspercloud.sdwan;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
