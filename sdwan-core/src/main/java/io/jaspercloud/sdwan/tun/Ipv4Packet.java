@@ -139,7 +139,7 @@ public class Ipv4Packet {
         ipv4Packet.setSrcIP(getByAddress(tmp));
         byteBuf.readBytes(tmp);
         ipv4Packet.setDstIP(getByAddress(tmp));
-        ByteBuf payload = byteBuf.readBytes(byteBuf.readableBytes());
+        ByteBuf payload = byteBuf.readSlice(byteBuf.readableBytes());
         ipv4Packet.setPayload(payload);
         return ipv4Packet;
     }

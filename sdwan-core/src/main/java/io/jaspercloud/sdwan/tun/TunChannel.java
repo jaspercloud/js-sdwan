@@ -149,6 +149,14 @@ public class TunChannel extends AbstractChannel {
 
     private int doReadMessages(List<Object> readBuf) {
         ByteBuf byteBuf = tunDevice.readPacket(config().getAllocator());
+        byteBuf.markReaderIndex();
+        byte version = (byte) (byteBuf.readUnsignedByte() >> 4);
+        if (4 != version) {
+            //read ipv4 only
+            byteBuf.release();
+            return 0;
+        }
+        byteBuf.resetReaderIndex();
         readBuf.add(byteBuf);
         return 1;
     }
@@ -228,7 +236,9 @@ public class TunChannel extends AbstractChannel {
                         pipeline.addLast(new ChannelInboundHandlerAdapter() {
                             @Override
                             public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-                                super.channelRead(ctx, msg);
+                                ByteBuf byteBuf = (ByteBuf) msg;
+                                Ipv4Packet ipv4Packet = Ipv4Packet.decode(byteBuf);
+                                System.out.println();
                             }
                         });
                     }

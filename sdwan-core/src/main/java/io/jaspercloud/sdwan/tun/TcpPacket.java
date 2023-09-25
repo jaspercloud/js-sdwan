@@ -215,9 +215,9 @@ public class TcpPacket {
         tcpPacket.setWindow(byteBuf.readUnsignedShort());
         tcpPacket.setChecksum(byteBuf.readUnsignedShort());
         tcpPacket.setUrgentPointer(byteBuf.readUnsignedShort());
-        ByteBuf optionsByteBuf = byteBuf.readBytes(headLen - 20);
+        ByteBuf optionsByteBuf = byteBuf.readSlice(headLen - 20);
         tcpPacket.setOptionsByteBuf(optionsByteBuf);
-        ByteBuf payload = byteBuf.readBytes(byteBuf.readableBytes());
+        ByteBuf payload = byteBuf.readSlice(byteBuf.readableBytes());
         tcpPacket.setPayload(payload);
         return tcpPacket;
     }
