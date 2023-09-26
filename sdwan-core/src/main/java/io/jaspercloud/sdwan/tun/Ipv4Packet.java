@@ -1,6 +1,7 @@
 package io.jaspercloud.sdwan.tun;
 
 import io.netty.buffer.ByteBuf;
+import org.springframework.util.Assert;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -157,6 +158,10 @@ public class Ipv4Packet {
     }
 
     public ByteBuf encode() {
+        return encode(false);
+    }
+
+    public ByteBuf encode(boolean checksum) {
         ByteBuf byteBuf = ByteBufUtil.newPacketBuf();
         byte head = (byte) ((version << 4) | (headerLen / 4));
         byteBuf.writeByte(head);
@@ -167,6 +172,9 @@ public class Ipv4Packet {
         byteBuf.writeByte(liveTime);
         byteBuf.writeByte(protocol);
         int calcChecksum = calcChecksum();
+        if (checksum) {
+            Assert.isTrue(calcChecksum == getChecksum(), "checksum error");
+        }
         byteBuf.writeShort(calcChecksum);
         byteBuf.writeBytes(srcIP.getAddress());
         byteBuf.writeBytes(dstIP.getAddress());

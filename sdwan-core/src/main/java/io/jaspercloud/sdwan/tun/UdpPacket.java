@@ -1,6 +1,7 @@
 package io.jaspercloud.sdwan.tun;
 
 import io.netty.buffer.ByteBuf;
+import org.springframework.util.Assert;
 
 public class UdpPacket {
 
@@ -69,11 +70,18 @@ public class UdpPacket {
     }
 
     public ByteBuf encode(Ipv4Packet ipv4Packet) {
+        return encode(ipv4Packet, false);
+    }
+
+    public ByteBuf encode(Ipv4Packet ipv4Packet, boolean checksum) {
         ByteBuf byteBuf = ByteBufUtil.newPacketBuf();
         byteBuf.writeShort(getSrcPort());
         byteBuf.writeShort(getDstPort());
         byteBuf.writeShort(getLen());
         int calcChecksum = calcChecksum(ipv4Packet);
+        if (checksum) {
+            Assert.isTrue(calcChecksum == getChecksum(), "checksum error");
+        }
         byteBuf.writeShort(calcChecksum);
         byteBuf.writeBytes(getPayload());
         return byteBuf;
