@@ -126,21 +126,32 @@ public class Ipv4Packet {
     public static Ipv4Packet decode(ByteBuf byteBuf) {
         Ipv4Packet ipv4Packet = new Ipv4Packet();
         short head = byteBuf.readUnsignedByte();
-        ipv4Packet.setVersion((byte) (head >> 4));
-        ipv4Packet.setHeaderLen((byte) ((head & 0b00001111) * 4));
-        ipv4Packet.setDiffServices(byteBuf.readUnsignedByte());
-        ipv4Packet.setTotalLen(byteBuf.readUnsignedShort());
-        ipv4Packet.setId(byteBuf.readUnsignedShort());
-        ipv4Packet.setFlags(byteBuf.readUnsignedShort());
-        ipv4Packet.setLiveTime(byteBuf.readUnsignedByte());
-        ipv4Packet.setProtocol(byteBuf.readUnsignedByte());
-        ipv4Packet.setChecksum(byteBuf.readUnsignedShort());
-        byte[] tmp = new byte[4];
-        byteBuf.readBytes(tmp);
-        ipv4Packet.setSrcIP(getByAddress(tmp));
-        byteBuf.readBytes(tmp);
-        ipv4Packet.setDstIP(getByAddress(tmp));
+        short version = (byte) (head >> 4);
+        byte headLen = (byte) ((head & 0b00001111) * 4);
+        short diffServices = byteBuf.readUnsignedByte();
+        int totalLen = byteBuf.readUnsignedShort();
+        int id = byteBuf.readUnsignedShort();
+        int flags = byteBuf.readUnsignedShort();
+        short liveTime = byteBuf.readUnsignedByte();
+        int protocol = byteBuf.readUnsignedByte();
+        int checksum = byteBuf.readUnsignedShort();
+        byte[] srcIPBytes = new byte[4];
+        byteBuf.readBytes(srcIPBytes);
+        byte[] dstIPBytes = new byte[4];
+        byteBuf.readBytes(dstIPBytes);
         ByteBuf payload = byteBuf.readSlice(byteBuf.readableBytes());
+        //set
+        ipv4Packet.setVersion(version);
+        ipv4Packet.setHeaderLen(headLen);
+        ipv4Packet.setDiffServices(diffServices);
+        ipv4Packet.setTotalLen(totalLen);
+        ipv4Packet.setId(id);
+        ipv4Packet.setFlags(flags);
+        ipv4Packet.setLiveTime(liveTime);
+        ipv4Packet.setProtocol(protocol);
+        ipv4Packet.setChecksum(checksum);
+        ipv4Packet.setSrcIP(getByAddress(srcIPBytes));
+        ipv4Packet.setDstIP(getByAddress(dstIPBytes));
         ipv4Packet.setPayload(payload);
         return ipv4Packet;
     }

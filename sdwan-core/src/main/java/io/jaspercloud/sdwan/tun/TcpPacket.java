@@ -196,29 +196,46 @@ public class TcpPacket {
 
     public static TcpPacket decode(ByteBuf byteBuf) {
         TcpPacket tcpPacket = new TcpPacket();
-        tcpPacket.setSrcPort(byteBuf.readUnsignedShort());
-        tcpPacket.setDstPort(byteBuf.readUnsignedShort());
-        tcpPacket.setSeq(byteBuf.readUnsignedInt());
-        tcpPacket.setAck(byteBuf.readUnsignedInt());
+        int srcPort = byteBuf.readUnsignedShort();
+        int dstPort = byteBuf.readUnsignedShort();
+        long seq = byteBuf.readUnsignedInt();
+        long ack = byteBuf.readUnsignedInt();
         int flags = byteBuf.readUnsignedShort();
-        tcpPacket.setFlags(flags);
         int tcpHeadLen = ((flags & 0b11110000_00000000) >> 12) * 4;
-        tcpPacket.setHeadLen(tcpHeadLen);
-        tcpPacket.setReservedFlag((flags & 0b00000001_00000000) >> 8);
-        tcpPacket.setAccurateECNFlag((flags & 0b00000000_10000000) >> 7);
-        tcpPacket.setEchoFlag((flags & 0b00000000_01000000) >> 6);
-        tcpPacket.setUrgFlag((flags & 0b00000000_00100000) >> 5);
-        tcpPacket.setAckFlag((flags & 0b00000000_00010000) >> 4);
-        tcpPacket.setPshFlag((flags & 0b00000000_00001000) >> 3);
-        tcpPacket.setRstFlag((flags & 0b00000000_00000100) >> 2);
-        tcpPacket.setSynFlag((flags & 0b00000000_00000010) >> 1);
-        tcpPacket.setFinFlag((flags & 0b00000000_00000001) >> 0);
-        tcpPacket.setWindow(byteBuf.readUnsignedShort());
-        tcpPacket.setChecksum(byteBuf.readUnsignedShort());
-        tcpPacket.setUrgentPointer(byteBuf.readUnsignedShort());
+        int reservedFlag = (flags & 0b00000001_00000000) >> 8;
+        int accurateECNFlag = (flags & 0b00000000_10000000) >> 7;
+        int echoFlag = (flags & 0b00000000_01000000) >> 6;
+        int urgFlag = (flags & 0b00000000_00100000) >> 5;
+        int ackFlag = (flags & 0b00000000_00010000) >> 4;
+        int pshFlag = (flags & 0b00000000_00001000) >> 3;
+        int rstFlag = (flags & 0b00000000_00000100) >> 2;
+        int synFlag = (flags & 0b00000000_00000010) >> 1;
+        int finFlag = (flags & 0b00000000_00000001) >> 0;
+        int window = byteBuf.readUnsignedShort();
+        int checksum = byteBuf.readUnsignedShort();
+        int urgentPointer = byteBuf.readUnsignedShort();
         ByteBuf optionsByteBuf = byteBuf.readSlice(tcpHeadLen - 20);
-        tcpPacket.setOptionsByteBuf(optionsByteBuf);
         ByteBuf payload = byteBuf.readSlice(byteBuf.readableBytes());
+        //set
+        tcpPacket.setSrcPort(srcPort);
+        tcpPacket.setDstPort(dstPort);
+        tcpPacket.setSeq(seq);
+        tcpPacket.setAck(ack);
+        tcpPacket.setFlags(flags);
+        tcpPacket.setHeadLen(tcpHeadLen);
+        tcpPacket.setReservedFlag(reservedFlag);
+        tcpPacket.setAccurateECNFlag(accurateECNFlag);
+        tcpPacket.setEchoFlag(echoFlag);
+        tcpPacket.setUrgFlag(urgFlag);
+        tcpPacket.setAckFlag(ackFlag);
+        tcpPacket.setPshFlag(pshFlag);
+        tcpPacket.setRstFlag(rstFlag);
+        tcpPacket.setSynFlag(synFlag);
+        tcpPacket.setFinFlag(finFlag);
+        tcpPacket.setWindow(window);
+        tcpPacket.setChecksum(checksum);
+        tcpPacket.setUrgentPointer(urgentPointer);
+        tcpPacket.setOptionsByteBuf(optionsByteBuf);
         tcpPacket.setPayload(payload);
         return tcpPacket;
     }
@@ -241,11 +258,13 @@ public class TcpPacket {
 
     private int calcChecksum(Ipv4Packet ipv4Packet) {
         ByteBuf byteBuf = ByteBufUtil.newPacketBuf();
+        //ipHeader
         byteBuf.writeBytes(ipv4Packet.getSrcIP().getAddress());
         byteBuf.writeBytes(ipv4Packet.getDstIP().getAddress());
         byteBuf.writeByte(0);
         byteBuf.writeByte(ipv4Packet.getProtocol());
         byteBuf.writeShort(ipv4Packet.getPayload().readableBytes());
+        //tcp
         byteBuf.writeShort(srcPort);
         byteBuf.writeShort(dstPort);
         byteBuf.writeInt((int) seq);
