@@ -61,43 +61,22 @@ public class NetworkInterfaceTest {
     }
 
     private static List<String> getIpList(String address, short maskBits) {
-        int i = ip2int(address);
+        int i = IPUtil.ip2int(address);
         i = (i >> (32 - maskBits)) << (32 - maskBits);
         int count = (int) Math.pow(2, 32 - maskBits) - 1;
         List<String> list = new ArrayList<>();
         int s = i;
-        for (int n = 0; n < count; n++) {
-            s += 1;
-            String ip = int2ip(s);
+        for (int n = 0; n <= count; n++) {
+            String ip = IPUtil.int2ip(s);
             list.add(ip);
+            s += 1;
         }
         return list;
     }
 
-    public static int ip2int(String ip) {
-        String[] split = ip.split("\\.");
-        int s = 0;
-        int bit = 24;
-        for (String sp : split) {
-            int n = Integer.parseInt(sp) << bit;
-            s |= n;
-            bit -= 8;
-        }
-        return s;
-    }
-
-    public static String int2ip(int s) {
-        int d1 = s >> 24 & 0b11111111;
-        int d2 = s >> 16 & 0b11111111;
-        int d3 = s >> 8 & 0b11111111;
-        int d4 = s & 0b11111111;
-        String ip = String.format("%s.%s.%s.%s", d1, d2, d3, d4);
-        return ip;
-    }
-
     public static String parseMaskAddr(int maskBits) {
         int mask = Integer.MAX_VALUE << (32 - maskBits);
-        String maskAddr = int2ip(mask);
+        String maskAddr = IPUtil.int2ip(mask);
         return maskAddr;
     }
 
