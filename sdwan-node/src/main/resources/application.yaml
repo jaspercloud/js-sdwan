@@ -1,0 +1,11 @@
+server:
+  port: 1001
+sdwan:
+  node:
+    controllerHost: 127.0.0.1
+    controllerPort: 18848
+    connectTimeout: 30000
+    localIP: 192.222.0.66
+    addressType: static
+    staticIP: 127.0.0.1
+    staticPort: 888

@@ -18,6 +18,7 @@ import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
 import org.slf4j.impl.StaticLoggerBinder;
 
 import java.net.InetSocketAddress;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
 public class SdwanClient {
@@ -37,7 +38,7 @@ public class SdwanClient {
                     .setCidr("192.222.0.0/24")
                     .build();
             SDWanProtos.Message message = SDWanProtos.Message.newBuilder()
-                    .setReqId(1)
+                    .setReqId(UUID.randomUUID().toString())
                     .setType(SDWanProtos.MsgType.RegReqType)
                     .setData(regReq.toByteString())
                     .build();
@@ -53,7 +54,7 @@ public class SdwanClient {
                     .setNodeType(SDWanProtos.NodeType.SimpleType)
                     .build();
             SDWanProtos.Message message = SDWanProtos.Message.newBuilder()
-                    .setReqId(1)
+                    .setReqId(UUID.randomUUID().toString())
                     .setType(SDWanProtos.MsgType.RegReqType)
                     .setData(regReq.toByteString())
                     .build();
@@ -63,7 +64,7 @@ public class SdwanClient {
             //Heart
             Channel channel = createChannel();
             SDWanProtos.Message message = SDWanProtos.Message.newBuilder()
-                    .setReqId(1)
+                    .setReqId(UUID.randomUUID().toString())
                     .setType(SDWanProtos.MsgType.HeartType)
                     .build();
             channel.writeAndFlush(message);
@@ -76,7 +77,7 @@ public class SdwanClient {
                     .setIp("192.222.0.5")
                     .build();
             SDWanProtos.Message message = SDWanProtos.Message.newBuilder()
-                    .setReqId(1)
+                    .setReqId(UUID.randomUUID().toString())
                     .setType(SDWanProtos.MsgType.NodeArpReqType)
                     .setData(nodeArpReq.toByteString())
                     .build();

@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 @ChannelHandler.Sharable
-public class SDWanProcessHandler extends SimpleChannelInboundHandler<SDWanProtos.Message> implements InitializingBean {
+public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<SDWanProtos.Message> implements InitializingBean {
 
     private SDWanControllerProperties properties;
 
@@ -22,7 +22,7 @@ public class SDWanProcessHandler extends SimpleChannelInboundHandler<SDWanProtos
 
     private Cidr cidr;
 
-    public SDWanProcessHandler(SDWanControllerProperties properties) {
+    public SDWanControllerProcessHandler(SDWanControllerProperties properties) {
         this.properties = properties;
     }
 
@@ -114,11 +114,22 @@ public class SDWanProcessHandler extends SimpleChannelInboundHandler<SDWanProtos
         String hardwareAddress = regReq.getHardwareAddress();
         String vip = bindStaticNode(hardwareAddress, channel);
         if (null == vip) {
+            if (SDWanProtos.NodeType.MeshType.equals(regReq.getNodeType())) {
+                SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
+                        .setCode(SDWanProtos.ErrorCode.NodeTypeError_VALUE)
+                        .build();
+                SDWanProtos.Message response = request.toBuilder()
+                        .setType(SDWanProtos.MsgType.RegRespType)
+                        .setData(regResp.toByteString())
+                        .build();
+                channel.writeAndFlush(response);
+                return;
+            }
             vip = bindDynamicNode(channel);
         }
         if (null == vip) {
             SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
-                    .setCode(1)
+                    .setCode(SDWanProtos.ErrorCode.NotFoundVIP_VALUE)
                     .build();
             SDWanProtos.Message response = request.toBuilder()
                     .setType(SDWanProtos.MsgType.RegRespType)

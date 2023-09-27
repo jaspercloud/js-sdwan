@@ -15,8 +15,14 @@ enum NodeType {
   MeshType = 2;
 }
 
+enum ErrorCode {
+  Success = 1;
+  NodeTypeError = 2;
+  NotFoundVIP = 3;
+}
+
 message Message {
-  required int64 reqId = 1;
+  required string reqId = 1;
   required MsgType type = 2;
   optional bytes data = 3;
 }

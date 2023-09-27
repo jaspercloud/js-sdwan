@@ -9,7 +9,7 @@ import java.util.Map;
 @ConfigurationProperties("sdwan.controller")
 public class SDWanControllerProperties {
 
-    private int port;
+    private Integer port;
     private String cidr;
     private Map<String, Node> staticNodes;
 
