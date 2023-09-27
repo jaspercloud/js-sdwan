@@ -132,6 +132,12 @@ public class WinTunDevice extends TunDevice {
     }
 
     @Override
+    public void addRoute(String route, String ip) throws Exception {
+        String cmd = String.format("route add %s %s", route, ip);
+        int addRoute = ProcessUtil.exec(cmd);
+    }
+
+    @Override
     public void close() {
         WinTunApi.WintunEndSession(session);
         WinTunApi.WintunCloseAdapter(adapter);

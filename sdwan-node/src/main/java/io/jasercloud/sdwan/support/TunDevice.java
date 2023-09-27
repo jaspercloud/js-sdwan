@@ -110,8 +110,7 @@ public class TunDevice implements InitializingBean, Runnable {
         List<String> routes = properties.getRoutes();
         routes.forEach(route -> {
             try {
-                String cmd = String.format("route add %s %s", route, vip);
-                ProcessUtil.exec(cmd);
+                tunChannel.addRoute(route, vip);
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
             }

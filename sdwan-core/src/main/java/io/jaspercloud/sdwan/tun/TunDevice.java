@@ -51,4 +51,6 @@ public abstract class TunDevice {
     public abstract ByteBuf readPacket(ByteBufAllocator alloc);
 
     public abstract void writePacket(ByteBufAllocator alloc, ByteBuf msg);
+
+    public abstract void addRoute(String route, String ip) throws Exception;
 }

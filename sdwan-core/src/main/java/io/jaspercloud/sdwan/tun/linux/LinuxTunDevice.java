@@ -116,6 +116,12 @@ public class LinuxTunDevice extends TunDevice {
     }
 
     @Override
+    public void addRoute(String route, String ip) throws Exception {
+        String cmd = String.format("ip route add %s via %s", route, ip);
+        int addRoute = ProcessUtil.exec(cmd);
+    }
+
+    @Override
     public void close() {
         LinuxC.close(fd);
     }

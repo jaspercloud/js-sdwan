@@ -45,6 +45,14 @@ public class TunChannel extends AbstractChannel {
         return tunAddress;
     }
 
+    public void setAddress(String ip, int maskBits) throws Exception {
+        tunDevice.setIP(ip, maskBits);
+    }
+
+    public void addRoute(String route, String ip) throws Exception {
+        tunDevice.addRoute(route, ip);
+    }
+
     @Override
     protected void doBind(SocketAddress localAddress) throws Exception {
         tunAddress = (TunAddress) localAddress;
@@ -60,10 +68,6 @@ public class TunChannel extends AbstractChannel {
         tunDevice.open();
         Integer mtu = config().getOption(TunChannelConfig.MTU);
         tunDevice.setMTU(mtu);
-    }
-
-    public void setAddress(String ip, int maskBits) throws Exception {
-        tunDevice.setIP(ip, maskBits);
     }
 
     @Override
