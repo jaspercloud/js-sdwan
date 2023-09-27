@@ -60,7 +60,10 @@ public class TunChannel extends AbstractChannel {
         tunDevice.open();
         Integer mtu = config().getOption(TunChannelConfig.MTU);
         tunDevice.setMTU(mtu);
-        tunDevice.setIP(tunAddress.getAddr(), tunAddress.getNetmaskPrefix());
+    }
+
+    public void setAddress(String ip, int maskBits) throws Exception {
+        tunDevice.setIP(ip, maskBits);
     }
 
     @Override
@@ -243,9 +246,11 @@ public class TunChannel extends AbstractChannel {
                         });
                     }
                 });
-        ChannelFuture future = bootstrap.bind(new TunAddress("tun", "192.168.1.1", 24));
+        ChannelFuture future = bootstrap.bind(new TunAddress("tun"));
         TunChannel channel = (TunChannel) future.syncUninterruptibly().channel();
+        channel.setAddress("192.168.1.1", 24);
         CountDownLatch countDownLatch = new CountDownLatch(1);
         countDownLatch.await();
     }
+
 }

@@ -116,7 +116,7 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
         if (null == vip) {
             if (SDWanProtos.NodeType.MeshType.equals(regReq.getNodeType())) {
                 SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
-                        .setCode(SDWanProtos.ErrorCode.NodeTypeError_VALUE)
+                        .setCode(SDWanProtos.MessageCode.NodeTypeError_VALUE)
                         .build();
                 SDWanProtos.Message response = request.toBuilder()
                         .setType(SDWanProtos.MsgType.RegRespType)
@@ -129,7 +129,7 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
         }
         if (null == vip) {
             SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
-                    .setCode(SDWanProtos.ErrorCode.NotFoundVIP_VALUE)
+                    .setCode(SDWanProtos.MessageCode.NotFoundVIP_VALUE)
                     .build();
             SDWanProtos.Message response = request.toBuilder()
                     .setType(SDWanProtos.MsgType.RegRespType)

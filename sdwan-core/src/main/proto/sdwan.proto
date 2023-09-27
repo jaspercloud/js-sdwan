@@ -15,10 +15,10 @@ enum NodeType {
   MeshType = 2;
 }
 
-enum ErrorCode {
-  Success = 1;
-  NodeTypeError = 2;
-  NotFoundVIP = 3;
+enum MessageCode {
+  Success = 0;
+  NodeTypeError = 1;
+  NotFoundVIP = 2;
 }
 
 message Message {

@@ -13,8 +13,7 @@ public class AppConfig {
 
     @Bean
     public SDWanControllerProcessHandler processHandler(SDWanControllerProperties properties) {
-        SDWanControllerProcessHandler processHandler = new SDWanControllerProcessHandler(properties);
-        return processHandler;
+        return new SDWanControllerProcessHandler(properties);
     }
 
     @Bean

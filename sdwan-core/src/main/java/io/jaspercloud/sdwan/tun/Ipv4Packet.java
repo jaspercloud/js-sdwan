@@ -6,7 +6,7 @@ import org.springframework.util.Assert;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-public class Ipv4Packet {
+public class Ipv4Packet implements IpPacket {
 
     private short version;
     //IPV4+(TCP/UDP)

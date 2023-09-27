@@ -1,8 +1,7 @@
 package io.jasercloud.sdwan.config;
 
-import io.jasercloud.sdwan.support.SDWanNode;
-import io.jasercloud.sdwan.support.SDWanNodeProperties;
-import io.jasercloud.sdwan.support.SDwanNodeProcessHandler;
+import io.jasercloud.sdwan.support.*;
+import io.jasercloud.sdwan.support.transporter.UdpTransporter;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,14 +11,25 @@ import org.springframework.context.annotation.Configuration;
 public class AppConfig {
 
     @Bean
-    public SDwanNodeProcessHandler processHandler(SDWanNodeProperties properties) {
-        SDwanNodeProcessHandler processHandler = new SDwanNodeProcessHandler(properties);
-        return processHandler;
+    public SDwanNodeProcessHandler nodeProcessHandler(SDWanNodeProperties properties) {
+        return new SDwanNodeProcessHandler(properties);
     }
 
     @Bean
     public SDWanNode sdWanNode(SDWanNodeProperties properties,
-                               SDwanNodeProcessHandler processHandler) {
-        return new SDWanNode(properties, processHandler);
+                               SDwanNodeProcessHandler nodeProcessHandler) {
+        return new SDWanNode(properties, nodeProcessHandler);
+    }
+
+    @Bean
+    public UdpTransporter udpTransporter(SDWanNode sdWanNode) {
+        return new UdpTransporter(sdWanNode);
+    }
+
+    @Bean
+    public TunDevice tunDevice(SDWanNodeProperties properties,
+                               SDWanNode sdWanNode,
+                               Transporter transporter) {
+        return new TunDevice(properties, sdWanNode, transporter);
     }
 }
