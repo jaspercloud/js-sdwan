@@ -23,7 +23,7 @@ message Message {
 
 message RegReq {
   required string hardwareAddress = 1;
-  required string publicAddress = 2;
+  required string publicIP = 2;
   required int32 publicPort = 3;
   required NodeType nodeType = 4;
   optional string cidr = 5;
@@ -35,12 +35,13 @@ message RegResp {
   optional string mask = 3;
 }
 
-message NodeArpReq {
-  required string vip = 1;
+message SDArpReq {
+  required string ip = 1;
 }
 
-message NodeArpResp {
+message SDArpResp {
   required int32 code = 1;
-  optional string publicAddress = 2;
+  optional string publicIP = 2;
   optional int32 publicPort = 3;
+  optional string vip = 4;
 }

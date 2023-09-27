@@ -39,7 +39,7 @@ public class Cidr {
         return list;
     }
 
-    public static String getMaskAddress(int maskBits) {
+    private static String getMaskAddress(int maskBits) {
         int mask = Integer.MAX_VALUE << (32 - maskBits);
         String maskAddr = IPUtil.int2ip(mask);
         return maskAddr;

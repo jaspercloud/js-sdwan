@@ -21,4 +21,14 @@ public class AttributeKeys {
         Attribute<String> attr = channel.attr(AttributeKey.valueOf("nodeHardwareAddress"));
         return attr;
     }
+
+    public static Attribute<String> nodeVip(Channel channel) {
+        Attribute<String> attr = channel.attr(AttributeKey.valueOf("vip"));
+        return attr;
+    }
+
+    public static Attribute<Cidr> nodeCidr(Channel channel) {
+        Attribute<Cidr> attr = channel.attr(AttributeKey.valueOf("meshCidr"));
+        return attr;
+    }
 }
