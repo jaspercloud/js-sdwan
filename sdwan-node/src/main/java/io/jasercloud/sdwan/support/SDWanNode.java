@@ -11,6 +11,7 @@ import io.netty.handler.codec.protobuf.ProtobufDecoder;
 import io.netty.handler.codec.protobuf.ProtobufEncoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
+import io.netty.util.internal.PlatformDependent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
@@ -38,6 +39,10 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
 
     @Override
     public void afterPropertiesSet() throws Exception {
+        if (PlatformDependent.isWindows()
+                && SDWanNodeProperties.NodeType.MESH.equals(properties.getNodeType())) {
+            throw new ExceptionInInitializerError("only support linux");
+        }
         bootstrap = new Bootstrap();
         bootstrap.group(NioEventLoopFactory.BossGroup)
                 .channel(NioSocketChannel.class)
