@@ -1,6 +1,7 @@
 package io.jasercloud.sdwan.config;
 
 import io.jasercloud.sdwan.support.*;
+import io.jasercloud.sdwan.support.transporter.Transporter;
 import io.jasercloud.sdwan.support.transporter.UdpTransporter;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;

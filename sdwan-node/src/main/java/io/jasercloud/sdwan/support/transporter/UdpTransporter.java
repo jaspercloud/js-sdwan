@@ -1,7 +1,6 @@
 package io.jasercloud.sdwan.support.transporter;
 
 import io.jasercloud.sdwan.support.SDWanNode;
-import io.jasercloud.sdwan.support.Transporter;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.tun.IpPacket;
 import io.jaspercloud.sdwan.tun.Ipv4Packet;
@@ -57,13 +56,14 @@ public class UdpTransporter implements InitializingBean, Transporter {
     @Override
     public void writePacket(IpPacket ipPacket) {
         try {
-            SDWanProtos.SDArpResp sdArp = arpCache.get(ipPacket.getDstIP());
+            String ip = ipPacket.getDstIP().getHostAddress();
+            SDWanProtos.SDArpResp sdArp = arpCache.get(ip);
             if (null == sdArp) {
                 sdArp = sdWanNode.sdArp(ipPacket.getDstIP().getHostAddress(), 3000);
                 if (SDWanProtos.MessageCode.Success_VALUE != sdArp.getCode()) {
                     return;
                 }
-                arpCache.put(ipPacket.getDstIP().getHostAddress(), sdArp);
+                arpCache.put(ip, sdArp);
             }
             String publicIP = sdArp.getPublicIP();
             int publicPort = sdArp.getPublicPort();

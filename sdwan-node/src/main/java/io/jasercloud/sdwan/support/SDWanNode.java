@@ -118,14 +118,15 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
         short maskBits = interfaceInfo.getInterfaceAddress().getNetworkPrefixLength();
         String hostPrefix = IPUtil.int2ip(IPUtil.ip2int(ip) >> (32 - maskBits) << (32 - maskBits));
         String hardwareAddress = interfaceInfo.getHardwareAddress();
-        SDWanProtos.RegReq regReq = SDWanProtos.RegReq.newBuilder()
+        SDWanProtos.RegReq.Builder regReqBuilder = SDWanProtos.RegReq.newBuilder()
                 .setHardwareAddress(hardwareAddress)
                 .setPublicIP(properties.getStaticIP())
                 .setPublicPort(properties.getStaticPort())
-                // TODO: 2023/9/27
-                .setNodeType(SDWanProtos.NodeType.MeshType)
-                .setCidr(String.format("%s/%s", hostPrefix, maskBits))
-                .build();
+                .setNodeType(SDWanProtos.NodeType.forNumber(properties.getNodeType().getCode()));
+        if (SDWanNodeProperties.NodeType.MESH.equals(properties.getNodeType())) {
+            regReqBuilder.setCidr(String.format("%s/%s", hostPrefix, maskBits));
+        }
+        SDWanProtos.RegReq regReq = regReqBuilder.build();
         SDWanProtos.Message request = SDWanProtos.Message.newBuilder()
                 .setReqId(UUID.randomUUID().toString())
                 .setType(SDWanProtos.MsgType.RegReqType)

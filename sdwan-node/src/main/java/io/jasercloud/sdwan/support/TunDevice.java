@@ -1,5 +1,8 @@
 package io.jasercloud.sdwan.support;
 
+import io.jasercloud.sdwan.support.transporter.Transporter;
+import io.jaspercloud.sdwan.NetworkInterfaceInfo;
+import io.jaspercloud.sdwan.NetworkInterfaceUtil;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.tun.*;
 import io.netty.bootstrap.Bootstrap;
@@ -8,8 +11,13 @@ import io.netty.channel.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 
+import java.util.List;
+import java.util.concurrent.TimeoutException;
+
 @Slf4j
 public class TunDevice implements InitializingBean, Runnable {
+
+    public static final String TUN = "tun";
 
     private SDWanNodeProperties properties;
     private SDWanNode sdWanNode;
@@ -25,11 +33,13 @@ public class TunDevice implements InitializingBean, Runnable {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        tunChannel = bootTunDevices();
         transporter.setReceiveHandler(new Transporter.ReceiveHandler() {
             @Override
             public void onPacket(IpPacket ipPacket) {
-
+                if (null != tunChannel) {
+                    Ipv4Packet ipv4Packet = (Ipv4Packet) ipPacket;
+                    tunChannel.writeAndFlush(ipv4Packet);
+                }
             }
         });
         Thread thread = new Thread(this, "sdwan-device");
@@ -40,10 +50,17 @@ public class TunDevice implements InitializingBean, Runnable {
     public void run() {
         while (true) {
             try {
+                tunChannel = bootTunDevices();
                 SDWanProtos.RegResp regResp = sdWanNode.regist(3000);
-                log.info("setTunAddress: {}/{}", regResp.getVip(), regResp.getMaskBits());
+                log.info("tunAddress: {}/{}", regResp.getVip(), regResp.getMaskBits());
                 tunChannel.setAddress(regResp.getVip(), regResp.getMaskBits());
-                sdWanNode.getChannel().closeFuture().sync();
+                waitAddress(regResp.getVip(), 15000);
+                addRoutes(regResp.getVip());
+                try {
+                    sdWanNode.getChannel().closeFuture().sync();
+                } finally {
+                    tunChannel.close().sync();
+                }
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
             }
@@ -54,7 +71,7 @@ public class TunDevice implements InitializingBean, Runnable {
         Bootstrap bootstrap = new Bootstrap()
                 .group(new DefaultEventLoopGroup())
                 .channel(TunChannel.class)
-                .option(TunChannelConfig.MTU, 1500)
+                .option(TunChannelConfig.MTU, properties.getMtu())
                 .handler(new ChannelInitializer<Channel>() {
                     @Override
                     protected void initChannel(final Channel ch) {
@@ -68,8 +85,35 @@ public class TunDevice implements InitializingBean, Runnable {
                         });
                     }
                 });
-        ChannelFuture future = bootstrap.bind(new TunAddress("tun"));
+        ChannelFuture future = bootstrap.bind(new TunAddress(TUN));
         TunChannel tunChannel = (TunChannel) future.syncUninterruptibly().channel();
         return tunChannel;
+    }
+
+    private void waitAddress(String vip, int timeout) throws Exception {
+        long s = System.currentTimeMillis();
+        while (true) {
+            NetworkInterfaceInfo networkInterfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(vip);
+            if (null != networkInterfaceInfo) {
+                return;
+            }
+            long e = System.currentTimeMillis();
+            long diff = e - s;
+            if (diff > timeout) {
+                throw new TimeoutException();
+            }
+        }
+    }
+
+    private void addRoutes(String vip) {
+        List<String> routes = properties.getRoutes();
+        routes.forEach(route -> {
+            try {
+                String cmd = String.format("route add %s %s", route, vip);
+                ProcessUtil.exec(cmd);
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
+            }
+        });
     }
 }

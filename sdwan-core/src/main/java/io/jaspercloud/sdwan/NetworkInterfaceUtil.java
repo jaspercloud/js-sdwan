@@ -18,10 +18,12 @@ public final class NetworkInterfaceUtil {
             }
             for (InterfaceAddress interfaceAddress : networkInterface.getInterfaceAddresses()) {
                 if (StringUtils.equals(interfaceAddress.getAddress().getHostAddress(), ip)) {
-                    String hardwareAddress = parseHardwareAddress(networkInterface.getHardwareAddress());
                     NetworkInterfaceInfo networkInterfaceInfo = new NetworkInterfaceInfo();
                     networkInterfaceInfo.setInterfaceAddress(interfaceAddress);
-                    networkInterfaceInfo.setHardwareAddress(hardwareAddress);
+                    if (null != networkInterface.getHardwareAddress()) {
+                        String hardwareAddress = parseHardwareAddress(networkInterface.getHardwareAddress());
+                        networkInterfaceInfo.setHardwareAddress(hardwareAddress);
+                    }
                     return networkInterfaceInfo;
                 }
             }
