@@ -51,18 +51,23 @@ public class TunDevice implements InitializingBean, Runnable {
         while (true) {
             try {
                 tunChannel = bootTunDevices();
-                SDWanProtos.RegResp regResp = sdWanNode.regist(3000);
-                log.info("tunAddress: {}/{}", regResp.getVip(), regResp.getMaskBits());
-                tunChannel.setAddress(regResp.getVip(), regResp.getMaskBits());
-                //等待ip设置成功，再配置路由
-                waitAddress(regResp.getVip(), 15000);
-                addRoutes(regResp.getVip());
                 try {
+                    SDWanProtos.RegResp regResp = sdWanNode.regist(3000);
+                    log.info("tunAddress: {}/{}", regResp.getVip(), regResp.getMaskBits());
+                    tunChannel.setAddress(regResp.getVip(), regResp.getMaskBits());
+                    //等待ip设置成功，再配置路由
+                    waitAddress(regResp.getVip(), 15000);
+                    addRoutes(regResp.getVip());
                     sdWanNode.getChannel().closeFuture().sync();
                 } finally {
                     tunChannel.close().sync();
                 }
             } catch (Exception e) {
+                log.error(e.getMessage(), e);
+            }
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
                 log.error(e.getMessage(), e);
             }
         }
