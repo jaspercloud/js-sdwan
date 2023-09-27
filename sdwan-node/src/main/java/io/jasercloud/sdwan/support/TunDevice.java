@@ -54,6 +54,7 @@ public class TunDevice implements InitializingBean, Runnable {
                 SDWanProtos.RegResp regResp = sdWanNode.regist(3000);
                 log.info("tunAddress: {}/{}", regResp.getVip(), regResp.getMaskBits());
                 tunChannel.setAddress(regResp.getVip(), regResp.getMaskBits());
+                //等待ip设置成功，再配置路由
                 waitAddress(regResp.getVip(), 15000);
                 addRoutes(regResp.getVip());
                 try {
