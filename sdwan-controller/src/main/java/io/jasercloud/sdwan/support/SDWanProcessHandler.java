@@ -38,48 +38,94 @@ public class SDWanProcessHandler extends SimpleChannelInboundHandler<SDWanProtos
     protected void channelRead0(ChannelHandlerContext ctx, SDWanProtos.Message request) throws Exception {
         Channel channel = ctx.channel();
         switch (request.getType().getNumber()) {
+            case SDWanProtos.MsgType.HeartType_VALUE: {
+                processHeart(channel, request);
+                break;
+            }
             case SDWanProtos.MsgType.RegReqType_VALUE: {
-                SDWanProtos.RegReq regReq = SDWanProtos.RegReq.parseFrom(request.getData());
-                String hardwareAddress = regReq.getHardwareAddress();
-                String vip = bindStaticNode(hardwareAddress, channel);
-                if (null == vip) {
-                    vip = bindDynamicNode(channel);
-                }
-                if (null == vip) {
-                    SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
-                            .setCode(1)
-                            .build();
-                    SDWanProtos.Message response = request.toBuilder()
-                            .setType(SDWanProtos.MsgType.RegRespType)
-                            .setData(regResp.toByteString())
-                            .build();
-                    channel.writeAndFlush(response);
-                    return;
-                }
-                AtomicReference<Channel> reference = bindIPMap.get(vip);
-                channel.closeFuture().addListener(new ChannelFutureListener() {
-                    @Override
-                    public void operationComplete(ChannelFuture future) throws Exception {
-                        reference.set(null);
-                    }
-                });
-                AttributeKeys.nodePublicAddress(channel)
-                        .set(new InetSocketAddress(regReq.getPublicAddress(), regReq.getPublicPort()));
-                AttributeKeys.nodeHardwareAddress(channel)
-                        .set(regReq.getHardwareAddress());
-                SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
-                        .setCode(0)
-                        .setVip(vip)
-                        .setMask(cidr.getMaskAddress())
-                        .build();
-                SDWanProtos.Message response = request.toBuilder()
-                        .setType(SDWanProtos.MsgType.RegRespType)
-                        .setData(regResp.toByteString())
-                        .build();
-                channel.writeAndFlush(response);
+                processReg(channel, request);
+                break;
+            }
+            case SDWanProtos.MsgType.NodeArpReqType_VALUE: {
+                processNodeArp(channel, request);
                 break;
             }
         }
+    }
+
+    private void processNodeArp(Channel channel, SDWanProtos.Message request) throws Exception {
+        SDWanProtos.NodeArpReq nodeArpReq = SDWanProtos.NodeArpReq.parseFrom(request.getData());
+        AtomicReference<Channel> reference = bindIPMap.get(nodeArpReq.getVip());
+        Channel targetChannel = reference.get();
+        if (null == targetChannel) {
+            SDWanProtos.NodeArpResp arpResp = SDWanProtos.NodeArpResp.newBuilder()
+                    .setCode(1)
+                    .build();
+            SDWanProtos.Message response = request.toBuilder()
+                    .setType(SDWanProtos.MsgType.NodeArpRespType)
+                    .setData(arpResp.toByteString())
+                    .build();
+            channel.writeAndFlush(response);
+            return;
+        }
+        InetSocketAddress address = AttributeKeys.nodePublicAddress(targetChannel).get();
+        String host = address.getHostString();
+        int port = address.getPort();
+        SDWanProtos.NodeArpResp arpResp = SDWanProtos.NodeArpResp.newBuilder()
+                .setCode(0)
+                .setPublicAddress(host)
+                .setPublicPort(port)
+                .build();
+        SDWanProtos.Message response = request.toBuilder()
+                .setType(SDWanProtos.MsgType.NodeArpRespType)
+                .setData(arpResp.toByteString())
+                .build();
+        channel.writeAndFlush(response);
+    }
+
+    private void processHeart(Channel channel, SDWanProtos.Message request) {
+        channel.writeAndFlush(request);
+    }
+
+    private void processReg(Channel channel, SDWanProtos.Message request) throws Exception {
+        SDWanProtos.RegReq regReq = SDWanProtos.RegReq.parseFrom(request.getData());
+        String hardwareAddress = regReq.getHardwareAddress();
+        String vip = bindStaticNode(hardwareAddress, channel);
+        if (null == vip) {
+            vip = bindDynamicNode(channel);
+        }
+        if (null == vip) {
+            SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
+                    .setCode(1)
+                    .build();
+            SDWanProtos.Message response = request.toBuilder()
+                    .setType(SDWanProtos.MsgType.RegRespType)
+                    .setData(regResp.toByteString())
+                    .build();
+            channel.writeAndFlush(response);
+            return;
+        }
+        AtomicReference<Channel> reference = bindIPMap.get(vip);
+        channel.closeFuture().addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture future) throws Exception {
+                reference.set(null);
+            }
+        });
+        AttributeKeys.nodePublicAddress(channel)
+                .set(new InetSocketAddress(regReq.getPublicAddress(), regReq.getPublicPort()));
+        AttributeKeys.nodeHardwareAddress(channel)
+                .set(regReq.getHardwareAddress());
+        SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
+                .setCode(0)
+                .setVip(vip)
+                .setMask(cidr.getMaskAddress())
+                .build();
+        SDWanProtos.Message response = request.toBuilder()
+                .setType(SDWanProtos.MsgType.RegRespType)
+                .setData(regResp.toByteString())
+                .build();
+        channel.writeAndFlush(response);
     }
 
     private String bindStaticNode(String hardwareAddress, Channel channel) {

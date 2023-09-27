@@ -33,6 +33,7 @@ message NodeArpReq {
 }
 
 message NodeArpResp {
-  required string publicAddress = 1;
-  required int32 publicPort = 2;
+  required int32 code = 1;
+  optional string publicAddress = 2;
+  optional int32 publicPort = 3;
 }
