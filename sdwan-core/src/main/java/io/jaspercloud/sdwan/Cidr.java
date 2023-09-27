@@ -10,6 +10,7 @@ public class Cidr {
 
     private List<String> ipList;
     private String maskAddress;
+    private int maskBits;
 
     private Cidr() {
     }
@@ -23,6 +24,7 @@ public class Cidr {
         Cidr cidr = new Cidr();
         cidr.setIpList(ipList);
         cidr.setMaskAddress(maskAddress);
+        cidr.setMaskBits(maskBits);
         return cidr;
     }
 

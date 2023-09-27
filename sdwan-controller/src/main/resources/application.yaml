@@ -3,8 +3,8 @@ server:
 sdwan:
   controller:
     port: 18848
-    cidr: 10.0.0.0/24
+    cidr: 10.1.0.0/20
     staticNodes:
       - id: test1
         hardwareAddress: fa:50:03:01:f8:00
-        vip: 10.0.0.5
+        vip: 10.1.0.5

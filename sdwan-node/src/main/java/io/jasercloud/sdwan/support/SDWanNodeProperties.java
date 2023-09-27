@@ -23,6 +23,7 @@ public class SDWanNodeProperties {
     private String controllerHost;
     private Integer controllerPort;
     private Integer connectTimeout;
+    private Integer mtu;
     private String localIP;
     private IpType addressType;
     private String staticIP;

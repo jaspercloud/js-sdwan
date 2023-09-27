@@ -158,7 +158,7 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
         SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
                 .setCode(0)
                 .setVip(vip)
-                .setMask(cidr.getMaskAddress())
+                .setMaskBits(cidr.getMaskBits())
                 .build();
         SDWanProtos.Message response = request.toBuilder()
                 .setType(SDWanProtos.MsgType.RegRespType)

@@ -1,9 +1,13 @@
 package io.jasercloud.sdwan.support;
 
-import io.jaspercloud.sdwan.LogHandler;
-import io.jaspercloud.sdwan.NioEventLoopFactory;
+import io.jaspercloud.sdwan.*;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
+import io.jaspercloud.sdwan.tun.Ipv4Packet;
+import io.jaspercloud.sdwan.tun.TunAddress;
+import io.jaspercloud.sdwan.tun.TunChannel;
+import io.jaspercloud.sdwan.tun.TunChannelConfig;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
@@ -17,6 +21,7 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 
 import java.net.InetSocketAddress;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 @Slf4j
@@ -52,6 +57,8 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                         pipeline.addLast(handler);
                     }
                 });
+        InetSocketAddress address = new InetSocketAddress(properties.getControllerHost(), properties.getControllerPort());
+        channel = bootstrap.connect(address).syncUninterruptibly().channel();
         Thread thread = new Thread(this, "sdwan-node");
         thread.start();
     }
@@ -73,6 +80,7 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                     channel = bootstrap.connect(address).syncUninterruptibly().channel();
                 }
                 log.info("sdwan node started");
+                startTunDevice();
                 channel.closeFuture().sync();
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
@@ -85,10 +93,59 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
         }
     }
 
+    private void startTunDevice() throws Exception {
+        SDWanProtos.RegResp regResp = regist(3000);
+        String vip = regResp.getVip();
+        int maskBits = regResp.getMaskBits();
+        Bootstrap bootstrap = new Bootstrap()
+                .group(new DefaultEventLoopGroup())
+                .channel(TunChannel.class)
+                .option(TunChannelConfig.MTU, 1500)
+                .handler(new ChannelInitializer<Channel>() {
+                    @Override
+                    protected void initChannel(final Channel ch) {
+                        ChannelPipeline pipeline = ch.pipeline();
+                        pipeline.addLast(new ChannelInboundHandlerAdapter() {
+                            @Override
+                            public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                                ByteBuf byteBuf = (ByteBuf) msg;
+                                Ipv4Packet ipv4Packet = Ipv4Packet.decode(byteBuf);
+                                System.out.println();
+                            }
+                        });
+                    }
+                });
+        ChannelFuture future = bootstrap.bind(new TunAddress("tun", vip, maskBits));
+        Channel tunChannel = future.syncUninterruptibly().channel();
+    }
+
     public SDWanProtos.Message request(SDWanProtos.Message request, int timeout) throws Exception {
         CompletableFuture<SDWanProtos.Message> future = new CompletableFuture<>();
         channel.writeAndFlush(request);
         SDWanProtos.Message response = AsyncTask.waitTask(request.getReqId(), future, timeout);
         return response;
+    }
+
+    public SDWanProtos.RegResp regist(int timeout) throws Exception {
+        NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(properties.getLocalIP());
+        String ip = interfaceInfo.getInterfaceAddress().getAddress().getHostAddress();
+        short maskBits = interfaceInfo.getInterfaceAddress().getNetworkPrefixLength();
+        String hostPrefix = IPUtil.int2ip(IPUtil.ip2int(ip) >> (32 - maskBits) << (32 - maskBits));
+        String hardwareAddress = interfaceInfo.getHardwareAddress();
+        SDWanProtos.RegReq regReq = SDWanProtos.RegReq.newBuilder()
+                .setHardwareAddress(hardwareAddress)
+                .setPublicIP(properties.getStaticIP())
+                .setPublicPort(properties.getStaticPort())
+                .setNodeType(SDWanProtos.NodeType.MeshType)
+                .setCidr(String.format("%s/%s", hostPrefix, maskBits))
+                .build();
+        SDWanProtos.Message request = SDWanProtos.Message.newBuilder()
+                .setReqId(UUID.randomUUID().toString())
+                .setType(SDWanProtos.MsgType.RegReqType)
+                .setData(regReq.toByteString())
+                .build();
+        SDWanProtos.Message response = request(request, timeout);
+        SDWanProtos.RegResp regResp = SDWanProtos.RegResp.parseFrom(response.getData());
+        return regResp;
     }
 }

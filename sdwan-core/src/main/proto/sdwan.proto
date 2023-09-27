@@ -38,7 +38,7 @@ message RegReq {
 message RegResp {
   required int32 code = 1;
   optional string vip = 2;
-  optional string mask = 3;
+  optional int32 maskBits = 3;
 }
 
 message SDArpReq {

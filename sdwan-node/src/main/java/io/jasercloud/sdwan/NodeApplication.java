@@ -22,18 +22,21 @@ public class NodeApplication {
     @Autowired
     private SDWanNode sdWanNode;
 
-    @EventListener(ApplicationStartedEvent.class)
-    public void onApplicationStartedEvent(ApplicationStartedEvent event) throws Exception {
-        SDWanProtos.SDArpReq nodeArpReq = SDWanProtos.SDArpReq.newBuilder()
-                .setIp("192.222.0.5")
-                .build();
-        SDWanProtos.Message request = SDWanProtos.Message.newBuilder()
-                .setReqId(UUID.randomUUID().toString())
-                .setType(SDWanProtos.MsgType.NodeArpReqType)
-                .setData(nodeArpReq.toByteString())
-                .build();
-        SDWanProtos.Message response = sdWanNode.request(request, 3000);
-        SDWanProtos.SDArpResp sdArpResp = SDWanProtos.SDArpResp.parseFrom(response.getData());
-        System.out.println();
-    }
+//    @EventListener(ApplicationStartedEvent.class)
+//    public void onApplicationStartedEvent(ApplicationStartedEvent event) throws Exception {
+//        SDWanProtos.RegResp regResp = sdWanNode.regist(3000);
+//        System.out.println();
+//
+//        SDWanProtos.SDArpReq nodeArpReq = SDWanProtos.SDArpReq.newBuilder()
+//                .setIp("192.222.0.5")
+//                .build();
+//        SDWanProtos.Message request = SDWanProtos.Message.newBuilder()
+//                .setReqId(UUID.randomUUID().toString())
+//                .setType(SDWanProtos.MsgType.NodeArpReqType)
+//                .setData(nodeArpReq.toByteString())
+//                .build();
+//        SDWanProtos.Message response = sdWanNode.request(request, 3000);
+//        SDWanProtos.SDArpResp sdArpResp = SDWanProtos.SDArpResp.parseFrom(response.getData());
+//        System.out.println();
+//    }
 }
