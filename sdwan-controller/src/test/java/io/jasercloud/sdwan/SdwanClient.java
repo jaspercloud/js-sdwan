@@ -70,6 +70,8 @@ public class SdwanClient {
                     .setHardwareAddress("fa:50:03:01:f8:00")
                     .setPublicAddress("127.0.0.1")
                     .setPublicPort(1101)
+                    .setNodeType(SDWanProtos.NodeType.MeshType)
+                    .setCidr("192.222.0.0/24")
                     .build();
             SDWanProtos.Message message = SDWanProtos.Message.newBuilder()
                     .setReqId(1)
@@ -84,6 +86,7 @@ public class SdwanClient {
                     .setHardwareAddress("fa:50:03:01:f8:02")
                     .setPublicAddress("127.0.0.1")
                     .setPublicPort(1102)
+                    .setNodeType(SDWanProtos.NodeType.SimpleType)
                     .build();
             SDWanProtos.Message message = SDWanProtos.Message.newBuilder()
                     .setReqId(1)

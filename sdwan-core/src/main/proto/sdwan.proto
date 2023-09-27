@@ -10,6 +10,11 @@ enum MsgType {
   NodeArpRespType = 5;
 }
 
+enum NodeType {
+  SimpleType = 1;
+  MeshType = 2;
+}
+
 message Message {
   required int64 reqId = 1;
   required MsgType type = 2;
@@ -20,6 +25,8 @@ message RegReq {
   required string hardwareAddress = 1;
   required string publicAddress = 2;
   required int32 publicPort = 3;
+  required NodeType nodeType = 4;
+  optional string cidr = 5;
 }
 
 message RegResp {
