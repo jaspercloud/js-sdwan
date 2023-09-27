@@ -1,39 +1,23 @@
 package io.jasercloud.sdwan.support;
 
-
+import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import java.util.HashMap;
 import java.util.Map;
 
+@Data
 @ConfigurationProperties("sdwan.controller")
 public class SDWanControllerProperties {
 
     private int port;
-    private int netmaskPrefix;
-    private Map<String, String> nodeIpMap = new HashMap<>();
+    private String cidr;
+    private Map<String, Node> staticNodes;
 
-    public int getPort() {
-        return port;
-    }
+    @Data
+    public static class Node {
 
-    public void setPort(int port) {
-        this.port = port;
-    }
-
-    public int getNetmaskPrefix() {
-        return netmaskPrefix;
-    }
-
-    public void setNetmaskPrefix(int netmaskPrefix) {
-        this.netmaskPrefix = netmaskPrefix;
-    }
-
-    public Map<String, String> getNodeIpMap() {
-        return nodeIpMap;
-    }
-
-    public void setNodeIpMap(Map<String, String> nodeIpMap) {
-        this.nodeIpMap = nodeIpMap;
+        private String id;
+        private String hardwareAddress;
+        private String vip;
     }
 }

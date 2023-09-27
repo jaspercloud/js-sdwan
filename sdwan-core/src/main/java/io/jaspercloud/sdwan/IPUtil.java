@@ -22,5 +22,4 @@ public class IPUtil {
         String ip = String.format("%s.%s.%s.%s", d1, d2, d3, d4);
         return ip;
     }
-
 }

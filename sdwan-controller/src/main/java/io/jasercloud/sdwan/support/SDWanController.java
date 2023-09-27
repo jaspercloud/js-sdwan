@@ -5,10 +5,7 @@ import io.jaspercloud.sdwan.NioEventLoopFactory;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPipeline;
+import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.protobuf.ProtobufDecoder;
@@ -18,19 +15,17 @@ import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
 public class SDWanController implements InitializingBean, DisposableBean, Runnable {
 
     private SDWanControllerProperties properties;
+    private ChannelHandler handler;
     private Channel channel;
 
-    @Autowired
-    private SDWanNodeManager nodeManager;
-
-    public SDWanController(SDWanControllerProperties properties) {
+    public SDWanController(SDWanControllerProperties properties, ChannelHandler handler) {
         this.properties = properties;
+        this.handler = handler;
     }
 
     @Override
@@ -50,10 +45,10 @@ public class SDWanController implements InitializingBean, DisposableBean, Runnab
                         ChannelPipeline pipeline = channel.pipeline();
                         pipeline.addLast(new LogHandler("sdwan"));
                         pipeline.addLast(new ProtobufVarint32FrameDecoder());
-                        pipeline.addLast(new ProtobufDecoder(SDWanProtos.SDWanMessage.getDefaultInstance()));
+                        pipeline.addLast(new ProtobufDecoder(SDWanProtos.Message.getDefaultInstance()));
                         pipeline.addLast(new ProtobufVarint32LengthFieldPrepender());
                         pipeline.addLast(new ProtobufEncoder());
-                        pipeline.addLast(new ControllerProcessHandler(properties, nodeManager));
+                        pipeline.addLast(handler);
                     }
                 });
         channel = serverBootstrap.bind(properties.getPort()).syncUninterruptibly().channel();

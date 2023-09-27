@@ -3,48 +3,36 @@ option java_package = "io.jaspercloud.sdwan.core.proto";
 option java_outer_classname = "SDWanProtos";
 
 enum MsgType {
-  AuthReq = 1;
-  AuthRespSuccess = 2;
-  AuthRespFail = 3;
-  NodeList = 4;
-  Heart = 5;
-  TunnelData = 6;
+  HeartType = 1;
+  RegReqType = 2;
+  RegRespType = 3;
+  NodeArpReqType = 4;
+  NodeArpRespType = 5;
 }
 
-message SDWanMessage {
-  required MsgType type = 1;
-  required string channelId = 2;
+message Message {
+  required int64 reqId = 1;
+  required MsgType type = 2;
   optional bytes data = 3;
 }
 
-message SDWanAuthReq {
-  required string nodeId = 1;
-  required int32 nodeUdpPort = 2;
+message RegReq {
+  required string hardwareAddress = 1;
+  required string publicAddress = 2;
+  required int32 publicPort = 3;
 }
 
-message SDWanAuthResp {
-  required string nodeIP = 1;
-  required string vip = 2;
-  required int32 netmaskPrefix = 3;
+message RegResp {
+  required int32 code = 1;
+  optional string vip = 2;
+  optional string mask = 3;
 }
 
-message SDWanNode {
-  required string nodeId = 1;
-  required string nodeIP = 2;
-  required string vip = 3;
-  required int32 nodeUdpPort = 4;
+message NodeArpReq {
+  required string vip = 1;
 }
 
-message SDWanNodeList {
-  repeated SDWanNode node = 1;
-}
-
-message SDWanHeart {
-}
-
-message UdpTunnelData {
-  required MsgType type = 1;
-  required string src = 2;
-  required string dest = 3;
-  optional bytes data = 4;
+message NodeArpResp {
+  required string publicAddress = 1;
+  required int32 publicPort = 2;
 }

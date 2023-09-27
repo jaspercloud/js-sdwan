@@ -4,34 +4,21 @@ import io.netty.channel.Channel;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
 
+import java.net.InetSocketAddress;
+
 public class AttributeKeys {
 
     private AttributeKeys() {
 
     }
 
-    public static Attribute<String> nodeId(Channel channel) {
-        Attribute<String> attr = channel.attr(AttributeKey.valueOf("nodeId"));
+    public static Attribute<InetSocketAddress> nodePublicAddress(Channel channel) {
+        Attribute<InetSocketAddress> attr = channel.attr(AttributeKey.valueOf("nodePublicAddress"));
         return attr;
     }
 
-    public static Attribute<String> nodeIP(Channel channel) {
-        Attribute<String> attr = channel.attr(AttributeKey.valueOf("nodeIP"));
-        return attr;
-    }
-
-    public static Attribute<String> channelId(Channel channel) {
-        Attribute<String> attr = channel.attr(AttributeKey.valueOf("channelId"));
-        return attr;
-    }
-
-    public static Attribute<String> vip(Channel channel) {
-        Attribute<String> attr = channel.attr(AttributeKey.valueOf("vip"));
-        return attr;
-    }
-
-    public static Attribute<Integer> nodeUdpPort(Channel channel) {
-        Attribute<Integer> attr = channel.attr(AttributeKey.valueOf("nodeUdpPort"));
+    public static Attribute<String> nodeHardwareAddress(Channel channel) {
+        Attribute<String> attr = channel.attr(AttributeKey.valueOf("nodeHardwareAddress"));
         return attr;
     }
 }
