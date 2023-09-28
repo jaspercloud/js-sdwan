@@ -106,13 +106,9 @@ public class LinuxTunDevice extends TunDevice {
 
     @Override
     public void writePacket(ByteBufAllocator alloc, ByteBuf msg) {
-        try {
-            byte[] bytes = new byte[msg.readableBytes()];
-            msg.readBytes(bytes);
-            LinuxC.write(fd, bytes, bytes.length);
-        } finally {
-            ReferenceCountUtil.release(msg);
-        }
+        byte[] bytes = new byte[msg.readableBytes()];
+        msg.readBytes(bytes);
+        LinuxC.write(fd, bytes, bytes.length);
     }
 
     @Override

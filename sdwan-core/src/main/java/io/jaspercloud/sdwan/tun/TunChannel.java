@@ -25,6 +25,7 @@ public class TunChannel extends AbstractChannel {
         }
     };
     private boolean readPending;
+    private EventLoop readLoop = new DefaultEventLoop();
     private List<Object> readBuf = new ArrayList<>();
 
     private TunAddress tunAddress;
@@ -84,7 +85,7 @@ public class TunChannel extends AbstractChannel {
             return;
         }
         readPending = true;
-        eventLoop().execute(readTask);
+        readLoop.execute(readTask);
     }
 
     private void doRead() {

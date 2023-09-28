@@ -42,12 +42,11 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
     public void afterPropertiesSet() throws Exception {
         if (PlatformDependent.isWindows()
                 && SDWanNodeProperties.NodeType.MESH.equals(properties.getNodeType())) {
-//            throw new ExceptionInInitializerError("only support linux");
+            throw new ExceptionInInitializerError("only support linux");
         }
         bootstrap = new Bootstrap();
         bootstrap.group(NioEventLoopFactory.BossGroup)
                 .channel(NioSocketChannel.class)
-                .option(ChannelOption.SO_BACKLOG, 1024)
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, properties.getConnectTimeout())
                 .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
                 .handler(new ChannelInitializer<SocketChannel>() {

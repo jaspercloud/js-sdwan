@@ -91,7 +91,6 @@ public class SdwanClient {
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(NioEventLoopFactory.BossGroup)
                 .channel(NioSocketChannel.class)
-                .option(ChannelOption.SO_BACKLOG, 1024)
                 .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
                 .handler(new ChannelInitializer<SocketChannel>() {
                     @Override

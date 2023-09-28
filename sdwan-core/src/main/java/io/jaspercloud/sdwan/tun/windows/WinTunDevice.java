@@ -122,15 +122,11 @@ public class WinTunDevice extends TunDevice {
 
     @Override
     public void writePacket(ByteBufAllocator alloc, ByteBuf msg) {
-        try {
-            byte[] bytes = new byte[msg.readableBytes()];
-            msg.readBytes(bytes);
-            Pointer packetPointer = WinTunApi.WintunAllocateSendPacket(session, bytes.length);
-            packetPointer.write(0, bytes, 0, bytes.length);
-            WinTunApi.WintunSendPacket(session, packetPointer);
-        } finally {
-            ReferenceCountUtil.release(msg);
-        }
+        byte[] bytes = new byte[msg.readableBytes()];
+        msg.readBytes(bytes);
+        Pointer packetPointer = WinTunApi.WintunAllocateSendPacket(session, bytes.length);
+        packetPointer.write(0, bytes, 0, bytes.length);
+        WinTunApi.WintunSendPacket(session, packetPointer);
     }
 
     @Override

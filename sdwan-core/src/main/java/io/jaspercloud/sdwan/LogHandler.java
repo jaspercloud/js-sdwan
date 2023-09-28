@@ -19,7 +19,7 @@ public class LogHandler extends ChannelInboundHandlerAdapter {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         InetSocketAddress address = (InetSocketAddress) ctx.channel().remoteAddress();
         log.info("channelActive: type={}, id={}， address={}:{}",
-                type, ctx.channel().id().asShortText(), address.getHostName(), address.getPort());
+                type, ctx.channel().id().asShortText(), address.getHostString(), address.getPort());
         super.channelActive(ctx);
     }
 
@@ -27,7 +27,7 @@ public class LogHandler extends ChannelInboundHandlerAdapter {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         InetSocketAddress address = (InetSocketAddress) ctx.channel().remoteAddress();
         log.info("channelInactive: type={}, id={}， address={}:{}",
-                type, ctx.channel().id().asShortText(), address.getHostName(), address.getPort());
+                type, ctx.channel().id().asShortText(), address.getHostString(), address.getPort());
         super.channelInactive(ctx);
     }
 }

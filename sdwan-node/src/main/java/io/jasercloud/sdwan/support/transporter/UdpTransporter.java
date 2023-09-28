@@ -32,7 +32,7 @@ public class UdpTransporter implements Transporter, InitializingBean {
                             @Override
                             protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket msg) throws Exception {
                                 if (null != handler) {
-                                    Ipv4Packet ipv4Packet = Ipv4Packet.decode(msg.content());
+                                    Ipv4Packet ipv4Packet = Ipv4Packet.decode(msg.content().retain());
                                     handler.onPacket(ipv4Packet);
                                 }
                             }
