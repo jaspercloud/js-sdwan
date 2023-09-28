@@ -45,6 +45,7 @@ public class NatManager {
             }
             String publicIP = sdArp.getPublicIP();
             int publicPort = sdArp.getPublicPort();
+            System.out.println(String.format("output: %s -> %s", ipPacket.getSrcIP(), ipPacket.getDstIP()));
             InetSocketAddress address = new InetSocketAddress(publicIP, publicPort);
             Ipv4Packet ipv4Packet = (Ipv4Packet) ipPacket;
             ByteBuf byteBuf = ipv4Packet.encode();
@@ -52,9 +53,11 @@ public class NatManager {
         });
     }
 
-    public void input(Channel channel, IpPacket ipPacket) {
+    public void input(Channel tunChannel, IpPacket ipPacket) {
         try {
-            channel.writeAndFlush(ipPacket);
+            System.out.println(String.format("input: %s -> %s", ipPacket.getSrcIP(), ipPacket.getDstIP()));
+            Ipv4Packet ipv4Packet = (Ipv4Packet) ipPacket;
+            tunChannel.writeAndFlush(ipv4Packet.encode());
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }

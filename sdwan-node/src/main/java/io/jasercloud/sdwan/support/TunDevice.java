@@ -84,8 +84,9 @@ public class TunDevice implements InitializingBean, Runnable {
     }
 
     private TunChannel bootTunDevices() {
+        DefaultEventLoopGroup eventLoopGroup = new DefaultEventLoopGroup();
         Bootstrap bootstrap = new Bootstrap()
-                .group(new DefaultEventLoopGroup())
+                .group(eventLoopGroup)
                 .channel(TunChannel.class)
                 .option(TunChannelConfig.MTU, properties.getMtu())
                 .handler(new ChannelInitializer<Channel>() {
@@ -109,6 +110,12 @@ public class TunDevice implements InitializingBean, Runnable {
                 });
         ChannelFuture future = bootstrap.bind(new TunAddress(TUN));
         TunChannel tunChannel = (TunChannel) future.syncUninterruptibly().channel();
+        tunChannel.closeFuture().addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture channelFuture) throws Exception {
+                eventLoopGroup.shutdownGracefully();
+            }
+        });
         return tunChannel;
     }
 
