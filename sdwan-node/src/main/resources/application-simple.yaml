@@ -3,16 +3,16 @@ server:
 sdwan:
   node:
     # connect
-    controllerHost: 127.0.0.1
+    controllerHost: 192.222.0.66
     controllerPort: 18848
     connectTimeout: 30000
     mtu: 1400
     # address
     addressType: static
     localIP: 192.222.0.66
-    staticIP: 127.0.0.1
+    staticIP: 192.222.0.66
     staticPort: 888
     # node
-    nodeType: mesh
+    nodeType: simple
     routes:
-      - 192.222.0.8/32
+      - 192.222.0.67/32

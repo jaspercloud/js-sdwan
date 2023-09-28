@@ -39,7 +39,7 @@ public class UdpTransporter implements Transporter, InitializingBean {
                 });
             }
         });
-        channel = bootstrap.bind(0).sync().channel();
+        channel = bootstrap.bind(888).sync().channel();
     }
 
     @Override

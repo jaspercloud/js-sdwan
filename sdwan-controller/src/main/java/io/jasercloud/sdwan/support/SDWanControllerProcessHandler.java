@@ -112,20 +112,23 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
     private void processReg(Channel channel, SDWanProtos.Message request) throws Exception {
         SDWanProtos.RegReq regReq = SDWanProtos.RegReq.parseFrom(request.getData());
         String hardwareAddress = regReq.getHardwareAddress();
-        String vip = bindStaticNode(hardwareAddress, channel);
+        String vip = AttributeKeys.nodeVip(channel).get();
         if (null == vip) {
-            if (SDWanProtos.NodeType.MeshType.equals(regReq.getNodeType())) {
-                SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
-                        .setCode(SDWanProtos.MessageCode.NodeTypeError_VALUE)
-                        .build();
-                SDWanProtos.Message response = request.toBuilder()
-                        .setType(SDWanProtos.MsgType.RegRespType)
-                        .setData(regResp.toByteString())
-                        .build();
-                channel.writeAndFlush(response);
-                return;
+            vip = bindStaticNode(hardwareAddress, channel);
+            if (null == vip) {
+                if (SDWanProtos.NodeType.MeshType.equals(regReq.getNodeType())) {
+                    SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
+                            .setCode(SDWanProtos.MessageCode.NodeTypeError_VALUE)
+                            .build();
+                    SDWanProtos.Message response = request.toBuilder()
+                            .setType(SDWanProtos.MsgType.RegRespType)
+                            .setData(regResp.toByteString())
+                            .build();
+                    channel.writeAndFlush(response);
+                    return;
+                }
+                vip = bindDynamicNode(channel);
             }
-            vip = bindDynamicNode(channel);
         }
         if (null == vip) {
             SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
@@ -138,13 +141,6 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
             channel.writeAndFlush(response);
             return;
         }
-        AtomicReference<Channel> reference = bindIPMap.get(vip);
-        channel.closeFuture().addListener(new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture future) throws Exception {
-                reference.set(null);
-            }
-        });
         AttributeKeys.nodeVip(channel)
                 .set(vip);
         AttributeKeys.nodePublicAddress(channel)
@@ -173,6 +169,12 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
             if (StringUtils.equals(node.getHardwareAddress(), hardwareAddress)) {
                 AtomicReference<Channel> ref = bindIPMap.get(node.getVip());
                 if (ref.compareAndSet(null, channel)) {
+                    channel.closeFuture().addListener(new ChannelFutureListener() {
+                        @Override
+                        public void operationComplete(ChannelFuture future) throws Exception {
+                            ref.set(null);
+                        }
+                    });
                     return node.getVip();
                 }
             }
@@ -184,6 +186,12 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
         for (Map.Entry<String, AtomicReference<Channel>> entry : bindIPMap.entrySet()) {
             AtomicReference<Channel> ref = entry.getValue();
             if (ref.compareAndSet(null, channel)) {
+                channel.closeFuture().addListener(new ChannelFutureListener() {
+                    @Override
+                    public void operationComplete(ChannelFuture future) throws Exception {
+                        ref.set(null);
+                    }
+                });
                 String vip = entry.getKey();
                 return vip;
             }

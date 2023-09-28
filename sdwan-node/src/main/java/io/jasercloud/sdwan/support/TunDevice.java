@@ -57,6 +57,7 @@ public class TunDevice implements InitializingBean, Runnable {
                 SDWanProtos.RegResp regResp = sdWanNode.regist(3000);
                 tunChannel = bootTunDevices();
                 try {
+                    log.info("tunAddress: {}/{}", regResp.getVip(), regResp.getMaskBits());
                     tunChannel.setAddress(regResp.getVip(), regResp.getMaskBits());
                     //等待ip设置成功，再配置路由
                     waitAddress(regResp.getVip(), 15000);
@@ -83,7 +84,13 @@ public class TunDevice implements InitializingBean, Runnable {
                         pipeline.addLast(new SimpleChannelInboundHandler<ByteBuf>() {
                             @Override
                             protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
-                                Ipv4Packet ipv4Packet = Ipv4Packet.decode(msg);
+                                msg.markReaderIndex();
+                                int version = (msg.readUnsignedByte() >> 4);
+                                if (4 != version) {
+                                    return;
+                                }
+                                msg.resetReaderIndex();
+                                Ipv4Packet ipv4Packet = Ipv4Packet.decode(msg.retain());
                                 natManager.output(sdWanNode, transporter, ipv4Packet);
                             }
                         });
