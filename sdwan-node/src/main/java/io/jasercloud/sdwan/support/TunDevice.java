@@ -22,13 +22,18 @@ public class TunDevice implements InitializingBean, Runnable {
     private SDWanNodeProperties properties;
     private SDWanNode sdWanNode;
     private Transporter transporter;
+    private NatManager natManager;
 
     private TunChannel tunChannel;
 
-    public TunDevice(SDWanNodeProperties properties, SDWanNode sdWanNode, Transporter transporter) {
+    public TunDevice(SDWanNodeProperties properties,
+                     SDWanNode sdWanNode,
+                     Transporter transporter,
+                     NatManager natManager) {
         this.properties = properties;
         this.sdWanNode = sdWanNode;
         this.transporter = transporter;
+        this.natManager = natManager;
     }
 
     @Override
@@ -37,12 +42,11 @@ public class TunDevice implements InitializingBean, Runnable {
             @Override
             public void onPacket(IpPacket ipPacket) {
                 if (null != tunChannel) {
-                    Ipv4Packet ipv4Packet = (Ipv4Packet) ipPacket;
-                    tunChannel.writeAndFlush(ipv4Packet);
+                    natManager.input(tunChannel, ipPacket);
                 }
             }
         });
-        Thread thread = new Thread(this, "sdwan-device");
+        Thread thread = new Thread(this, "tun-device");
         thread.start();
     }
 
@@ -50,10 +54,9 @@ public class TunDevice implements InitializingBean, Runnable {
     public void run() {
         while (true) {
             try {
+                SDWanProtos.RegResp regResp = sdWanNode.regist(3000);
                 tunChannel = bootTunDevices();
                 try {
-                    SDWanProtos.RegResp regResp = sdWanNode.regist(3000);
-                    log.info("tunAddress: {}/{}", regResp.getVip(), regResp.getMaskBits());
                     tunChannel.setAddress(regResp.getVip(), regResp.getMaskBits());
                     //等待ip设置成功，再配置路由
                     waitAddress(regResp.getVip(), 15000);
@@ -63,11 +66,6 @@ public class TunDevice implements InitializingBean, Runnable {
                     tunChannel.close().sync();
                 }
             } catch (Exception e) {
-                log.error(e.getMessage(), e);
-            }
-            try {
-                Thread.sleep(5000);
-            } catch (InterruptedException e) {
                 log.error(e.getMessage(), e);
             }
         }
@@ -86,7 +84,7 @@ public class TunDevice implements InitializingBean, Runnable {
                             @Override
                             protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
                                 Ipv4Packet ipv4Packet = Ipv4Packet.decode(msg);
-                                transporter.writePacket(ipv4Packet);
+                                natManager.output(sdWanNode, transporter, ipv4Packet);
                             }
                         });
                     }

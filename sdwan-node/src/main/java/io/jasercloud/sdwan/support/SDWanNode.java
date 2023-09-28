@@ -11,6 +11,7 @@ import io.netty.handler.codec.protobuf.ProtobufDecoder;
 import io.netty.handler.codec.protobuf.ProtobufEncoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
+import io.netty.util.concurrent.ScheduledFuture;
 import io.netty.util.internal.PlatformDependent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
@@ -18,13 +19,12 @@ import org.springframework.beans.factory.InitializingBean;
 
 import java.net.InetSocketAddress;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
 
     private SDWanNodeProperties properties;
-    private ChannelHandler handler;
     private Bootstrap bootstrap;
     private Channel channel;
 
@@ -32,9 +32,8 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
         return channel;
     }
 
-    public SDWanNode(SDWanNodeProperties properties, ChannelHandler handler) {
+    public SDWanNode(SDWanNodeProperties properties) {
         this.properties = properties;
-        this.handler = handler;
     }
 
     @Override
@@ -58,7 +57,29 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                         pipeline.addLast(new ProtobufDecoder(SDWanProtos.Message.getDefaultInstance()));
                         pipeline.addLast(new ProtobufVarint32LengthFieldPrepender());
                         pipeline.addLast(new ProtobufEncoder());
-                        pipeline.addLast(handler);
+                        pipeline.addLast(new SimpleChannelInboundHandler<SDWanProtos.Message>() {
+
+                            private ScheduledFuture<?> heartScheduledFuture;
+
+                            @Override
+                            public void channelActive(ChannelHandlerContext ctx) throws Exception {
+                                super.channelActive(ctx);
+                                heartScheduledFuture = ctx.executor().scheduleAtFixedRate(() -> {
+                                    heart(ctx);
+                                }, 0, 30 * 1000, TimeUnit.MILLISECONDS);
+                            }
+
+                            @Override
+                            public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+                                super.channelInactive(ctx);
+                                heartScheduledFuture.cancel(true);
+                            }
+
+                            @Override
+                            protected void channelRead0(ChannelHandlerContext ctx, SDWanProtos.Message request) throws Exception {
+                                AsyncTask.completeTask(request.getReqId(), request);
+                            }
+                        });
                     }
                 });
         InetSocketAddress address = new InetSocketAddress(properties.getControllerHost(), properties.getControllerPort());
@@ -97,9 +118,8 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
     }
 
     public SDWanProtos.Message request(SDWanProtos.Message request, int timeout) throws Exception {
-        CompletableFuture<SDWanProtos.Message> future = new CompletableFuture<>();
         channel.writeAndFlush(request);
-        SDWanProtos.Message response = AsyncTask.waitTask(request.getReqId(), future, timeout);
+        SDWanProtos.Message response = AsyncTask.waitSync(request.getReqId(), timeout);
         return response;
     }
 
@@ -140,5 +160,14 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
         SDWanProtos.Message response = request(request, timeout);
         SDWanProtos.RegResp regResp = SDWanProtos.RegResp.parseFrom(response.getData());
         return regResp;
+    }
+
+    private void heart(ChannelHandlerContext ctx) {
+        Channel channel = ctx.channel();
+        SDWanProtos.Message message = SDWanProtos.Message.newBuilder()
+                .setReqId(UUID.randomUUID().toString())
+                .setType(SDWanProtos.MsgType.HeartType)
+                .build();
+        channel.writeAndFlush(message);
     }
 }

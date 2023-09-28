@@ -1,10 +1,8 @@
 package io.jasercloud.sdwan.support.transporter;
 
-import io.jasercloud.sdwan.support.SDWanNode;
-import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.tun.IpPacket;
 import io.jaspercloud.sdwan.tun.Ipv4Packet;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.DatagramPacket;
@@ -13,21 +11,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 
 import java.net.InetSocketAddress;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
-public class UdpTransporter implements InitializingBean, Transporter {
+public class UdpTransporter implements Transporter, InitializingBean {
 
-    private SDWanNode sdWanNode;
     private ReceiveHandler handler;
     private Channel channel;
-
-    private Map<String, SDWanProtos.SDArpResp> arpCache = new ConcurrentHashMap<>();
-
-    public UdpTransporter(SDWanNode sdWanNode) {
-        this.sdWanNode = sdWanNode;
-    }
 
     @Override
     public void afterPropertiesSet() throws Exception {
@@ -54,26 +43,9 @@ public class UdpTransporter implements InitializingBean, Transporter {
     }
 
     @Override
-    public void writePacket(IpPacket ipPacket) {
-        try {
-            String ip = ipPacket.getDstIP().getHostAddress();
-            SDWanProtos.SDArpResp sdArp = arpCache.get(ip);
-            if (null == sdArp) {
-                sdArp = sdWanNode.sdArp(ipPacket.getDstIP().getHostAddress(), 3000);
-                if (SDWanProtos.MessageCode.Success_VALUE != sdArp.getCode()) {
-                    return;
-                }
-                arpCache.put(ip, sdArp);
-            }
-            String publicIP = sdArp.getPublicIP();
-            int publicPort = sdArp.getPublicPort();
-            InetSocketAddress address = new InetSocketAddress(publicIP, publicPort);
-            Ipv4Packet ipv4Packet = (Ipv4Packet) ipPacket;
-            DatagramPacket packet = new DatagramPacket(ipv4Packet.encode(), address);
-            channel.writeAndFlush(packet);
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-        }
+    public void writePacket(InetSocketAddress address, ByteBuf byteBuf) {
+        DatagramPacket packet = new DatagramPacket(byteBuf, address);
+        channel.writeAndFlush(packet);
     }
 
     @Override
