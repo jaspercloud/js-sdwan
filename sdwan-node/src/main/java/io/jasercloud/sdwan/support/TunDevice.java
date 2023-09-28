@@ -4,6 +4,7 @@ import io.jasercloud.sdwan.support.transporter.Transporter;
 import io.jaspercloud.sdwan.NetworkInterfaceInfo;
 import io.jaspercloud.sdwan.NetworkInterfaceUtil;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
+import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.tun.*;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -54,7 +55,12 @@ public class TunDevice implements InitializingBean, Runnable {
     public void run() {
         while (true) {
             try {
-                SDWanProtos.RegResp regResp = sdWanNode.regist(3000);
+                SDWanProtos.RegResp regResp = sdWanNode.regist(5000);
+                if (SDWanProtos.MessageCode.NodeTypeError_VALUE == regResp.getCode()) {
+                    throw new ProcessException("meshNode must staticNode");
+                } else if (SDWanProtos.MessageCode.NodeTypeError_VALUE == regResp.getCode()) {
+                    throw new ProcessException("no more vip");
+                }
                 tunChannel = bootTunDevices();
                 try {
                     log.info("tunAddress: {}/{}", regResp.getVip(), regResp.getMaskBits());
@@ -69,12 +75,18 @@ public class TunDevice implements InitializingBean, Runnable {
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
             }
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                log.error(e.getMessage(), e);
+            }
         }
     }
 
     private TunChannel bootTunDevices() {
+        DefaultEventLoopGroup eventLoopGroup = new DefaultEventLoopGroup();
         Bootstrap bootstrap = new Bootstrap()
-                .group(new DefaultEventLoopGroup())
+                .group(eventLoopGroup)
                 .channel(TunChannel.class)
                 .option(TunChannelConfig.MTU, properties.getMtu())
                 .handler(new ChannelInitializer<Channel>() {
@@ -98,6 +110,12 @@ public class TunDevice implements InitializingBean, Runnable {
                 });
         ChannelFuture future = bootstrap.bind(new TunAddress(TUN));
         TunChannel tunChannel = (TunChannel) future.syncUninterruptibly().channel();
+        tunChannel.closeFuture().addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture channelFuture) throws Exception {
+                eventLoopGroup.shutdownGracefully();
+            }
+        });
         return tunChannel;
     }
 

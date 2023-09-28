@@ -9,10 +9,9 @@ sdwan:
     mtu: 1400
     # address
     addressType: static
-    localIP: 192.222.0.66
-    staticIP: 192.222.0.66
+    localIP: 192.222.0.69
+    staticIP: 192.222.0.69
     staticPort: 888
     # node
-    nodeType: simple
+    nodeType: mesh
     routes:
-      - 192.222.0.67/32

@@ -21,24 +21,24 @@ public class UdpTransporter implements Transporter, InitializingBean {
     @Override
     public void afterPropertiesSet() throws Exception {
         NioEventLoopGroup group = new NioEventLoopGroup();
-        Bootstrap bootstrap = new Bootstrap();
-        bootstrap.group(group);
-        bootstrap.channel(NioDatagramChannel.class);
-        bootstrap.handler(new ChannelInitializer<Channel>() {
-            @Override
-            protected void initChannel(Channel ch) throws Exception {
-                ChannelPipeline pipeline = ch.pipeline();
-                pipeline.addLast(new SimpleChannelInboundHandler<DatagramPacket>() {
+        Bootstrap bootstrap = new Bootstrap()
+                .group(group)
+                .channel(NioDatagramChannel.class)
+                .handler(new ChannelInitializer<Channel>() {
                     @Override
-                    protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket msg) throws Exception {
-                        if (null != handler) {
-                            Ipv4Packet ipv4Packet = Ipv4Packet.decode(msg.content());
-                            handler.onPacket(ipv4Packet);
-                        }
+                    protected void initChannel(Channel ch) throws Exception {
+                        ChannelPipeline pipeline = ch.pipeline();
+                        pipeline.addLast(new SimpleChannelInboundHandler<DatagramPacket>() {
+                            @Override
+                            protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket msg) throws Exception {
+                                if (null != handler) {
+                                    Ipv4Packet ipv4Packet = Ipv4Packet.decode(msg.content());
+                                    handler.onPacket(ipv4Packet);
+                                }
+                            }
+                        });
                     }
                 });
-            }
-        });
         channel = bootstrap.bind(888).sync().channel();
     }
 
