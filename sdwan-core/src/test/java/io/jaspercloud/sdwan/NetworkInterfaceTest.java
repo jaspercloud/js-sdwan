@@ -12,7 +12,7 @@ import java.util.List;
 public class NetworkInterfaceTest {
 
     public static void main(String[] args) throws Exception {
-        NetworkInterfaceInfo networkInterfaceInfo = findNetworkInterfaceInfo("192.222.0.66");
+        NetworkInterfaceInfo networkInterfaceInfo = findNetworkInterfaceInfo("10.1.0.5");
         String hardwareAddress = networkInterfaceInfo.getHardwareAddress();
         InterfaceAddress interfaceAddress = networkInterfaceInfo.getInterfaceAddress();
         String localAddress = interfaceAddress.getAddress().getHostAddress();
@@ -37,10 +37,12 @@ public class NetworkInterfaceTest {
             }
             for (InterfaceAddress interfaceAddress : networkInterface.getInterfaceAddresses()) {
                 if (StringUtils.equals(interfaceAddress.getAddress().getHostAddress(), ip)) {
-                    String hardwareAddress = parseHardwareAddress(networkInterface.getHardwareAddress());
                     NetworkInterfaceInfo networkInterfaceInfo = new NetworkInterfaceInfo();
                     networkInterfaceInfo.setInterfaceAddress(interfaceAddress);
-                    networkInterfaceInfo.setHardwareAddress(hardwareAddress);
+                    if (null != networkInterface.getHardwareAddress()) {
+                        String hardwareAddress = parseHardwareAddress(networkInterface.getHardwareAddress());
+                        networkInterfaceInfo.setHardwareAddress(hardwareAddress);
+                    }
                     return networkInterfaceInfo;
                 }
             }

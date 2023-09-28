@@ -47,6 +47,8 @@ public class WinTunDevice extends TunDevice {
         public static native void WintunSendPacket(Pointer Session, Pointer Packet) throws LastErrorException;
 
         public static native Pointer WintunGetReadWaitEvent(Pointer Session) throws LastErrorException;
+
+        public static native void WintunGetAdapterLUID(Pointer Adapter, Pointer Luid) throws LastErrorException;
     }
 
     private interface Kernel32 extends StdCallLibrary {

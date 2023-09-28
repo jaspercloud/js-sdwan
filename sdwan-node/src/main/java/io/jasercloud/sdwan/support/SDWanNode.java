@@ -41,7 +41,7 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
     public void afterPropertiesSet() throws Exception {
         if (PlatformDependent.isWindows()
                 && SDWanNodeProperties.NodeType.MESH.equals(properties.getNodeType())) {
-            throw new ExceptionInInitializerError("only support linux");
+//            throw new ExceptionInInitializerError("only support linux");
         }
         bootstrap = new Bootstrap();
         bootstrap.group(NioEventLoopFactory.BossGroup)
