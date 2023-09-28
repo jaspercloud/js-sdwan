@@ -10,7 +10,10 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 @Slf4j
 public class NatManager {
@@ -18,15 +21,27 @@ public class NatManager {
     private Map<String, SDWanProtos.SDArpResp> arpCache = new ConcurrentHashMap<>();
 
     public void output(SDWanNode sdWanNode, Transporter transporter, IpPacket ipPacket) {
-        try {
-            String ip = ipPacket.getDstIP().getHostAddress();
+        String ip = ipPacket.getDstIP().getHostAddress();
+        CompletableFuture.supplyAsync(() -> {
             SDWanProtos.SDArpResp sdArp = arpCache.get(ip);
-            if (null == sdArp) {
-                sdArp = sdWanNode.sdArp(ipPacket.getDstIP().getHostAddress(), 3000);
-                if (SDWanProtos.MessageCode.Success_VALUE != sdArp.getCode()) {
-                    return;
+            return sdArp;
+        }).thenComposeAsync(new Function<SDWanProtos.SDArpResp, CompletionStage<SDWanProtos.SDArpResp>>() {
+            @Override
+            public CompletionStage<SDWanProtos.SDArpResp> apply(SDWanProtos.SDArpResp sdArp) {
+                if (null == sdArp) {
+                    return sdWanNode.sdArp(ipPacket.getDstIP().getHostAddress(), 3000);
                 }
-                arpCache.put(ip, sdArp);
+                return CompletableFuture.completedFuture(sdArp);
+            }
+        }).thenApply(sdArp -> {
+            if (SDWanProtos.MessageCode.Success_VALUE != sdArp.getCode()) {
+                return null;
+            }
+            arpCache.put(ip, sdArp);
+            return sdArp;
+        }).thenAccept(sdArp -> {
+            if (null == sdArp) {
+                return;
             }
             String publicIP = sdArp.getPublicIP();
             int publicPort = sdArp.getPublicPort();
@@ -34,9 +49,7 @@ public class NatManager {
             Ipv4Packet ipv4Packet = (Ipv4Packet) ipPacket;
             ByteBuf byteBuf = ipv4Packet.encode();
             transporter.writePacket(address, byteBuf);
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-        }
+        });
     }
 
     public void input(Channel channel, IpPacket ipPacket) {

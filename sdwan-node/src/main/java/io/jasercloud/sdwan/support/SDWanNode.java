@@ -2,6 +2,7 @@ package io.jasercloud.sdwan.support;
 
 import io.jaspercloud.sdwan.*;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
+import io.jaspercloud.sdwan.exception.ProcessException;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
@@ -19,6 +20,7 @@ import org.springframework.beans.factory.InitializingBean;
 
 import java.net.InetSocketAddress;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -117,13 +119,20 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
         }
     }
 
-    public SDWanProtos.Message request(SDWanProtos.Message request, int timeout) throws Exception {
+    public SDWanProtos.Message requestSync(SDWanProtos.Message request, int timeout) throws Exception {
+        CompletableFuture<SDWanProtos.Message> future = AsyncTask.waitTask(request.getReqId(), timeout);
         channel.writeAndFlush(request);
-        SDWanProtos.Message response = AsyncTask.waitSync(request.getReqId(), timeout);
+        SDWanProtos.Message response = future.get();
         return response;
     }
 
-    public SDWanProtos.SDArpResp sdArp(String ip, int timeout) throws Exception {
+    public CompletableFuture<SDWanProtos.Message> requestAsync(SDWanProtos.Message request, int timeout) {
+        CompletableFuture<SDWanProtos.Message> future = AsyncTask.waitTask(request.getReqId(), timeout);
+        channel.writeAndFlush(request);
+        return future;
+    }
+
+    public CompletableFuture<SDWanProtos.SDArpResp> sdArp(String ip, int timeout) {
         SDWanProtos.SDArpReq nodeArpReq = SDWanProtos.SDArpReq.newBuilder()
                 .setIp(ip)
                 .build();
@@ -132,9 +141,16 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                 .setType(SDWanProtos.MsgType.NodeArpReqType)
                 .setData(nodeArpReq.toByteString())
                 .build();
-        SDWanProtos.Message response = request(request, timeout);
-        SDWanProtos.SDArpResp sdArpResp = SDWanProtos.SDArpResp.parseFrom(response.getData());
-        return sdArpResp;
+        CompletableFuture<SDWanProtos.SDArpResp> future = requestAsync(request, timeout)
+                .thenApply(response -> {
+                    try {
+                        SDWanProtos.SDArpResp sdArpResp = SDWanProtos.SDArpResp.parseFrom(response.getData());
+                        return sdArpResp;
+                    } catch (Exception e) {
+                        throw new ProcessException(e.getMessage(), e);
+                    }
+                });
+        return future;
     }
 
     public SDWanProtos.RegResp regist(int timeout) throws Exception {
@@ -157,7 +173,7 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                 .setType(SDWanProtos.MsgType.RegReqType)
                 .setData(regReq.toByteString())
                 .build();
-        SDWanProtos.Message response = request(request, timeout);
+        SDWanProtos.Message response = requestSync(request, timeout);
         SDWanProtos.RegResp regResp = SDWanProtos.RegResp.parseFrom(response.getData());
         return regResp;
     }

@@ -19,18 +19,7 @@ public class AsyncTask<T> {
             30, TimeUnit.MILLISECONDS);
     private static Map<String, CompletableFuture> futureMap = new ConcurrentHashMap<>();
 
-    public static <T> T waitSync(String id, long timeout) throws Exception {
-        CompletableFuture<T> future = new CompletableFuture<>();
-        futureMap.put(id, future);
-        try {
-            T result = future.get(timeout, TimeUnit.MILLISECONDS);
-            return result;
-        } finally {
-            futureMap.remove(id);
-        }
-    }
-
-    public static <T> CompletableFuture<T> waitAsync(String id, long timeout) {
+    public static <T> CompletableFuture<T> waitTask(String id, long timeout) {
         FutureTask futureTask = new FutureTask();
         futureMap.put(id, futureTask);
         futureTask.timeoutTask = TIMEOUT.newTimeout(new TimerTask() {
