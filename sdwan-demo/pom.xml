@@ -24,6 +24,11 @@
             <artifactId>sdwan-core</artifactId>
             <version>${revision}</version>
         </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>3.3.0</version>
+        </dependency>
     </dependencies>
 
     <dependencyManagement>
