@@ -100,8 +100,6 @@ public class LinuxTunDevice extends TunDevice {
 
     private int fd;
     private int mtu = 65535;
-    private LinuxC.FdSet fdSet;
-    private LinuxC.Timeval timeval;
     private boolean closing = false;
 
     public LinuxTunDevice(String name, String type, String guid) {
@@ -113,10 +111,6 @@ public class LinuxTunDevice extends TunDevice {
         fd = LinuxC.open("/dev/net/tun", LinuxC.O_RDWR);
         int flags = LinuxC.fcntl(fd, LinuxC.F_GETFL, 0);
         int noblock = LinuxC.fcntl(fd, LinuxC.F_SETFL, flags | LinuxC.O_NONBLOCK);
-        fdSet = new LinuxC.FdSet();
-        fdSet.FD_SET(fd);
-        timeval = new LinuxC.Timeval();
-        timeval.tv_sec = 5;
         LinuxC.Ifreq ifreq = new LinuxC.Ifreq(getName(), (short) (LinuxC.IFF_TUN | LinuxC.IFF_NO_PI));
         LinuxC.ioctl(fd, LinuxC.TUNSETIFF, ifreq);
         setActive(true);
@@ -141,10 +135,14 @@ public class LinuxTunDevice extends TunDevice {
 
     @Override
     public ByteBuf readPacket(ByteBufAllocator alloc) {
+        LinuxC.Timeval timeval = new LinuxC.Timeval();
+        timeval.tv_sec = 5;
         while (true) {
             if (closing) {
                 throw new ProcessException("Device is closed.");
             }
+            LinuxC.FdSet fdSet = new LinuxC.FdSet();
+            fdSet.FD_SET(fd);
             int select = LinuxTunDevice.LinuxC.select(fd + 1, fdSet, null, null, timeval);
             if (-1 == select) {
                 throw new ProcessException("select -1");
