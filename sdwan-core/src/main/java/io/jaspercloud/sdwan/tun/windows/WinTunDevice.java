@@ -2,13 +2,13 @@ package io.jaspercloud.sdwan.tun.windows;
 
 import com.sun.jna.*;
 import com.sun.jna.win32.StdCallLibrary;
+import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.tun.Ipv4Packet;
 import io.jaspercloud.sdwan.tun.ProcessUtil;
 import io.jaspercloud.sdwan.tun.TunDevice;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.UnpooledByteBufAllocator;
-import io.netty.util.ReferenceCountUtil;
 
 import java.util.UUID;
 
@@ -62,6 +62,7 @@ public class WinTunDevice extends TunDevice {
 
     private Pointer adapter;
     private Pointer session;
+    private boolean closing = false;
 
     public WinTunDevice(String name, String type, String guid) {
         super(name, type, guid);
@@ -98,6 +99,9 @@ public class WinTunDevice extends TunDevice {
     @Override
     public ByteBuf readPacket(ByteBufAllocator alloc) {
         while (true) {
+            if (closing) {
+                throw new ProcessException("Device is closed.");
+            }
             try {
                 Pointer packetSizePointer = new Memory(Native.POINTER_SIZE);
                 Pointer packetPointer = WinTunApi.WintunReceivePacket(session, packetSizePointer);
@@ -122,6 +126,9 @@ public class WinTunDevice extends TunDevice {
 
     @Override
     public void writePacket(ByteBufAllocator alloc, ByteBuf msg) {
+        if (closing) {
+            throw new ProcessException("Device is closed.");
+        }
         byte[] bytes = new byte[msg.readableBytes()];
         msg.readBytes(bytes);
         Pointer packetPointer = WinTunApi.WintunAllocateSendPacket(session, bytes.length);
@@ -137,6 +144,10 @@ public class WinTunDevice extends TunDevice {
 
     @Override
     public void close() {
+        if (closing) {
+            return;
+        }
+        closing = true;
         WinTunApi.WintunEndSession(session);
         WinTunApi.WintunCloseAdapter(adapter);
     }
