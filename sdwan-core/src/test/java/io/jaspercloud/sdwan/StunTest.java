@@ -26,6 +26,12 @@ public class StunTest {
 
     public static final byte[] Cookie = new byte[]{(byte) 0x21, (byte) 0x12, (byte) 0xa4, (byte) 0x42};
 
+    public static final String Blocked = "Blocked";
+    public static final String Internet = "Internet";
+    public static final String EndpointIndependent = "EndpointIndependent";
+    public static final String AddressAndPortDependent = "AddressAndPortDependent";
+    public static final String AddressDependent = "AddressDependent";
+
     public static void main(String[] args) throws Exception {
         LoggerContext loggerContext = (LoggerContext) StaticLoggerBinder.getSingleton().getLoggerFactory();
         Logger root = loggerContext.getLogger("ROOT");
@@ -36,7 +42,7 @@ public class StunTest {
 
     private Map<String, CompletableFuture<Packet>> futureMap = new ConcurrentHashMap<>();
 
-    private InetSocketAddress local = new InetSocketAddress("0.0.0.0", 888);
+    private InetSocketAddress local = new InetSocketAddress("0.0.0.0", 0);
     private InetSocketAddress target = new InetSocketAddress("stun.miwifi.com", 3478);
     private Channel channel;
 
@@ -65,124 +71,97 @@ public class StunTest {
                     }
                 });
         channel = bootstrap.bind(local).sync().channel();
-        String mapping = getMappingBehavior();
-        String filtering = getFilteringBehavior();
+        CheckResult checkResult = check();
         channel.closeFuture().sync();
     }
 
-    private String getFilteringBehavior() throws Exception {
-        String status;
-        InetSocketAddress inetMappedAddress1;
-        try {
-            Message message = new Message(MessageType.BindRequest);
-            Packet request = new Packet(message, target);
-            CompletableFuture<Packet> future = new CompletableFuture<>();
-            futureMap.put(request.content().getTranId(), future);
-            channel.writeAndFlush(request);
-            Packet response = future.get(1000, TimeUnit.MILLISECONDS);
-            Map<AttrType, Attr> attrs = response.content().getAttrs();
-            AddressAttr mappedAddress = (AddressAttr) attrs.get(AttrType.MappedAddress);
-            inetMappedAddress1 = new InetSocketAddress(mappedAddress.getIp(), mappedAddress.getPort());
-            if (Objects.equals(local, inetMappedAddress1)) {
-                status = "internet";
-                return status;
-            }
-        } catch (TimeoutException e) {
-            status = "blocked";
-            return status;
+    private CheckResult check() throws Exception {
+        String mapping = null;
+        String filtering = null;
+        Packet response = sendBind(target);
+        if (null == response) {
+            mapping = Blocked;
+            filtering = Blocked;
+            return new CheckResult(mapping, filtering);
         }
+        Map<AttrType, Attr> attrs = response.content().getAttrs();
+        AddressAttr otherAddressAttr = (AddressAttr) attrs.get(AttrType.OtherAddress);
+        InetSocketAddress otherAddress = new InetSocketAddress(otherAddressAttr.getIp(), otherAddressAttr.getPort());
+        AddressAttr mappedAddressAttr = (AddressAttr) attrs.get(AttrType.MappedAddress);
+        InetSocketAddress mappedAddress1 = new InetSocketAddress(mappedAddressAttr.getIp(), mappedAddressAttr.getPort());
+        if (Objects.equals(mappedAddress1, local)) {
+            mapping = Internet;
+            filtering = Internet;
+            return new CheckResult(mapping, filtering);
+        }
+        if (null != (response = sendChangeBind(target, true, true))) {
+            filtering = EndpointIndependent;
+        } else if (null != (response = sendChangeBind(target, false, true))) {
+            filtering = AddressDependent;
+        } else if (null != (response = sendBind(new InetSocketAddress(otherAddress.getHostString(), target.getPort())))) {
+            filtering = AddressAndPortDependent;
+        }
+        attrs = response.content().getAttrs();
+        mappedAddressAttr = (AddressAttr) attrs.get(AttrType.MappedAddress);
+        InetSocketAddress mappedAddress2 = new InetSocketAddress(mappedAddressAttr.getIp(), mappedAddressAttr.getPort());
+        if (Objects.equals(mappedAddress1, mappedAddress2)) {
+            mapping = EndpointIndependent;
+        } else if (Objects.equals(mappedAddress1.getHostString(), mappedAddress2.getHostString())) {
+            mapping = AddressDependent;
+        } else {
+            mapping = AddressAndPortDependent;
+        }
+        return new CheckResult(mapping, filtering);
+    }
+
+    private Packet sendBind(InetSocketAddress address) throws Exception {
         try {
+            System.out.println("sendBind: " + address);
             Message message = new Message(MessageType.BindRequest);
-            ChangeRequestAttr changeRequestAttr = new ChangeRequestAttr(true, true);
-            message.getAttrs().put(AttrType.ChangeRequest, changeRequestAttr);
-            Packet request = new Packet(message, target);
+            Packet request = new Packet(message, address);
             CompletableFuture<Packet> future = new CompletableFuture<>();
             futureMap.put(request.content().getTranId(), future);
             channel.writeAndFlush(request);
             Packet response = future.get(1000, TimeUnit.MILLISECONDS);
-            status = "EndpointIndependent";
-            return status;
+            System.out.println("response:" + response.recipient());
+            return response;
         } catch (TimeoutException e) {
-            try {
-                Message message = new Message(MessageType.BindRequest);
-                ChangeRequestAttr changeRequestAttr = new ChangeRequestAttr(false, true);
-                message.getAttrs().put(AttrType.ChangeRequest, changeRequestAttr);
-                Packet request = new Packet(message, target);
-                CompletableFuture<Packet> future = new CompletableFuture<>();
-                futureMap.put(request.content().getTranId(), future);
-                channel.writeAndFlush(request);
-                Packet response = future.get(1000, TimeUnit.MILLISECONDS);
-                status = "AddressDependent";
-                return status;
-            } catch (TimeoutException ex) {
-                status = "AddressAndPortDependent";
-                return status;
-            }
+            return null;
         }
     }
 
-    private String getMappingBehavior() throws Exception {
-        String status;
-        InetSocketAddress inetMappedAddress1;
-        InetSocketAddress inetOtherAddress;
+    private Packet sendChangeBind(InetSocketAddress address, boolean changeIP, boolean changePort) throws Exception {
         try {
+            System.out.println(String.format("sendChangeBind=%s, ip=%s, port=%s", address, changeIP, changePort));
             Message message = new Message(MessageType.BindRequest);
-            Packet request = new Packet(message, target);
+            ChangeRequestAttr changeRequestAttr = new ChangeRequestAttr(changeIP, changePort);
+            message.getAttrs().put(AttrType.ChangeRequest, changeRequestAttr);
+            Packet request = new Packet(message, address);
             CompletableFuture<Packet> future = new CompletableFuture<>();
             futureMap.put(request.content().getTranId(), future);
             channel.writeAndFlush(request);
             Packet response = future.get(1000, TimeUnit.MILLISECONDS);
-            Map<AttrType, Attr> attrs = response.content().getAttrs();
-            AddressAttr mappedAddress = (AddressAttr) attrs.get(AttrType.MappedAddress);
-            inetMappedAddress1 = new InetSocketAddress(mappedAddress.getIp(), mappedAddress.getPort());
-            if (Objects.equals(local, inetMappedAddress1)) {
-                status = "internet";
-                return status;
-            }
-            AddressAttr otherAddress = (AddressAttr) attrs.get(AttrType.OtherAddress);
-            inetOtherAddress = new InetSocketAddress(otherAddress.getIp(), otherAddress.getPort());
+            System.out.println("response:" + response.recipient());
+            return response;
         } catch (TimeoutException e) {
-            status = "blocked";
-            return status;
+            return null;
         }
-        Message message = new Message(MessageType.BindRequest);
-        ChangeRequestAttr changeRequestAttr = new ChangeRequestAttr(true, true);
-        message.getAttrs().put(AttrType.ChangeRequest, changeRequestAttr);
-        Packet request = new Packet(message, inetOtherAddress);
-        CompletableFuture<Packet> future = new CompletableFuture<>();
-        futureMap.put(request.content().getTranId(), future);
-        channel.writeAndFlush(request);
-        Packet response = future.get(1000, TimeUnit.MILLISECONDS);
-        Map<AttrType, Attr> attrs = response.content().getAttrs();
-        AddressAttr mappedAddress = (AddressAttr) attrs.get(AttrType.MappedAddress);
-        InetSocketAddress inetMappedAddress2 = new InetSocketAddress(mappedAddress.getIp(), mappedAddress.getPort());
-        if (Objects.equals(inetMappedAddress1, inetMappedAddress2)) {
-            status = "EndpointIndependent";
-            return status;
-        } else {
-            AddressAttr otherAddress = (AddressAttr) attrs.get(AttrType.OtherAddress);
-            inetOtherAddress = new InetSocketAddress(otherAddress.getIp(), otherAddress.getPort());
-            message = new Message(MessageType.BindRequest);
-            changeRequestAttr = new ChangeRequestAttr(true, true);
-            message.getAttrs().put(AttrType.ChangeRequest, changeRequestAttr);
-            request = new Packet(message, inetOtherAddress);
-            future = new CompletableFuture<>();
-            futureMap.put(request.content().getTranId(), future);
-            channel.writeAndFlush(request);
-            response = future.get(1000, TimeUnit.MILLISECONDS);
+    }
+
+    @Data
+    public static class CheckResult {
+
+        private String mapping;
+        private String filtering;
+
+        public CheckResult(String mapping, String filtering) {
+            this.mapping = mapping;
+            this.filtering = filtering;
         }
-        attrs = response.content().getAttrs();
-        mappedAddress = (AddressAttr) attrs.get(AttrType.MappedAddress);
-        InetSocketAddress inetMappedAddress3 = new InetSocketAddress(mappedAddress.getIp(), mappedAddress.getPort());
-        if (Objects.equals(inetMappedAddress2, inetMappedAddress3)) {
-            status = "AddressDependent";
-        } else {
-            status = "AddressAndPortDependent";
-        }
-        return status;
     }
 
     public static class Decoder extends MessageToMessageDecoder<DatagramPacket> {
+
         @Override
         protected void decode(ChannelHandlerContext ctx, DatagramPacket msg, List<Object> out) throws Exception {
             ByteBuf byteBuf = msg.content();
@@ -214,6 +193,7 @@ public class StunTest {
     }
 
     public static class Encoder extends MessageToMessageEncoder<Packet> {
+
         @Override
         protected void encode(ChannelHandlerContext ctx, Packet msg, List<Object> out) throws Exception {
             Channel channel = ctx.channel();
@@ -378,5 +358,4 @@ public class StunTest {
             return null;
         }
     }
-
 }
