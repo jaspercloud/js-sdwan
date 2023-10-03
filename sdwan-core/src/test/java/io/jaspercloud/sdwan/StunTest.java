@@ -76,8 +76,8 @@ public class StunTest {
     }
 
     private CheckResult check() throws Exception {
-        String mapping = null;
-        String filtering = null;
+        String mapping;
+        String filtering;
         Packet response = sendBind(target);
         if (null == response) {
             mapping = Blocked;
@@ -98,7 +98,7 @@ public class StunTest {
             filtering = EndpointIndependent;
         } else if (null != (response = sendChangeBind(target, false, true))) {
             filtering = AddressDependent;
-        } else if (null != (response = sendBind(new InetSocketAddress(otherAddress.getHostString(), target.getPort())))) {
+        } else {
             filtering = AddressAndPortDependent;
         }
         attrs = response.content().getAttrs();
