@@ -72,6 +72,7 @@ public class StunTest {
                 });
         channel = bootstrap.bind(local).sync().channel();
         CheckResult checkResult = check();
+        System.out.println("check:" + checkResult.getMappingAddress());
         channel.closeFuture().sync();
     }
 
@@ -82,7 +83,7 @@ public class StunTest {
         if (null == response) {
             mapping = Blocked;
             filtering = Blocked;
-            return new CheckResult(mapping, filtering);
+            return new CheckResult(mapping, filtering, null);
         }
         Map<AttrType, Attr> attrs = response.content().getAttrs();
         AddressAttr otherAddressAttr = (AddressAttr) attrs.get(AttrType.OtherAddress);
@@ -92,13 +93,14 @@ public class StunTest {
         if (Objects.equals(mappedAddress1, local)) {
             mapping = Internet;
             filtering = Internet;
-            return new CheckResult(mapping, filtering);
+            return new CheckResult(mapping, filtering, mappedAddress1);
         }
         if (null != (response = sendChangeBind(target, true, true))) {
             filtering = EndpointIndependent;
         } else if (null != (response = sendChangeBind(target, false, true))) {
             filtering = AddressDependent;
         } else {
+            response = sendBind(new InetSocketAddress(otherAddress.getHostString(), target.getPort()));
             filtering = AddressAndPortDependent;
         }
         attrs = response.content().getAttrs();
@@ -111,7 +113,7 @@ public class StunTest {
         } else {
             mapping = AddressAndPortDependent;
         }
-        return new CheckResult(mapping, filtering);
+        return new CheckResult(mapping, filtering, mappedAddress1);
     }
 
     private Packet sendBind(InetSocketAddress address) throws Exception {
@@ -153,10 +155,12 @@ public class StunTest {
 
         private String mapping;
         private String filtering;
+        private InetSocketAddress mappingAddress;
 
-        public CheckResult(String mapping, String filtering) {
+        public CheckResult(String mapping, String filtering, InetSocketAddress mappingAddress) {
             this.mapping = mapping;
             this.filtering = filtering;
+            this.mappingAddress = mappingAddress;
         }
     }
 
