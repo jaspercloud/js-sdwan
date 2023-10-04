@@ -1,9 +1,5 @@
 package io.jaspercloud.sdwan;
 
-import io.jaspercloud.sdwan.exception.ProcessException;
-
-import java.net.InetAddress;
-
 public class IPUtil {
 
     public static int ip2int(String ip) {
@@ -28,11 +24,11 @@ public class IPUtil {
     }
 
     public static String bytes2ip(byte[] bytes) {
-        try {
-            String ip = InetAddress.getByAddress(bytes).getHostAddress();
-            return ip;
-        } catch (Exception e) {
-            throw new ProcessException(e.getMessage(), e);
-        }
+        int d1 = bytes[0] & 0b11111111;
+        int d2 = bytes[1] & 0b11111111;
+        int d3 = bytes[2] & 0b11111111;
+        int d4 = bytes[3] & 0b11111111;
+        String ip = String.format("%s.%s.%s.%s", d1, d2, d3, d4);
+        return ip;
     }
 }
