@@ -135,7 +135,7 @@ public class LinuxTunDevice extends TunDevice {
 
     @Override
     public void setMTU(int mtu) throws Exception {
-        int setMtu = ProcessUtil.exec(String.format("ifconfig %s mtu %s up", getName(), mtu));
+        int setMtu = ProcessUtil.exec(String.format("/sbin/ip link set %s mtu %s", getName(), mtu));
         this.mtu = mtu;
     }
 
