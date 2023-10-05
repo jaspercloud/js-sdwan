@@ -31,4 +31,13 @@ public class IPUtil {
         String ip = String.format("%s.%s.%s.%s", d1, d2, d3, d4);
         return ip;
     }
+
+    public static byte[] ip2bytes(String ip) {
+        String[] split = ip.split("\\.");
+        byte[] bytes = new byte[split.length];
+        for (int i = 0; i < split.length; i++) {
+            bytes[i] = (byte) Integer.parseInt(split[i]);
+        }
+        return bytes;
+    }
 }
