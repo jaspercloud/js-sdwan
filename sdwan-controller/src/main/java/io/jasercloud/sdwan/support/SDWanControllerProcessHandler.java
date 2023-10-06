@@ -8,9 +8,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.InitializingBean;
 
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 @ChannelHandler.Sharable
 public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<SDWanProtos.Message> implements InitializingBean {
@@ -183,7 +185,13 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
     }
 
     private String bindDynamicNode(Channel channel) {
+        List<String> staticIPList = properties.getStaticNodes().values().stream().map(e -> e.getVip())
+                .collect(Collectors.toList());
         for (Map.Entry<String, AtomicReference<Channel>> entry : bindIPMap.entrySet()) {
+            if (staticIPList.contains(entry.getKey())) {
+                //过滤静态IP
+                continue;
+            }
             AtomicReference<Channel> ref = entry.getValue();
             if (ref.compareAndSet(null, channel)) {
                 channel.closeFuture().addListener(new ChannelFutureListener() {
