@@ -5,11 +5,11 @@ import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.WString;
 
-public class NativeWinTun {
+public class NativeWinTunApi {
 
     static {
         try {
-            Native.register(NativeWinTun.class, "wintun");
+            Native.register(NativeWinTunApi.class, "wintun");
         } catch (Exception e) {
             throw new ExceptionInInitializerError(e);
         }

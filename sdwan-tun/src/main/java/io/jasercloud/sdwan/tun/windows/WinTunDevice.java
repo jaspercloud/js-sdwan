@@ -24,14 +24,14 @@ public class WinTunDevice extends TunDevice {
 
     @Override
     public void open() throws Exception {
-        adapter = NativeWinTun.WintunCreateAdapter(new WString(getName()), new WString(getType()), getGuid());
-        session = NativeWinTun.WintunStartSession(adapter, NativeWinTun.WINTUN_MAX_RING_CAPACITY);
+        adapter = NativeWinTunApi.WintunCreateAdapter(new WString(getName()), new WString(getType()), getGuid());
+        session = NativeWinTunApi.WintunStartSession(adapter, NativeWinTunApi.WINTUN_MAX_RING_CAPACITY);
         setActive(true);
     }
 
     @Override
     public int getVersion() {
-        return NativeWinTun.WintunGetRunningDriverVersion();
+        return NativeWinTunApi.WintunGetRunningDriverVersion();
     }
 
     @Override
@@ -56,7 +56,7 @@ public class WinTunDevice extends TunDevice {
             }
             try {
                 Pointer packetSizePointer = new Memory(Native.POINTER_SIZE);
-                Pointer packetPointer = NativeWinTun.WintunReceivePacket(session, packetSizePointer);
+                Pointer packetPointer = NativeWinTunApi.WintunReceivePacket(session, packetSizePointer);
                 try {
                     int packetSize = packetSizePointer.getInt(0);
                     byte[] bytes = packetPointer.getByteArray(0, packetSize);
@@ -64,11 +64,11 @@ public class WinTunDevice extends TunDevice {
                     byteBuf.writeBytes(bytes);
                     return byteBuf;
                 } finally {
-                    NativeWinTun.WintunReleaseReceivePacket(session, packetPointer);
+                    NativeWinTunApi.WintunReleaseReceivePacket(session, packetPointer);
                 }
             } catch (LastErrorException e) {
-                if (e.getErrorCode() == NativeWinTun.ERROR_NO_MORE_ITEMS) {
-                    Kernel32.INSTANCE.WaitForSingleObject(NativeWinTun.WintunGetReadWaitEvent(session), Kernel32.INFINITE);
+                if (e.getErrorCode() == NativeWinTunApi.ERROR_NO_MORE_ITEMS) {
+                    NativeKernel32Api.INSTANCE.WaitForSingleObject(NativeWinTunApi.WintunGetReadWaitEvent(session), NativeKernel32Api.INFINITE);
                 } else {
                     throw e;
                 }
@@ -83,9 +83,9 @@ public class WinTunDevice extends TunDevice {
         }
         byte[] bytes = new byte[msg.readableBytes()];
         msg.readBytes(bytes);
-        Pointer packetPointer = NativeWinTun.WintunAllocateSendPacket(session, bytes.length);
+        Pointer packetPointer = NativeWinTunApi.WintunAllocateSendPacket(session, bytes.length);
         packetPointer.write(0, bytes, 0, bytes.length);
-        NativeWinTun.WintunSendPacket(session, packetPointer);
+        NativeWinTunApi.WintunSendPacket(session, packetPointer);
     }
 
     @Override
@@ -101,8 +101,8 @@ public class WinTunDevice extends TunDevice {
             return;
         }
         closing = true;
-        NativeWinTun.WintunEndSession(session);
-        NativeWinTun.WintunCloseAdapter(adapter);
+        NativeWinTunApi.WintunEndSession(session);
+        NativeWinTunApi.WintunCloseAdapter(adapter);
     }
 
     @Override

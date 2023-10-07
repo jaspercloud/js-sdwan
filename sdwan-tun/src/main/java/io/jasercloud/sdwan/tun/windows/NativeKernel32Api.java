@@ -4,9 +4,9 @@ import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.win32.StdCallLibrary;
 
-public interface Kernel32 extends StdCallLibrary {
+public interface NativeKernel32Api extends StdCallLibrary {
 
-    Kernel32 INSTANCE = Native.load("kernel32", Kernel32.class);
+    NativeKernel32Api INSTANCE = Native.load("kernel32", NativeKernel32Api.class);
 
     int INFINITE = 0xFFFFFFFF;
 
