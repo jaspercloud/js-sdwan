@@ -17,7 +17,7 @@ public class SDWanControllerProperties {
     public static class Node {
 
         private String id;
-        private String hardwareAddress;
+        private String macAddress;
         private String vip;
     }
 }

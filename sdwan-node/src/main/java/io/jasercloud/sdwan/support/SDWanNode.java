@@ -137,7 +137,7 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                 .build();
         SDWanProtos.Message request = SDWanProtos.Message.newBuilder()
                 .setReqId(UUID.randomUUID().toString())
-                .setType(SDWanProtos.MsgType.NodeArpReqType)
+                .setType(SDWanProtos.MsgTypeCode.NodeArpReqType)
                 .setData(nodeArpReq.toByteString())
                 .build();
         CompletableFuture<SDWanProtos.SDArpResp> future = requestAsync(request, timeout)
@@ -159,17 +159,17 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
         String hostPrefix = IPUtil.int2ip(IPUtil.ip2int(ip) >> (32 - maskBits) << (32 - maskBits));
         String hardwareAddress = interfaceInfo.getHardwareAddress();
         SDWanProtos.RegReq.Builder regReqBuilder = SDWanProtos.RegReq.newBuilder()
-                .setHardwareAddress(hardwareAddress)
+                .setMacAddress(hardwareAddress)
                 .setPublicIP(properties.getStaticIP())
                 .setPublicPort(properties.getStaticPort())
-                .setNodeType(SDWanProtos.NodeType.forNumber(properties.getNodeType().getCode()));
+                .setNodeType(SDWanProtos.NodeTypeCode.forNumber(properties.getNodeType().getCode()));
         if (SDWanNodeProperties.NodeType.MESH.equals(properties.getNodeType())) {
-            regReqBuilder.setCidr(String.format("%s/%s", hostPrefix, maskBits));
+            regReqBuilder.setMeshCidr(String.format("%s/%s", hostPrefix, maskBits));
         }
         SDWanProtos.RegReq regReq = regReqBuilder.build();
         SDWanProtos.Message request = SDWanProtos.Message.newBuilder()
                 .setReqId(UUID.randomUUID().toString())
-                .setType(SDWanProtos.MsgType.RegReqType)
+                .setType(SDWanProtos.MsgTypeCode.RegReqType)
                 .setData(regReq.toByteString())
                 .build();
         SDWanProtos.Message response = requestSync(request, timeout);
@@ -181,7 +181,7 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
         Channel channel = ctx.channel();
         SDWanProtos.Message message = SDWanProtos.Message.newBuilder()
                 .setReqId(UUID.randomUUID().toString())
-                .setType(SDWanProtos.MsgType.HeartType)
+                .setType(SDWanProtos.MsgTypeCode.HeartType)
                 .build();
         channel.writeAndFlush(message);
     }

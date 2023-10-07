@@ -6,8 +6,8 @@ sdwan:
     cidr: 10.1.0.0/20
     staticNodes:
 #      - id: 66
-#        hardwareAddress: fa:50:03:01:f8:00
+#        macAddress: fa:50:03:01:f8:00
 #        vip: 10.1.0.5
       - id: 69
-        hardwareAddress: fa:2e:16:1b:26:00
+        macAddress: fa:2e:16:1b:26:00
         vip: 10.1.0.6

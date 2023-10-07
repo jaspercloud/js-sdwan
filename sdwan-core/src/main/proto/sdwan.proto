@@ -2,7 +2,7 @@ syntax = "proto2";
 option java_package = "io.jaspercloud.sdwan.core.proto";
 option java_outer_classname = "SDWanProtos";
 
-enum MsgType {
+enum MsgTypeCode {
   HeartType = 1;
   RegReqType = 2;
   RegRespType = 3;
@@ -10,7 +10,7 @@ enum MsgType {
   NodeArpRespType = 5;
 }
 
-enum NodeType {
+enum NodeTypeCode {
   SimpleType = 1;
   MeshType = 2;
 }
@@ -18,21 +18,21 @@ enum NodeType {
 enum MessageCode {
   Success = 0;
   NodeTypeError = 1;
-  NotFoundVIP = 2;
+  NotEnough = 2;
 }
 
 message Message {
   required string reqId = 1;
-  required MsgType type = 2;
+  required MsgTypeCode type = 2;
   optional bytes data = 3;
 }
 
 message RegReq {
-  required string hardwareAddress = 1;
   required string publicIP = 2;
   required int32 publicPort = 3;
-  required NodeType nodeType = 4;
-  optional string cidr = 5;
+  required string macAddress = 1;
+  required NodeTypeCode nodeType = 4;
+  optional string meshCidr = 5;
 }
 
 message RegResp {

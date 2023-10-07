@@ -1,8 +1,8 @@
 package io.jasercloud.sdwan.support;
 
-import io.jaspercloud.sdwan.AttributeKeys;
 import io.jaspercloud.sdwan.Cidr;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
+import io.jaspercloud.sdwan.exception.ProcessCodeException;
 import io.netty.channel.*;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.InitializingBean;
@@ -40,15 +40,15 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
     protected void channelRead0(ChannelHandlerContext ctx, SDWanProtos.Message request) throws Exception {
         Channel channel = ctx.channel();
         switch (request.getType().getNumber()) {
-            case SDWanProtos.MsgType.HeartType_VALUE: {
+            case SDWanProtos.MsgTypeCode.HeartType_VALUE: {
                 processHeart(channel, request);
                 break;
             }
-            case SDWanProtos.MsgType.RegReqType_VALUE: {
+            case SDWanProtos.MsgTypeCode.RegReqType_VALUE: {
                 processReg(channel, request);
                 break;
             }
-            case SDWanProtos.MsgType.NodeArpReqType_VALUE: {
+            case SDWanProtos.MsgTypeCode.NodeArpReqType_VALUE: {
                 processSDArp(channel, request);
                 break;
             }
@@ -61,16 +61,19 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
             if (null == targetChannel) {
                 continue;
             }
-            String vip = AttributeKeys.nodeVip(targetChannel).get();
+            NodeInfo nodeInfo = AttributeKeys.nodeInfo(targetChannel).get();
+            String vip = nodeInfo.getVip();
             if (StringUtils.equals(vip, ip)) {
                 return targetChannel;
             }
-            Cidr cidr = AttributeKeys.nodeCidr(targetChannel).get();
-            if (null == cidr) {
-                continue;
-            }
-            if (cidr.getIpList().contains(ip)) {
-                return targetChannel;
+            if (NodeType.Mesh.equals(nodeInfo.getNodeType())) {
+                Cidr cidr = nodeInfo.getMeshCidr();
+                if (null == cidr) {
+                    continue;
+                }
+                if (cidr.getIpList().contains(ip)) {
+                    return targetChannel;
+                }
             }
         }
         return null;
@@ -84,16 +87,16 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
                     .setCode(1)
                     .build();
             SDWanProtos.Message response = request.toBuilder()
-                    .setType(SDWanProtos.MsgType.NodeArpRespType)
+                    .setType(SDWanProtos.MsgTypeCode.NodeArpRespType)
                     .setData(arpResp.toByteString())
                     .build();
             channel.writeAndFlush(response);
             return;
         }
-        InetSocketAddress address = AttributeKeys.nodePublicAddress(targetChannel).get();
-        String vip = AttributeKeys.nodeVip(targetChannel).get();
-        String host = address.getHostString();
-        int port = address.getPort();
+        NodeInfo nodeInfo = AttributeKeys.nodeInfo(targetChannel).get();
+        String vip = nodeInfo.getVip();
+        String host = nodeInfo.getPublicAddress().getHostString();
+        int port = nodeInfo.getPublicAddress().getPort();
         SDWanProtos.SDArpResp arpResp = SDWanProtos.SDArpResp.newBuilder()
                 .setCode(0)
                 .setPublicIP(host)
@@ -101,7 +104,7 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
                 .setVip(vip)
                 .build();
         SDWanProtos.Message response = request.toBuilder()
-                .setType(SDWanProtos.MsgType.NodeArpRespType)
+                .setType(SDWanProtos.MsgTypeCode.NodeArpRespType)
                 .setData(arpResp.toByteString())
                 .build();
         channel.writeAndFlush(response);
@@ -113,62 +116,56 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
 
     private void processReg(Channel channel, SDWanProtos.Message request) throws Exception {
         SDWanProtos.RegReq regReq = SDWanProtos.RegReq.parseFrom(request.getData());
-        String hardwareAddress = regReq.getHardwareAddress();
-        String vip = AttributeKeys.nodeVip(channel).get();
-        if (null == vip) {
-            vip = bindStaticNode(hardwareAddress, channel);
-            if (null == vip) {
-                if (SDWanProtos.NodeType.MeshType.equals(regReq.getNodeType())) {
-                    SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
-                            .setCode(SDWanProtos.MessageCode.NodeTypeError_VALUE)
-                            .build();
-                    SDWanProtos.Message response = request.toBuilder()
-                            .setType(SDWanProtos.MsgType.RegRespType)
-                            .setData(regResp.toByteString())
-                            .build();
-                    channel.writeAndFlush(response);
-                    return;
+        try {
+            String macAddress = regReq.getMacAddress();
+            NodeInfo nodeInfo = AttributeKeys.nodeInfo(channel).get();
+            if (null == nodeInfo) {
+                nodeInfo = new NodeInfo();
+                String vip = bindStaticNode(macAddress, channel);
+                if (null == vip) {
+                    if (SDWanProtos.NodeTypeCode.MeshType.equals(regReq.getNodeType())) {
+                        throw new ProcessCodeException(SDWanProtos.MessageCode.NodeTypeError_VALUE);
+                    }
+                    vip = bindDynamicNode(channel);
                 }
-                vip = bindDynamicNode(channel);
+                if (null == vip) {
+                    throw new ProcessCodeException(SDWanProtos.MessageCode.NotEnough_VALUE);
+                }
+                nodeInfo.setNodeType(NodeType.valueOf(regReq.getNodeType().getNumber()));
+                nodeInfo.setMacAddress(macAddress);
+                nodeInfo.setVip(vip);
+                nodeInfo.setPublicAddress(new InetSocketAddress(regReq.getPublicIP(), regReq.getPublicPort()));
+                if (SDWanProtos.NodeTypeCode.MeshType.equals(regReq.getNodeType())) {
+                    nodeInfo.setMeshCidr(Cidr.parseCidr(regReq.getMeshCidr()));
+                }
+                AttributeKeys.nodeInfo(channel).set(nodeInfo);
             }
-        }
-        if (null == vip) {
             SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
-                    .setCode(SDWanProtos.MessageCode.NotFoundVIP_VALUE)
+                    .setCode(0)
+                    .setVip(nodeInfo.getVip())
+                    .setMaskBits(cidr.getMaskBits())
                     .build();
             SDWanProtos.Message response = request.toBuilder()
-                    .setType(SDWanProtos.MsgType.RegRespType)
+                    .setType(SDWanProtos.MsgTypeCode.RegRespType)
                     .setData(regResp.toByteString())
                     .build();
             channel.writeAndFlush(response);
-            return;
+        } catch (ProcessCodeException e) {
+            SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
+                    .setCode(e.getCode())
+                    .build();
+            SDWanProtos.Message response = request.toBuilder()
+                    .setType(SDWanProtos.MsgTypeCode.RegRespType)
+                    .setData(regResp.toByteString())
+                    .build();
+            channel.writeAndFlush(response);
         }
-        AttributeKeys.nodeVip(channel)
-                .set(vip);
-        AttributeKeys.nodePublicAddress(channel)
-                .set(new InetSocketAddress(regReq.getPublicIP(), regReq.getPublicPort()));
-        AttributeKeys.nodeHardwareAddress(channel)
-                .set(regReq.getHardwareAddress());
-        if (SDWanProtos.NodeType.MeshType.equals(regReq.getNodeType())) {
-            AttributeKeys.nodeCidr(channel)
-                    .set(Cidr.parseCidr(regReq.getCidr()));
-        }
-        SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
-                .setCode(0)
-                .setVip(vip)
-                .setMaskBits(cidr.getMaskBits())
-                .build();
-        SDWanProtos.Message response = request.toBuilder()
-                .setType(SDWanProtos.MsgType.RegRespType)
-                .setData(regResp.toByteString())
-                .build();
-        channel.writeAndFlush(response);
     }
 
-    private String bindStaticNode(String hardwareAddress, Channel channel) {
+    private String bindStaticNode(String macAddress, Channel channel) {
         for (Map.Entry<String, SDWanControllerProperties.Node> entry : properties.getStaticNodes().entrySet()) {
             SDWanControllerProperties.Node node = entry.getValue();
-            if (StringUtils.equals(node.getHardwareAddress(), hardwareAddress)) {
+            if (StringUtils.equals(node.getMacAddress(), macAddress)) {
                 AtomicReference<Channel> ref = bindIPMap.get(node.getVip());
                 if (ref.compareAndSet(null, channel)) {
                     channel.closeFuture().addListener(new ChannelFutureListener() {

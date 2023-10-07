@@ -31,15 +31,15 @@ public class SdwanClient {
             //static
             Channel channel = createChannel();
             SDWanProtos.RegReq regReq = SDWanProtos.RegReq.newBuilder()
-                    .setHardwareAddress("fa:50:03:01:f8:00")
+                    .setMacAddress("fa:50:03:01:f8:00")
                     .setPublicIP("127.0.0.1")
                     .setPublicPort(1101)
-                    .setNodeType(SDWanProtos.NodeType.MeshType)
-                    .setCidr("192.222.0.0/24")
+                    .setNodeType(SDWanProtos.NodeTypeCode.MeshType)
+                    .setMeshCidr("192.222.0.0/24")
                     .build();
             SDWanProtos.Message message = SDWanProtos.Message.newBuilder()
                     .setReqId(UUID.randomUUID().toString())
-                    .setType(SDWanProtos.MsgType.RegReqType)
+                    .setType(SDWanProtos.MsgTypeCode.RegReqType)
                     .setData(regReq.toByteString())
                     .build();
             channel.writeAndFlush(message);
@@ -48,14 +48,14 @@ public class SdwanClient {
             //dynamic
             Channel channel = createChannel();
             SDWanProtos.RegReq regReq = SDWanProtos.RegReq.newBuilder()
-                    .setHardwareAddress("fa:50:03:01:f8:02")
+                    .setMacAddress("fa:50:03:01:f8:02")
                     .setPublicIP("127.0.0.1")
                     .setPublicPort(1102)
-                    .setNodeType(SDWanProtos.NodeType.SimpleType)
+                    .setNodeType(SDWanProtos.NodeTypeCode.SimpleType)
                     .build();
             SDWanProtos.Message message = SDWanProtos.Message.newBuilder()
                     .setReqId(UUID.randomUUID().toString())
-                    .setType(SDWanProtos.MsgType.RegReqType)
+                    .setType(SDWanProtos.MsgTypeCode.RegReqType)
                     .setData(regReq.toByteString())
                     .build();
             channel.writeAndFlush(message);
@@ -65,7 +65,7 @@ public class SdwanClient {
             Channel channel = createChannel();
             SDWanProtos.Message message = SDWanProtos.Message.newBuilder()
                     .setReqId(UUID.randomUUID().toString())
-                    .setType(SDWanProtos.MsgType.HeartType)
+                    .setType(SDWanProtos.MsgTypeCode.HeartType)
                     .build();
             channel.writeAndFlush(message);
         }
@@ -78,7 +78,7 @@ public class SdwanClient {
                     .build();
             SDWanProtos.Message message = SDWanProtos.Message.newBuilder()
                     .setReqId(UUID.randomUUID().toString())
-                    .setType(SDWanProtos.MsgType.NodeArpReqType)
+                    .setType(SDWanProtos.MsgTypeCode.NodeArpReqType)
                     .setData(nodeArpReq.toByteString())
                     .build();
             channel.writeAndFlush(message);
@@ -105,15 +105,15 @@ public class SdwanClient {
                             @Override
                             protected void channelRead0(ChannelHandlerContext ctx, SDWanProtos.Message msg) throws Exception {
                                 switch (msg.getType().getNumber()) {
-                                    case SDWanProtos.MsgType.HeartType_VALUE: {
+                                    case SDWanProtos.MsgTypeCode.HeartType_VALUE: {
                                         System.out.println(msg.toString());
                                         break;
                                     }
-                                    case SDWanProtos.MsgType.RegRespType_VALUE: {
+                                    case SDWanProtos.MsgTypeCode.RegRespType_VALUE: {
                                         System.out.println(msg.toString());
                                         break;
                                     }
-                                    case SDWanProtos.MsgType.NodeArpRespType_VALUE: {
+                                    case SDWanProtos.MsgTypeCode.NodeArpRespType_VALUE: {
                                         SDWanProtos.SDArpResp sdArpResp = SDWanProtos.SDArpResp.parseFrom(msg.getData());
                                         System.out.println(msg.toString());
                                         System.out.println(sdArpResp.toString());
