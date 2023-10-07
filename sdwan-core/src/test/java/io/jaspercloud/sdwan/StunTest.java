@@ -100,7 +100,7 @@ public class StunTest {
         } else if (null != (response = sendChangeBind(target, false, true))) {
             filtering = AddressDependent;
         } else {
-            response = sendBind(new InetSocketAddress(otherAddress.getHostString(), target.getPort()));
+            response = sendBind(otherAddress);
             filtering = AddressAndPortDependent;
         }
         attrs = response.content().getAttrs();
@@ -108,12 +108,14 @@ public class StunTest {
         InetSocketAddress mappedAddress2 = new InetSocketAddress(mappedAddressAttr.getIp(), mappedAddressAttr.getPort());
         if (Objects.equals(mappedAddress1, mappedAddress2)) {
             mapping = EndpointIndependent;
+            return new CheckResult(mapping, filtering, mappedAddress1);
         } else if (Objects.equals(mappedAddress1.getHostString(), mappedAddress2.getHostString())) {
             mapping = AddressDependent;
+            return new CheckResult(mapping, filtering, null);
         } else {
             mapping = AddressAndPortDependent;
+            return new CheckResult(mapping, filtering, null);
         }
-        return new CheckResult(mapping, filtering, mappedAddress1);
     }
 
     private Packet sendBind(InetSocketAddress address) throws Exception {
