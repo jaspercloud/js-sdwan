@@ -92,10 +92,17 @@ public class LinuxTunDevice extends TunDevice {
     }
 
     @Override
-    public void addRoute(String route, String ip) throws Exception {
-        String cmd = String.format("ip route add %s via %s", route, ip);
-        int addRoute = ProcessUtil.exec(cmd);
-        CheckInvoke.check(addRoute, 0);
+    public void addRoute(int index, String route, String ip) throws Exception {
+        {
+            String cmd = String.format("ip route delete %s via %s", route, ip);
+            int code = ProcessUtil.exec(cmd);
+            CheckInvoke.check(code, 0);
+        }
+        {
+            String cmd = String.format("ip route add %s via %s", route, ip);
+            int code = ProcessUtil.exec(cmd);
+            CheckInvoke.check(code, 0);
+        }
     }
 
     @Override

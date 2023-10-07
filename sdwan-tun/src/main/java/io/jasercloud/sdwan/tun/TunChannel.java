@@ -50,8 +50,8 @@ public class TunChannel extends AbstractChannel {
         tunDevice.setIP(ip, maskBits);
     }
 
-    public void addRoute(String route, String ip) throws Exception {
-        tunDevice.addRoute(route, ip);
+    public void addRoute(int index, String route, String ip) throws Exception {
+        tunDevice.addRoute(index, route, ip);
     }
 
     @Override

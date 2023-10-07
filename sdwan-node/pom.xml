@@ -24,6 +24,11 @@
             <artifactId>sdwan-tun</artifactId>
             <version>${revision}</version>
         </dependency>
+        <dependency>
+            <groupId>io.jaspercloud</groupId>
+            <artifactId>sdwan-stun</artifactId>
+            <version>${revision}</version>
+        </dependency>
     </dependencies>
 
     <dependencyManagement>

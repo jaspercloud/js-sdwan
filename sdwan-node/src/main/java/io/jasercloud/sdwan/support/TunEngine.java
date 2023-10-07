@@ -1,22 +1,27 @@
 package io.jasercloud.sdwan.support;
 
+import io.jasercloud.sdwan.CheckResult;
+import io.jasercloud.sdwan.StunClient;
 import io.jasercloud.sdwan.support.transporter.Transporter;
+import io.jasercloud.sdwan.tun.*;
 import io.jaspercloud.sdwan.NetworkInterfaceInfo;
 import io.jaspercloud.sdwan.NetworkInterfaceUtil;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
-import io.jasercloud.sdwan.tun.*;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 
+import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 @Slf4j
-public class TunEngine implements InitializingBean, Runnable {
+public class TunEngine implements InitializingBean, DisposableBean, Runnable {
 
     public static final String TUN = "tun";
 
@@ -25,6 +30,7 @@ public class TunEngine implements InitializingBean, Runnable {
     private Transporter transporter;
     private NatManager natManager;
 
+    private StunClient stunClient;
     private TunChannel tunChannel;
 
     public TunEngine(SDWanNodeProperties properties,
@@ -39,12 +45,12 @@ public class TunEngine implements InitializingBean, Runnable {
 
     @Override
     public void afterPropertiesSet() throws Exception {
+        stunClient = new StunClient(new InetSocketAddress("0.0.0.0", 0));
+        tunChannel = bootTunDevices();
         transporter.setReceiveHandler(new Transporter.ReceiveHandler() {
             @Override
             public void onPacket(IpPacket ipPacket) {
-                if (null != tunChannel) {
-                    natManager.input(tunChannel, ipPacket);
-                }
+                natManager.input(tunChannel, ipPacket);
             }
         });
         Thread thread = new Thread(this, "tun-device");
@@ -52,26 +58,36 @@ public class TunEngine implements InitializingBean, Runnable {
     }
 
     @Override
+    public void destroy() throws Exception {
+        tunChannel.close().sync();
+    }
+
+    @Override
     public void run() {
         while (true) {
             try {
-                SDWanProtos.RegResp regResp = sdWanNode.regist(5000);
+                CheckResult checkResult = stunClient.check(new InetSocketAddress("stun.miwifi.com", 3478));
+                SDWanProtos.RegResp regResp = sdWanNode.regist(
+                        checkResult.getMapping(),
+                        checkResult.getFiltering(),
+                        checkResult.getMappingAddress(),
+                        5000
+                );
                 if (SDWanProtos.MessageCode.NodeTypeError_VALUE == regResp.getCode()) {
                     throw new ProcessException("meshNode must staticNode");
                 } else if (SDWanProtos.MessageCode.NodeTypeError_VALUE == regResp.getCode()) {
                     throw new ProcessException("no more vip");
                 }
-                tunChannel = bootTunDevices();
-                try {
-                    log.info("tunAddress: {}/{}", regResp.getVip(), regResp.getMaskBits());
-                    tunChannel.setAddress(regResp.getVip(), regResp.getMaskBits());
-                    //等待ip设置成功，再配置路由
-                    waitAddress(regResp.getVip(), 15000);
-                    addRoutes(regResp.getVip());
-                    sdWanNode.getChannel().closeFuture().sync();
-                } finally {
-                    tunChannel.close().sync();
-                }
+                log.info("tunAddress: {}/{}", regResp.getVip(), regResp.getMaskBits());
+                tunChannel.setAddress(regResp.getVip(), regResp.getMaskBits());
+                //等待ip设置成功，再配置路由
+                waitAddress(regResp.getVip(), 15000);
+                List<String> routes = regResp.getRouteList()
+                        .stream()
+                        .collect(Collectors.toList());
+                NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(regResp.getVip());
+                addRoutes(interfaceInfo.getIndex(), regResp.getVip(), routes);
+                sdWanNode.getChannel().closeFuture().sync();
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
             }
@@ -134,11 +150,10 @@ public class TunEngine implements InitializingBean, Runnable {
         }
     }
 
-    private void addRoutes(String vip) {
-        List<String> routes = properties.getRoutes();
+    private void addRoutes(int index, String vip, List<String> routes) {
         routes.forEach(route -> {
             try {
-                tunChannel.addRoute(route, vip);
+                tunChannel.addRoute(index, route, vip);
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
             }

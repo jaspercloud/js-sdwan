@@ -1,5 +1,7 @@
 package io.jasercloud.sdwan.support;
 
+import io.jasercloud.sdwan.StunFiltering;
+import io.jasercloud.sdwan.StunMapping;
 import io.jaspercloud.sdwan.*;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
@@ -152,19 +154,20 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
         return future;
     }
 
-    public SDWanProtos.RegResp regist(int timeout) throws Exception {
+    public SDWanProtos.RegResp regist(StunMapping mapping,
+                                      StunFiltering filtering,
+                                      InetSocketAddress mappingAddress,
+                                      int timeout) throws Exception {
         NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(properties.getLocalIP());
-        String ip = interfaceInfo.getInterfaceAddress().getAddress().getHostAddress();
-        short maskBits = interfaceInfo.getInterfaceAddress().getNetworkPrefixLength();
-        String hostPrefix = IPUtil.int2ip(IPUtil.ip2int(ip) >> (32 - maskBits) << (32 - maskBits));
         String hardwareAddress = interfaceInfo.getHardwareAddress();
         SDWanProtos.RegReq.Builder regReqBuilder = SDWanProtos.RegReq.newBuilder()
                 .setMacAddress(hardwareAddress)
-                .setPublicIP(properties.getStaticIP())
-                .setPublicPort(properties.getStaticPort())
-                .setNodeType(SDWanProtos.NodeTypeCode.forNumber(properties.getNodeType().getCode()));
-        if (SDWanNodeProperties.NodeType.MESH.equals(properties.getNodeType())) {
-            regReqBuilder.setMeshCidr(String.format("%s/%s", hostPrefix, maskBits));
+                .setNodeType(SDWanProtos.NodeTypeCode.forNumber(properties.getNodeType().getCode()))
+                .setStunMapping(mapping.name())
+                .setStunFiltering(filtering.name());
+        if (null != mappingAddress) {
+            regReqBuilder.setPublicIP(mappingAddress.getHostString());
+            regReqBuilder.setPublicPort(mappingAddress.getPort());
         }
         SDWanProtos.RegReq regReq = regReqBuilder.build();
         SDWanProtos.Message request = SDWanProtos.Message.newBuilder()

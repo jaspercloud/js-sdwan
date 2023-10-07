@@ -4,23 +4,9 @@ package io.jasercloud.sdwan.support;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import java.util.List;
-
 @Data
 @ConfigurationProperties("sdwan.node")
 public class SDWanNodeProperties {
-
-    public enum IpType {
-
-        STATIC("static"),
-        DYNAMIC("dynamic");
-
-        private String type;
-
-        IpType(String type) {
-            this.type = type;
-        }
-    }
 
     public enum NodeType {
 
@@ -44,19 +30,8 @@ public class SDWanNodeProperties {
     private Integer controllerPort;
     private Integer connectTimeout;
     private Integer mtu;
-
-    private IpType addressType;
-    private String localIP;
-    private String staticIP;
-    private Integer staticPort;
-
     public NodeType nodeType;
-
-    private List<String> routes;
-
-    public void setAddressType(String ipType) {
-        this.addressType = IpType.valueOf(ipType.toUpperCase());
-    }
+    private String localIP;
 
     public void setNodeType(String nodeType) {
         this.nodeType = NodeType.valueOf(nodeType.toUpperCase());

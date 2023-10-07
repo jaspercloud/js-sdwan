@@ -6,6 +6,8 @@ import io.jaspercloud.sdwan.exception.ProcessCodeException;
 import io.netty.channel.*;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 import java.net.InetSocketAddress;
 import java.util.List;
@@ -21,8 +23,9 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
 
     //key: ip, value: channel
     private Map<String, AtomicReference<Channel>> bindIPMap = new ConcurrentHashMap<>();
-
-    private Cidr cidr;
+    //key: vip, value: cidr
+    private MultiValueMap<String, String> routeMap = new LinkedMultiValueMap<>();
+    private Cidr ipPool;
 
     public SDWanControllerProcessHandler(SDWanControllerProperties properties) {
         this.properties = properties;
@@ -30,10 +33,15 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        cidr = Cidr.parseCidr(properties.getCidr());
-        cidr.getIpList().forEach(item -> {
-            bindIPMap.put(item, new AtomicReference<>());
-        });
+        ipPool = Cidr.parseCidr(properties.getCidr());
+        ipPool.getIpList()
+                .forEach(item -> {
+                    bindIPMap.put(item, new AtomicReference<>());
+                });
+        properties.getStaticRoutes().values()
+                .forEach(e -> {
+                    routeMap.add(e.getVip(), e.getCidr());
+                });
     }
 
     @Override
@@ -67,12 +75,11 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
                 return targetChannel;
             }
             if (NodeType.Mesh.equals(nodeInfo.getNodeType())) {
-                Cidr cidr = nodeInfo.getMeshCidr();
-                if (null == cidr) {
-                    continue;
-                }
-                if (cidr.getIpList().contains(ip)) {
-                    return targetChannel;
+                List<Cidr> routeList = nodeInfo.getRouteList();
+                for (Cidr route : routeList) {
+                    if (route.getIpList().contains(ip)) {
+                        return targetChannel;
+                    }
                 }
             }
         }
@@ -136,14 +143,21 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
                 nodeInfo.setVip(vip);
                 nodeInfo.setPublicAddress(new InetSocketAddress(regReq.getPublicIP(), regReq.getPublicPort()));
                 if (SDWanProtos.NodeTypeCode.MeshType.equals(regReq.getNodeType())) {
-                    nodeInfo.setMeshCidr(Cidr.parseCidr(regReq.getMeshCidr()));
+                    List<String> routeList = routeMap.get(vip);
+                    for (String route : routeList) {
+                        nodeInfo.getRouteList().add(Cidr.parseCidr(route));
+                    }
                 }
                 AttributeKeys.nodeInfo(channel).set(nodeInfo);
             }
+            List<String> routes = routeMap.values().stream()
+                    .flatMap(e -> e.stream())
+                    .collect(Collectors.toList());
             SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
                     .setCode(0)
                     .setVip(nodeInfo.getVip())
-                    .setMaskBits(cidr.getMaskBits())
+                    .setMaskBits(ipPool.getMaskBits())
+                    .addAllRoute(routes)
                     .build();
             SDWanProtos.Message response = request.toBuilder()
                     .setType(SDWanProtos.MsgTypeCode.RegRespType)
@@ -163,8 +177,8 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
     }
 
     private String bindStaticNode(String macAddress, Channel channel) {
-        for (Map.Entry<String, SDWanControllerProperties.Node> entry : properties.getStaticNodes().entrySet()) {
-            SDWanControllerProperties.Node node = entry.getValue();
+        for (Map.Entry<String, SDWanControllerProperties.StaticNode> entry : properties.getStaticNodes().entrySet()) {
+            SDWanControllerProperties.StaticNode node = entry.getValue();
             if (StringUtils.equals(node.getMacAddress(), macAddress)) {
                 AtomicReference<Channel> ref = bindIPMap.get(node.getVip());
                 if (ref.compareAndSet(null, channel)) {

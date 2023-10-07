@@ -35,7 +35,6 @@ public class SdwanClient {
                     .setPublicIP("127.0.0.1")
                     .setPublicPort(1101)
                     .setNodeType(SDWanProtos.NodeTypeCode.MeshType)
-                    .setMeshCidr("192.222.0.0/24")
                     .build();
             SDWanProtos.Message message = SDWanProtos.Message.newBuilder()
                     .setReqId(UUID.randomUUID().toString())

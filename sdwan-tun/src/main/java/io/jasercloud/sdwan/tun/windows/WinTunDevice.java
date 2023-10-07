@@ -89,10 +89,17 @@ public class WinTunDevice extends TunDevice {
     }
 
     @Override
-    public void addRoute(String route, String ip) throws Exception {
-        String cmd = String.format("route add %s %s", route, ip);
-        int addRoute = ProcessUtil.exec(cmd);
-        CheckInvoke.check(addRoute, 0);
+    public void addRoute(int index, String route, String ip) throws Exception {
+        {
+            String cmd = String.format("route delete %s %s", route, ip);
+            int code = ProcessUtil.exec(cmd);
+            CheckInvoke.check(code, 0);
+        }
+        {
+            String cmd = String.format("route add %s %s if %s", route, ip, index);
+            int code = ProcessUtil.exec(cmd);
+            CheckInvoke.check(code, 0);
+        }
     }
 
     @Override

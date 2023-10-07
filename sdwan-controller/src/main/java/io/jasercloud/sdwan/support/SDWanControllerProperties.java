@@ -11,13 +11,22 @@ public class SDWanControllerProperties {
 
     private Integer port;
     private String cidr;
-    private Map<String, Node> staticNodes;
+    private Map<String, StaticNode> staticNodes;
+    private Map<String, StaticRoute> staticRoutes;
 
     @Data
-    public static class Node {
+    public static class StaticNode {
 
         private String id;
         private String macAddress;
+        private String vip;
+    }
+
+    @Data
+    public static class StaticRoute {
+
+        private String id;
+        private String cidr;
         private String vip;
     }
 }

@@ -4,6 +4,8 @@ import io.jaspercloud.sdwan.Cidr;
 import lombok.Data;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 public class NodeInfo {
@@ -12,5 +14,5 @@ public class NodeInfo {
     private InetSocketAddress publicAddress;
     private String macAddress;
     private String vip;
-    private Cidr meshCidr;
+    private List<Cidr> routeList = new ArrayList<>();
 }

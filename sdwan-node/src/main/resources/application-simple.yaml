@@ -7,12 +7,7 @@ sdwan:
     controllerPort: 18848
     connectTimeout: 30000
     mtu: 1400
-    # address
-    addressType: static
-    localIP: 192.222.0.66
-    staticIP: 192.222.0.66
-    staticPort: 888
     # node
     nodeType: simple
-    routes:
-      - 192.222.0.67/32
+    # address
+    localIP: 192.222.0.66

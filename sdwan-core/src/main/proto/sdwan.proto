@@ -28,17 +28,19 @@ message Message {
 }
 
 message RegReq {
-  required string publicIP = 2;
-  required int32 publicPort = 3;
-  required string macAddress = 1;
-  required NodeTypeCode nodeType = 4;
-  optional string meshCidr = 5;
+  required NodeTypeCode nodeType = 1;
+  required string macAddress = 2;
+  required string stunMapping = 3;
+  required string stunFiltering = 4;
+  required string publicIP = 5;
+  required int32 publicPort = 6;
 }
 
 message RegResp {
   required int32 code = 1;
   optional string vip = 2;
   optional int32 maskBits = 3;
+  repeated string route = 4;
 }
 
 message SDArpReq {
