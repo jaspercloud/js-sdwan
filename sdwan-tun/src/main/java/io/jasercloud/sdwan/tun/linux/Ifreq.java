@@ -11,7 +11,7 @@ public class Ifreq extends Structure {
     public static final int IFNAMSIZ = 16;
 
     public byte[] ifr_name;
-    public LinuxTunDevice.LinuxC.Ifreq.FfrIfru ifr_ifru;
+    public Ifreq.FfrIfru ifr_ifru;
 
     public Ifreq(final String ifr_name, final short flags) {
         this.ifr_name = new byte[IFNAMSIZ];
