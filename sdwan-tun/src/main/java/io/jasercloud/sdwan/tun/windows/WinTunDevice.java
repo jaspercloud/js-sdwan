@@ -1,7 +1,7 @@
 package io.jasercloud.sdwan.tun.windows;
 
 import com.sun.jna.*;
-import com.sun.jna.win32.StdCallLibrary;
+import io.jasercloud.sdwan.tun.CheckInvoke;
 import io.jasercloud.sdwan.tun.Ipv4Packet;
 import io.jasercloud.sdwan.tun.ProcessUtil;
 import io.jasercloud.sdwan.tun.TunDevice;
@@ -14,52 +14,6 @@ import java.util.UUID;
 
 public class WinTunDevice extends TunDevice {
 
-    private static class WinTunApi {
-
-        static {
-            try {
-                Native.register(WinTunApi.class, "wintun");
-            } catch (Exception e) {
-                throw new ExceptionInInitializerError(e);
-            }
-        }
-
-        public static final int ERROR_NO_MORE_ITEMS = 259;
-        public static final int WINTUN_MIN_RING_CAPACITY = 0x20000;
-        public static final int WINTUN_MAX_RING_CAPACITY = 0x4000000;
-
-        public static native int WintunGetRunningDriverVersion() throws LastErrorException;
-
-        public static native Pointer WintunCreateAdapter(WString Name, WString TunnelType, String RequestedGUID) throws LastErrorException;
-
-        public static native void WintunCloseAdapter(Pointer Adapter) throws LastErrorException;
-
-        public static native Pointer WintunStartSession(Pointer Adapter, int Capacity) throws LastErrorException;
-
-        public static native void WintunEndSession(Pointer Session) throws LastErrorException;
-
-        public static native Pointer WintunReceivePacket(Pointer Session, Pointer PacketSize) throws LastErrorException;
-
-        public static native void WintunReleaseReceivePacket(Pointer Session, Pointer Packet) throws LastErrorException;
-
-        public static native Pointer WintunAllocateSendPacket(Pointer Session, long PacketSize) throws LastErrorException;
-
-        public static native void WintunSendPacket(Pointer Session, Pointer Packet) throws LastErrorException;
-
-        public static native Pointer WintunGetReadWaitEvent(Pointer Session) throws LastErrorException;
-
-        public static native void WintunGetAdapterLUID(Pointer Adapter, Pointer Luid) throws LastErrorException;
-    }
-
-    private interface Kernel32 extends StdCallLibrary {
-
-        Kernel32 INSTANCE = Native.load("kernel32", Kernel32.class);
-
-        int INFINITE = 0xFFFFFFFF;
-
-        int WaitForSingleObject(Pointer hHandle, int dwMilliseconds);
-    }
-
     private Pointer adapter;
     private Pointer session;
     private boolean closing = false;
@@ -70,30 +24,28 @@ public class WinTunDevice extends TunDevice {
 
     @Override
     public void open() throws Exception {
-        adapter = WinTunApi.WintunCreateAdapter(new WString(getName()), new WString(getType()), getGuid());
-        session = WinTunApi.WintunStartSession(adapter, WinTunApi.WINTUN_MAX_RING_CAPACITY);
+        adapter = NativeWinTun.WintunCreateAdapter(new WString(getName()), new WString(getType()), getGuid());
+        session = NativeWinTun.WintunStartSession(adapter, NativeWinTun.WINTUN_MAX_RING_CAPACITY);
         setActive(true);
     }
 
     @Override
     public int getVersion() {
-        return WinTunApi.WintunGetRunningDriverVersion();
+        return NativeWinTun.WintunGetRunningDriverVersion();
     }
 
     @Override
     public void setIP(String addr, int netmaskPrefix) throws Exception {
         String cmd = String.format("netsh interface ipv4 set address name=\"%s\" static %s/%s", getName(), addr, netmaskPrefix);
         int code = ProcessUtil.exec(cmd);
-        if (0 != code) {
-        }
+        CheckInvoke.check(code, 0);
     }
 
     @Override
     public void setMTU(int mtu) throws Exception {
         String cmd = String.format("netsh interface ipv4 set subinterface \"%s\" mtu=%s store=active", getName(), mtu);
         int code = ProcessUtil.exec(cmd);
-        if (0 != code) {
-        }
+        CheckInvoke.check(code, 0);
     }
 
     @Override
@@ -104,7 +56,7 @@ public class WinTunDevice extends TunDevice {
             }
             try {
                 Pointer packetSizePointer = new Memory(Native.POINTER_SIZE);
-                Pointer packetPointer = WinTunApi.WintunReceivePacket(session, packetSizePointer);
+                Pointer packetPointer = NativeWinTun.WintunReceivePacket(session, packetSizePointer);
                 try {
                     int packetSize = packetSizePointer.getInt(0);
                     byte[] bytes = packetPointer.getByteArray(0, packetSize);
@@ -112,11 +64,11 @@ public class WinTunDevice extends TunDevice {
                     byteBuf.writeBytes(bytes);
                     return byteBuf;
                 } finally {
-                    WinTunApi.WintunReleaseReceivePacket(session, packetPointer);
+                    NativeWinTun.WintunReleaseReceivePacket(session, packetPointer);
                 }
             } catch (LastErrorException e) {
-                if (e.getErrorCode() == WinTunApi.ERROR_NO_MORE_ITEMS) {
-                    Kernel32.INSTANCE.WaitForSingleObject(WinTunApi.WintunGetReadWaitEvent(session), Kernel32.INFINITE);
+                if (e.getErrorCode() == NativeWinTun.ERROR_NO_MORE_ITEMS) {
+                    Kernel32.INSTANCE.WaitForSingleObject(NativeWinTun.WintunGetReadWaitEvent(session), Kernel32.INFINITE);
                 } else {
                     throw e;
                 }
@@ -131,15 +83,16 @@ public class WinTunDevice extends TunDevice {
         }
         byte[] bytes = new byte[msg.readableBytes()];
         msg.readBytes(bytes);
-        Pointer packetPointer = WinTunApi.WintunAllocateSendPacket(session, bytes.length);
+        Pointer packetPointer = NativeWinTun.WintunAllocateSendPacket(session, bytes.length);
         packetPointer.write(0, bytes, 0, bytes.length);
-        WinTunApi.WintunSendPacket(session, packetPointer);
+        NativeWinTun.WintunSendPacket(session, packetPointer);
     }
 
     @Override
     public void addRoute(String route, String ip) throws Exception {
         String cmd = String.format("route add %s %s", route, ip);
         int addRoute = ProcessUtil.exec(cmd);
+        CheckInvoke.check(addRoute, 0);
     }
 
     @Override
@@ -148,8 +101,8 @@ public class WinTunDevice extends TunDevice {
             return;
         }
         closing = true;
-        WinTunApi.WintunEndSession(session);
-        WinTunApi.WintunCloseAdapter(adapter);
+        NativeWinTun.WintunEndSession(session);
+        NativeWinTun.WintunCloseAdapter(adapter);
     }
 
     @Override
