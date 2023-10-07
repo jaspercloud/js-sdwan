@@ -1,6 +1,6 @@
 package io.jasercloud.sdwan.support.transporter;
 
-import io.jaspercloud.sdwan.tun.IpPacket;
+import io.jasercloud.sdwan.tun.IpPacket;
 import io.netty.buffer.ByteBuf;
 
 import java.net.InetSocketAddress;

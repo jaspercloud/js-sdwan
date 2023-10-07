@@ -2,8 +2,8 @@ package io.jasercloud.sdwan.support;
 
 import io.jasercloud.sdwan.support.transporter.Transporter;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.tun.IpPacket;
-import io.jaspercloud.sdwan.tun.Ipv4Packet;
+import io.jasercloud.sdwan.tun.IpPacket;
+import io.jasercloud.sdwan.tun.Ipv4Packet;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +21,7 @@ public class NatManager {
     private Map<String, SDWanProtos.SDArpResp> arpCache = new ConcurrentHashMap<>();
 
     public void output(SDWanNode sdWanNode, Transporter transporter, IpPacket ipPacket) {
-        String ip = ipPacket.getDstIP().getHostAddress();
+        String ip = ipPacket.getDstIP();
         CompletableFuture.supplyAsync(() -> {
             SDWanProtos.SDArpResp sdArp = arpCache.get(ip);
             return sdArp;
@@ -29,7 +29,7 @@ public class NatManager {
             @Override
             public CompletionStage<SDWanProtos.SDArpResp> apply(SDWanProtos.SDArpResp sdArp) {
                 if (null == sdArp) {
-                    return sdWanNode.sdArp(ipPacket.getDstIP().getHostAddress(), 3000);
+                    return sdWanNode.sdArp(ipPacket.getDstIP(), 3000);
                 }
                 return CompletableFuture.completedFuture(sdArp);
             }

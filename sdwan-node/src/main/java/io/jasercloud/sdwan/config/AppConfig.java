@@ -3,7 +3,7 @@ package io.jasercloud.sdwan.config;
 import io.jasercloud.sdwan.support.NatManager;
 import io.jasercloud.sdwan.support.SDWanNode;
 import io.jasercloud.sdwan.support.SDWanNodeProperties;
-import io.jasercloud.sdwan.support.TunDevice;
+import io.jasercloud.sdwan.support.TunEngine;
 import io.jasercloud.sdwan.support.transporter.UdpTransporter;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -29,10 +29,10 @@ public class AppConfig {
     }
 
     @Bean
-    public TunDevice tunDevice(SDWanNodeProperties properties,
+    public TunEngine tunEngine(SDWanNodeProperties properties,
                                SDWanNode sdWanNode,
                                UdpTransporter udpTransporter,
                                NatManager natManager) {
-        return new TunDevice(properties, sdWanNode, udpTransporter, natManager);
+        return new TunEngine(properties, sdWanNode, udpTransporter, natManager);
     }
 }
