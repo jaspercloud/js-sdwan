@@ -24,12 +24,12 @@ public class StunClient {
     }
 
     public CheckResult check(InetSocketAddress remote) throws Exception {
-        String mapping;
-        String filtering;
+        StunMapping mapping;
+        StunFiltering filtering;
         StunPacket response = sendBind(remote);
         if (null == response) {
-            mapping = CheckResult.Blocked;
-            filtering = CheckResult.Blocked;
+            mapping = StunMapping.Blocked;
+            filtering = StunFiltering.Blocked;
             return new CheckResult(mapping, filtering, null);
         }
         Map<AttrType, Attr> attrs = response.content().getAttrs();
@@ -38,29 +38,29 @@ public class StunClient {
         AddressAttr mappedAddressAttr = (AddressAttr) attrs.get(AttrType.MappedAddress);
         InetSocketAddress mappedAddress1 = new InetSocketAddress(mappedAddressAttr.getIp(), mappedAddressAttr.getPort());
         if (Objects.equals(mappedAddress1, local)) {
-            mapping = CheckResult.Internet;
-            filtering = CheckResult.Internet;
+            mapping = StunMapping.Internet;
+            filtering = StunFiltering.Internet;
             return new CheckResult(mapping, filtering, mappedAddress1);
         }
         if (null != (response = sendChangeBind(remote, true, true))) {
-            filtering = CheckResult.EndpointIndependent;
+            filtering = StunFiltering.EndpointIndependent;
         } else if (null != (response = sendChangeBind(remote, false, true))) {
-            filtering = CheckResult.AddressDependent;
+            filtering = StunFiltering.AddressDependent;
         } else {
             response = sendBind(otherAddress);
-            filtering = CheckResult.AddressAndPortDependent;
+            filtering = StunFiltering.AddressAndPortDependent;
         }
         attrs = response.content().getAttrs();
         mappedAddressAttr = (AddressAttr) attrs.get(AttrType.MappedAddress);
         InetSocketAddress mappedAddress2 = new InetSocketAddress(mappedAddressAttr.getIp(), mappedAddressAttr.getPort());
         if (Objects.equals(mappedAddress1, mappedAddress2)) {
-            mapping = CheckResult.EndpointIndependent;
+            mapping = StunMapping.EndpointIndependent;
             return new CheckResult(mapping, filtering, mappedAddress1);
         } else if (Objects.equals(mappedAddress1.getHostString(), mappedAddress2.getHostString())) {
-            mapping = CheckResult.AddressDependent;
+            mapping = StunMapping.AddressDependent;
             return new CheckResult(mapping, filtering, null);
         } else {
-            mapping = CheckResult.AddressAndPortDependent;
+            mapping = StunMapping.AddressAndPortDependent;
             return new CheckResult(mapping, filtering, null);
         }
     }
