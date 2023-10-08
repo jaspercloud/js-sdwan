@@ -6,7 +6,8 @@ public enum AttrType {
     ChangeRequest(0x0003),
     ResponseOrigin(0x802b),
     OtherAddress(0x802c),
-    XorMappedAddress(0x0020);
+    XorMappedAddress(0x0020),
+    Data(0x0004);
 
     private int code;
 

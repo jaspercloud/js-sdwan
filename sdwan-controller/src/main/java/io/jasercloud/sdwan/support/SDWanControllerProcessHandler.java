@@ -184,12 +184,14 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
                         nodeInfo.getStunMapping(),
                         nodeInfo.getStunFiltering());
             }
-            List<String> routes = routeMap.values().stream()
-                    .flatMap(e -> e.stream())
+            String vip = nodeInfo.getVip();
+            List<String> routes = routeMap.entrySet().stream()
+                    .filter(e -> !StringUtils.equals(e.getKey(), vip))
+                    .flatMap(e -> e.getValue().stream())
                     .collect(Collectors.toList());
             SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
                     .setCode(0)
-                    .setVip(nodeInfo.getVip())
+                    .setVip(vip)
                     .setMaskBits(ipPool.getMaskBits())
                     .addAllRoute(routes)
                     .build();

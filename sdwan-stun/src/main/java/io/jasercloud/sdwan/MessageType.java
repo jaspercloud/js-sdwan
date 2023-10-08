@@ -3,7 +3,8 @@ package io.jasercloud.sdwan;
 public enum MessageType {
 
     BindRequest(0x0001),
-    BindResponse(0x0101);
+    BindResponse(0x0101),
+    Forward(0x4);
     private int code;
 
     public int getCode() {

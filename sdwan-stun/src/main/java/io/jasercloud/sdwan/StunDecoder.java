@@ -6,9 +6,12 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
 import io.netty.handler.codec.MessageToMessageDecoder;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class StunDecoder extends MessageToMessageDecoder<DatagramPacket> {
+
+    private List<AttrType> AddrTypeList = Arrays.asList(AttrType.MappedAddress, AttrType.OtherAddress, AttrType.ResponseOrigin);
 
     @Override
     protected void decode(ChannelHandlerContext ctx, DatagramPacket msg, List<Object> out) throws Exception {
@@ -26,14 +29,19 @@ public class StunDecoder extends MessageToMessageDecoder<DatagramPacket> {
             int t = attrs.readUnsignedShort();
             int l = attrs.readUnsignedShort();
             ByteBuf v = attrs.readSlice(l);
-            int reserved = v.readUnsignedByte();
-            int family = v.readUnsignedByte();
-            int port = v.readUnsignedShort();
-            byte[] bytes = new byte[4];
-            v.readBytes(bytes);
-            String ip = IPUtil.bytes2ip(bytes);
-            Attr attr = new AddressAttr(ProtoFamily.valueOf(family), ip, port);
-            message.getAttrs().put(AttrType.valueOf(t), attr);
+            if (AddrTypeList.contains(AttrType.valueOf(t))) {
+                int reserved = v.readUnsignedByte();
+                int family = v.readUnsignedByte();
+                int port = v.readUnsignedShort();
+                byte[] bytes = new byte[4];
+                v.readBytes(bytes);
+                String ip = IPUtil.bytes2ip(bytes);
+                Attr attr = new AddressAttr(ProtoFamily.valueOf(family), ip, port);
+                message.getAttrs().put(AttrType.valueOf(t), attr);
+            } else if (AttrType.Data.equals(AttrType.valueOf(t))) {
+                Attr attr = new DataAttr(v.retain());
+                message.getAttrs().put(AttrType.valueOf(t), attr);
+            }
         }
         StunPacket packet = new StunPacket(message, msg.sender());
         out.add(packet);

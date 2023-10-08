@@ -14,19 +14,14 @@ import java.net.InetSocketAddress;
 public class AppConfig {
 
     @Bean
-    public StunClient stunClient() {
+    public UdpTransporter udpTransporter() {
         InetSocketAddress target = new InetSocketAddress("stun.miwifi.com", 3478);
-        return new StunClient(new InetSocketAddress("0.0.0.0", 0), target);
+        return new UdpTransporter(new InetSocketAddress("0.0.0.0", 0), target);
     }
 
     @Bean
     public SDWanNode sdWanNode(SDWanNodeProperties properties, StunClient stunClient) throws Exception {
         return new SDWanNode(properties, stunClient);
-    }
-
-    @Bean
-    public UdpTransporter udpTransporter() {
-        return new UdpTransporter();
     }
 
     @Bean

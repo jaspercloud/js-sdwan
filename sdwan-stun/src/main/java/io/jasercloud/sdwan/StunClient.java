@@ -24,6 +24,10 @@ public class StunClient implements InitializingBean {
     private Channel channel;
     private CheckResult selfCheckResult;
 
+    public Channel getChannel() {
+        return channel;
+    }
+
     public CheckResult getSelfCheckResult() {
         return selfCheckResult;
     }
@@ -59,6 +63,8 @@ public class StunClient implements InitializingBean {
                                     response.getAttrs().put(AttrType.MappedAddress, addressAttr);
                                     StunPacket resp = new StunPacket(response, recipient);
                                     channel.writeAndFlush(resp);
+                                } else if (MessageType.Forward.equals(request.getMessageType())) {
+                                    processForward(packet);
                                 }
                                 AsyncTask.completeTask(request.getTranId(), packet);
                             }
@@ -84,6 +90,10 @@ public class StunClient implements InitializingBean {
             }, "stunClient");
             thread.start();
         }
+    }
+
+    protected void processForward(StunPacket packet) {
+
     }
 
     public CheckResult check(InetSocketAddress remote) throws Exception {

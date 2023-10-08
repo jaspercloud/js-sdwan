@@ -65,32 +65,15 @@ public class NatManager {
             if (null == sdArp) {
                 return;
             }
-            InetSocketAddress address;
-            if (isEndpointIndependent(sdArp)) {
-                String publicIP = sdArp.getPublicIP();
-                int publicPort = sdArp.getPublicPort();
-                System.out.println(String.format("output: %s -> %s", ipPacket.getSrcIP(), ipPacket.getDstIP()));
-                address = new InetSocketAddress(publicIP, publicPort);
-            } else {
-                address = nodeManager.getPublicAddress(sdArp);
-            }
+            InetSocketAddress address = nodeManager.getPublicAddress(sdArp);
             if (null == address) {
                 return;
             }
+            System.out.println(String.format("output: %s -> %s next %s", ipPacket.getSrcIP(), ipPacket.getDstIP(), address));
             Ipv4Packet ipv4Packet = (Ipv4Packet) ipPacket;
             ByteBuf byteBuf = ipv4Packet.encode();
             transporter.writePacket(address, byteBuf);
         });
-    }
-
-    private boolean isEndpointIndependent(SDWanProtos.SDArpResp sdArp) {
-        if (!StunRule.EndpointIndependent.equals(sdArp.getStunMapping())) {
-            return false;
-        }
-        if (!StunRule.EndpointIndependent.equals(sdArp.getStunFiltering())) {
-            return false;
-        }
-        return true;
     }
 
     public void input(Channel tunChannel, IpPacket ipPacket) {

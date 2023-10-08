@@ -23,6 +23,8 @@ public class StunEncoder extends MessageToMessageEncoder<StunPacket> {
                 processChangeRequest(channel, entry, attrsByteBuf);
             } else if (AttrType.MappedAddress.equals(key)) {
                 processMappedAddress(channel, entry, attrsByteBuf);
+            } else if (AttrType.Data.equals(key)) {
+                processData(channel, entry, attrsByteBuf);
             }
         }
         ByteBuf byteBuf = channel.alloc().heapBuffer();
@@ -33,6 +35,17 @@ public class StunEncoder extends MessageToMessageEncoder<StunPacket> {
         byteBuf.writeBytes(attrsByteBuf);
         DatagramPacket datagramPacket = new DatagramPacket(byteBuf, msg.recipient());
         out.add(datagramPacket);
+    }
+
+    private void processData(Channel channel, Map.Entry<AttrType, Attr> entry, ByteBuf attrsByteBuf) {
+        AttrType key = entry.getKey();
+        DataAttr dataAttr = (DataAttr) entry.getValue();
+        ByteBuf byteBuf = dataAttr.getByteBuf();
+        ByteBuf attrByteBuf = channel.alloc().heapBuffer();
+        attrByteBuf.writeShort(key.getCode());
+        attrByteBuf.writeShort(byteBuf.readableBytes());
+        attrByteBuf.writeBytes(byteBuf);
+        attrsByteBuf.writeBytes(attrByteBuf);
     }
 
     private void processMappedAddress(Channel channel, Map.Entry<AttrType, Attr> entry, ByteBuf attrsByteBuf) {

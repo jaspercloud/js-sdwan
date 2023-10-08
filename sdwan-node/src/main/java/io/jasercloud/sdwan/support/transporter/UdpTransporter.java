@@ -1,51 +1,35 @@
 package io.jasercloud.sdwan.support.transporter;
 
+import io.jasercloud.sdwan.*;
 import io.jasercloud.sdwan.tun.Ipv4Packet;
-import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.*;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.DatagramPacket;
-import io.netty.channel.socket.nio.NioDatagramChannel;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.InitializingBean;
 
 import java.net.InetSocketAddress;
 
 @Slf4j
-public class UdpTransporter implements Transporter, InitializingBean {
+public class UdpTransporter extends StunClient implements Transporter {
 
     private ReceiveHandler handler;
-    private Channel channel;
+
+    public UdpTransporter(InetSocketAddress local, InetSocketAddress stunServer) {
+        super(local, stunServer);
+    }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
-        NioEventLoopGroup group = new NioEventLoopGroup();
-        Bootstrap bootstrap = new Bootstrap()
-                .group(group)
-                .channel(NioDatagramChannel.class)
-                .handler(new ChannelInitializer<Channel>() {
-                    @Override
-                    protected void initChannel(Channel ch) throws Exception {
-                        ChannelPipeline pipeline = ch.pipeline();
-                        pipeline.addLast(new SimpleChannelInboundHandler<DatagramPacket>() {
-                            @Override
-                            protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket msg) throws Exception {
-                                if (null != handler) {
-                                    Ipv4Packet ipv4Packet = Ipv4Packet.decode(msg.content().retain());
-                                    handler.onPacket(ipv4Packet);
-                                }
-                            }
-                        });
-                    }
-                });
-        channel = bootstrap.bind(888).sync().channel();
+    protected void processForward(StunPacket packet) {
+        DataAttr dataAttr = (DataAttr) packet.content().getAttrs().get(AttrType.Data);
+        ByteBuf byteBuf = dataAttr.getByteBuf();
+        Ipv4Packet ipv4Packet = Ipv4Packet.decode(byteBuf);
+        handler.onPacket(ipv4Packet);
     }
 
     @Override
     public void writePacket(InetSocketAddress address, ByteBuf byteBuf) {
-        DatagramPacket packet = new DatagramPacket(byteBuf, address);
-        channel.writeAndFlush(packet);
+        StunMessage message = new StunMessage(MessageType.Forward);
+        message.getAttrs().put(AttrType.Data, new DataAttr(byteBuf));
+        StunPacket request = new StunPacket(message, address);
+        getChannel().writeAndFlush(request);
     }
 
     @Override
