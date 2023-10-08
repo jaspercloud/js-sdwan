@@ -62,7 +62,21 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
                 processSDArp(channel, request);
                 break;
             }
+            case SDWanProtos.MsgTypeCode.PunchingType_VALUE: {
+                processPunching(channel, request);
+                break;
+            }
         }
+    }
+
+    private void processPunching(Channel channel, SDWanProtos.Message request) throws Exception {
+        SDWanProtos.Punching punching = SDWanProtos.Punching.parseFrom(request.getData());
+        String dstVIP = punching.getDstVIP();
+        Channel targetChannel = findNodeByIP(dstVIP);
+        if (null == targetChannel) {
+            return;
+        }
+        targetChannel.writeAndFlush(request);
     }
 
     private Channel findNodeByIP(String ip) {

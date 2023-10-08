@@ -1,5 +1,9 @@
 package io.jasercloud.sdwan.support;
 
+import io.jasercloud.sdwan.AddressAttr;
+import io.jasercloud.sdwan.AttrType;
+import io.jasercloud.sdwan.StunClient;
+import io.jasercloud.sdwan.StunPacket;
 import io.jaspercloud.sdwan.*;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
@@ -27,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
 
     private SDWanNodeProperties properties;
+    private StunClient stunClient;
     private Bootstrap bootstrap;
     private Channel channel;
 
@@ -34,8 +39,9 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
         return channel;
     }
 
-    public SDWanNode(SDWanNodeProperties properties) {
+    public SDWanNode(SDWanNodeProperties properties, StunClient stunClient) {
         this.properties = properties;
+        this.stunClient = stunClient;
     }
 
     @Override
@@ -81,6 +87,11 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                                 switch (request.getType().getNumber()) {
                                     case SDWanProtos.MsgTypeCode.RefreshRouteList_VALUE: {
                                         SDWanProtos.RouteList routeList = SDWanProtos.RouteList.parseFrom(request.getData());
+                                        break;
+                                    }
+                                    case SDWanProtos.MsgTypeCode.PunchingType_VALUE: {
+                                        SDWanProtos.Punching punching = SDWanProtos.Punching.parseFrom(request.getData());
+                                        processPunching(punching);
                                         break;
                                     }
                                     default: {
@@ -209,5 +220,15 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                 .setData(punching.toByteString())
                 .build();
         channel.writeAndFlush(message);
+    }
+
+    private void processPunching(SDWanProtos.Punching punching) {
+        try {
+            InetSocketAddress target = new InetSocketAddress(punching.getSrcIP(), punching.getSrcPort());
+            StunPacket resp = stunClient.sendBindBatch(target, punching.getTranId(), 15, 20);
+            AddressAttr mappedAddress = (AddressAttr) resp.content().getAttrs().get(AttrType.MappedAddress);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
     }
 }

@@ -128,10 +128,10 @@ public class StunClient implements InitializingBean {
         }
     }
 
-    public StunPacket sendBindBatch(InetSocketAddress address, int count, long interval) throws Exception {
+    public StunPacket sendBindBatch(InetSocketAddress address, String tranId, int count, long interval) throws Exception {
         try {
             System.out.println("sendBind: " + address);
-            StunMessage message = new StunMessage(MessageType.BindRequest);
+            StunMessage message = new StunMessage(MessageType.BindRequest, tranId);
             StunPacket request = new StunPacket(message, address);
             CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), 1000);
             for (int i = 0; i < count; i++) {
