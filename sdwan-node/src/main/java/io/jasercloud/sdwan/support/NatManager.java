@@ -1,6 +1,5 @@
 package io.jasercloud.sdwan.support;
 
-import io.jasercloud.sdwan.StunRule;
 import io.jasercloud.sdwan.support.transporter.Transporter;
 import io.jasercloud.sdwan.tun.IpPacket;
 import io.jasercloud.sdwan.tun.Ipv4Packet;
@@ -61,11 +60,13 @@ public class NatManager {
                 }
             }, sdArp.getTtl(), TimeUnit.SECONDS);
             return sdArp;
-        }).thenAccept(sdArp -> {
+        }).thenComposeAsync(sdArp -> {
             if (null == sdArp) {
-                return;
+                return CompletableFuture.completedFuture(null);
             }
-            InetSocketAddress address = nodeManager.getPublicAddress(sdArp);
+            CompletableFuture<InetSocketAddress> future = nodeManager.getPublicAddress(sdArp);
+            return future;
+        }).thenAccept(address -> {
             if (null == address) {
                 return;
             }

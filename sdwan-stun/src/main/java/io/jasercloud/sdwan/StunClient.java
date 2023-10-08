@@ -103,7 +103,7 @@ public class StunClient implements InitializingBean {
     public CheckResult check(InetSocketAddress remote) throws Exception {
         String mapping;
         String filtering;
-        StunPacket response = sendBind(remote);
+        StunPacket response = sendBind(remote).get();
         if (null == response) {
             mapping = StunRule.Blocked;
             filtering = StunRule.Blocked;
@@ -119,12 +119,12 @@ public class StunClient implements InitializingBean {
             filtering = StunRule.Internet;
             return new CheckResult(mapping, filtering, mappedAddress1);
         }
-        if (null != (response = sendChangeBind(remote, true, true))) {
+        if (null != (response = sendChangeBind(remote, true, true).get())) {
             filtering = StunRule.EndpointIndependent;
-        } else if (null != (response = sendChangeBind(remote, false, true))) {
+        } else if (null != (response = sendChangeBind(remote, false, true).get())) {
             filtering = StunRule.AddressDependent;
         } else {
-            response = sendBind(otherAddress);
+            response = sendBind(otherAddress).get();
             filtering = StunRule.AddressAndPortDependent;
         }
         attrs = response.content().getAttrs();
@@ -160,35 +160,21 @@ public class StunClient implements InitializingBean {
         }
     }
 
-    public StunPacket sendBind(InetSocketAddress address) throws Exception {
-        try {
-            System.out.println("sendBind: " + address);
-            StunMessage message = new StunMessage(MessageType.BindRequest);
-            StunPacket request = new StunPacket(message, address);
-            CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), 1000);
-            channel.writeAndFlush(request);
-            StunPacket response = future.get(1000, TimeUnit.MILLISECONDS);
-            System.out.println("response:" + response.recipient());
-            return response;
-        } catch (TimeoutException e) {
-            return null;
-        }
+    public CompletableFuture<StunPacket> sendBind(InetSocketAddress address) {
+        StunMessage message = new StunMessage(MessageType.BindRequest);
+        StunPacket request = new StunPacket(message, address);
+        CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), 1000);
+        channel.writeAndFlush(request);
+        return future;
     }
 
-    private StunPacket sendChangeBind(InetSocketAddress address, boolean changeIP, boolean changePort) throws Exception {
-        try {
-            System.out.println(String.format("sendChangeBind=%s, ip=%s, port=%s", address, changeIP, changePort));
-            StunMessage message = new StunMessage(MessageType.BindRequest);
-            ChangeRequestAttr changeRequestAttr = new ChangeRequestAttr(changeIP, changePort);
-            message.getAttrs().put(AttrType.ChangeRequest, changeRequestAttr);
-            StunPacket request = new StunPacket(message, address);
-            CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), 1000);
-            channel.writeAndFlush(request);
-            StunPacket response = future.get(1000, TimeUnit.MILLISECONDS);
-            System.out.println("response:" + response.recipient());
-            return response;
-        } catch (TimeoutException e) {
-            return null;
-        }
+    private CompletableFuture<StunPacket> sendChangeBind(InetSocketAddress address, boolean changeIP, boolean changePort) {
+        StunMessage message = new StunMessage(MessageType.BindRequest);
+        ChangeRequestAttr changeRequestAttr = new ChangeRequestAttr(changeIP, changePort);
+        message.getAttrs().put(AttrType.ChangeRequest, changeRequestAttr);
+        StunPacket request = new StunPacket(message, address);
+        CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), 1000);
+        channel.writeAndFlush(request);
+        return future;
     }
 }
