@@ -79,19 +79,19 @@ public class StunClient implements InitializingBean {
         channel = bootstrap.bind(local).sync().channel();
         if (null != stunServer) {
             selfCheckResult = check(stunServer);
-            System.out.println(String.format("mapping=%s, filtering=%s, address=%s",
+            System.out.println(String.format("stun: mapping=%s, filtering=%s, address=%s",
                     selfCheckResult.getMapping(), selfCheckResult.getFiltering(), selfCheckResult.getMappingAddress()));
             Thread thread = new Thread(() -> {
                 while (true) {
                     try {
                         selfCheckResult = check(stunServer);
-                        System.out.println(String.format("mapping=%s, filtering=%s, address=%s",
+                        System.out.println(String.format("stun: mapping=%s, filtering=%s, address=%s",
                                 selfCheckResult.getMapping(), selfCheckResult.getFiltering(), selfCheckResult.getMappingAddress()));
                     } catch (Exception e) {
                         log.error(e.getMessage(), e);
                     }
                     try {
-                        Thread.sleep(30 * 1000L);
+                        Thread.sleep(5 * 1000L);
                     } catch (Exception e) {
                         log.error(e.getMessage(), e);
                     }

@@ -29,10 +29,10 @@ public class NatManager {
             30, TimeUnit.MILLISECONDS);
     private Map<String, SDWanProtos.SDArpResp> arpCache = new ConcurrentHashMap<>();
 
-    private NodeManager nodeManager;
+    private PunchingManager punchingManager;
 
-    public NatManager(NodeManager nodeManager) {
-        this.nodeManager = nodeManager;
+    public NatManager(PunchingManager punchingManager) {
+        this.punchingManager = punchingManager;
     }
 
     public void output(SDWanNode sdWanNode, Transporter transporter, ByteBuf byteBuf) {
@@ -65,7 +65,7 @@ public class NatManager {
             if (null == sdArp) {
                 return CompletableFuture.completedFuture(null);
             }
-            CompletableFuture<InetSocketAddress> future = nodeManager.getPublicAddress(sdArp);
+            CompletableFuture<InetSocketAddress> future = punchingManager.getPublicAddress(sdArp);
             return future;
         }).whenComplete((address, throwable) -> {
             if (null != throwable) {

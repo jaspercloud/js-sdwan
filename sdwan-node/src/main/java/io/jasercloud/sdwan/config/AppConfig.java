@@ -26,13 +26,13 @@ public class AppConfig {
     }
 
     @Bean
-    public NodeManager nodeManager(SDWanNode sdWanNode, StunClient stunClient) {
-        return new NodeManager(sdWanNode, stunClient);
+    public PunchingManager nodeManager(SDWanNode sdWanNode, StunClient stunClient) {
+        return new PunchingManager(sdWanNode, stunClient);
     }
 
     @Bean
-    public NatManager natManager(NodeManager nodeManager) {
-        return new NatManager(nodeManager);
+    public NatManager natManager(PunchingManager punchingManager) {
+        return new NatManager(punchingManager);
     }
 
     @Bean
