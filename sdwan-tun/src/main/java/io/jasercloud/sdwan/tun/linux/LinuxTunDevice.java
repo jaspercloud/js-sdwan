@@ -97,7 +97,7 @@ public class LinuxTunDevice extends TunDevice {
         {
             String cmd = String.format("ip route delete %s via %s", route, ip);
             int code = ProcessUtil.exec(cmd);
-            CheckInvoke.check(code, 0);
+            CheckInvoke.check(code, 0, 2);
         }
         {
             String cmd = String.format("ip route add %s via %s dev %s", route, ip, interfaceInfo.getName());
