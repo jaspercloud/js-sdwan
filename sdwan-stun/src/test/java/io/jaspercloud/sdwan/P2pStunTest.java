@@ -1,12 +1,9 @@
 package io.jaspercloud.sdwan;
 
-import io.jasercloud.sdwan.AttrType;
 import io.jasercloud.sdwan.StunClient;
 import io.jasercloud.sdwan.StunPacket;
 
 import java.net.InetSocketAddress;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
 public class P2pStunTest {
@@ -18,8 +15,8 @@ public class P2pStunTest {
         stunClient1.afterPropertiesSet();
         StunClient stunClient2 = new StunClient(address2, null);
         stunClient2.afterPropertiesSet();
-        StunPacket stunPacket1 = stunClient1.sendBind(address2);
-        StunPacket stunPacket2 = stunClient2.sendBind(address1);
+        StunPacket stunPacket1 = stunClient1.sendBind(address2).get();
+        StunPacket stunPacket2 = stunClient2.sendBind(address1).get();
         CountDownLatch countDownLatch = new CountDownLatch(1);
         countDownLatch.await();
     }

@@ -3,7 +3,12 @@ package io.jasercloud.sdwan;
 import io.jaspercloud.sdwan.AsyncTask;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.UnpooledByteBufAllocator;
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import lombok.extern.slf4j.Slf4j;
@@ -104,11 +109,6 @@ public class StunClient implements InitializingBean {
         String mapping;
         String filtering;
         StunPacket response = sendBind(remote).get();
-        if (null == response) {
-            mapping = StunRule.Blocked;
-            filtering = StunRule.Blocked;
-            return new CheckResult(mapping, filtering, null);
-        }
         Map<AttrType, Attr> attrs = response.content().getAttrs();
         AddressAttr otherAddressAttr = (AddressAttr) attrs.get(AttrType.OtherAddress);
         InetSocketAddress otherAddress = new InetSocketAddress(otherAddressAttr.getIp(), otherAddressAttr.getPort());
@@ -119,12 +119,13 @@ public class StunClient implements InitializingBean {
             filtering = StunRule.Internet;
             return new CheckResult(mapping, filtering, mappedAddress1);
         }
-        if (null != (response = sendChangeBind(remote, true, true).get())) {
+        if (null != (response = testChangeBind(remote, true, true))) {
             filtering = StunRule.EndpointIndependent;
-        } else if (null != (response = sendChangeBind(remote, false, true).get())) {
+        } else if (null != (response = testChangeBind(remote, false, true))) {
             filtering = StunRule.AddressDependent;
         } else {
-            response = sendBind(otherAddress).get();
+            InetSocketAddress addr = new InetSocketAddress(otherAddress.getHostString(), remote.getPort());
+            response = sendBind(addr).get();
             filtering = StunRule.AddressAndPortDependent;
         }
         attrs = response.content().getAttrs();
@@ -163,7 +164,7 @@ public class StunClient implements InitializingBean {
     public CompletableFuture<StunPacket> sendBind(InetSocketAddress address) {
         StunMessage message = new StunMessage(MessageType.BindRequest);
         StunPacket request = new StunPacket(message, address);
-        CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), 1000);
+        CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), 15 * 1000L);
         channel.writeAndFlush(request);
         return future;
     }
@@ -173,8 +174,17 @@ public class StunClient implements InitializingBean {
         ChangeRequestAttr changeRequestAttr = new ChangeRequestAttr(changeIP, changePort);
         message.getAttrs().put(AttrType.ChangeRequest, changeRequestAttr);
         StunPacket request = new StunPacket(message, address);
-        CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), 1000);
+        CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), 15 * 1000L);
         channel.writeAndFlush(request);
         return future;
+    }
+
+    private StunPacket testChangeBind(InetSocketAddress address, boolean changeIP, boolean changePort) throws Exception {
+        try {
+            StunPacket response = sendChangeBind(address, changeIP, changePort).get(3 * 1000, TimeUnit.MILLISECONDS);
+            return response;
+        } catch (TimeoutException e) {
+            return null;
+        }
     }
 }
