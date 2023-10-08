@@ -14,14 +14,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
-public class NodeManager implements InitializingBean {
+public class PunchingManager implements InitializingBean {
 
     private SDWanNode sdWanNode;
     private StunClient stunClient;
 
     private Map<String, NodeHeart> nodeHeartMap = new ConcurrentHashMap<>();
 
-    public NodeManager(SDWanNode sdWanNode, StunClient stunClient) {
+    public PunchingManager(SDWanNode sdWanNode, StunClient stunClient) {
         this.sdWanNode = sdWanNode;
         this.stunClient = stunClient;
     }
@@ -33,15 +33,20 @@ public class NodeManager implements InitializingBean {
                 for (Map.Entry<String, NodeHeart> entry : nodeHeartMap.entrySet()) {
                     NodeHeart nodeHeart = entry.getValue();
                     long diffTime = System.currentTimeMillis() - nodeHeart.getLastHeart();
-                    if (diffTime > (30 * 1000)) {
+                    if (diffTime > (15 * 1000)) {
                         stunClient.sendBind(nodeHeart.getAddress())
-                                .thenAccept(packet -> {
+                                .whenComplete((packet, throwable) -> {
+                                    if (null != throwable) {
+                                        System.out.println("updatePunchingHeartError: " + nodeHeart.getAddress());
+                                        return;
+                                    }
+                                    System.out.println("updatePunchingHeartSuccess: " + nodeHeart.getAddress());
                                     nodeHeart.setLastHeart(System.currentTimeMillis());
                                 });
                     }
                 }
                 try {
-                    Thread.sleep(10 * 1000);
+                    Thread.sleep(5 * 1000);
                 } catch (InterruptedException e) {
                     log.error(e.getMessage(), e);
                 }
@@ -77,9 +82,9 @@ public class NodeManager implements InitializingBean {
                     return addr;
                 });
             } else if (StunRule.AddressDependent.equals(self.getFiltering())) {
-
+                // TODO: 2023/10/8
             } else if (StunRule.AddressDependent.equals(stunFiltering)) {
-
+                // TODO: 2023/10/8
             }
             return null;
         } catch (Exception e) {
