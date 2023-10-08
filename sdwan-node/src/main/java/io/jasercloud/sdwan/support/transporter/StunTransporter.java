@@ -8,11 +8,11 @@ import lombok.extern.slf4j.Slf4j;
 import java.net.InetSocketAddress;
 
 @Slf4j
-public class UdpTransporter extends StunClient implements Transporter {
+public class StunTransporter extends StunClient implements Transporter {
 
     private ReceiveHandler handler;
 
-    public UdpTransporter(InetSocketAddress local, InetSocketAddress stunServer) {
+    public StunTransporter(InetSocketAddress local, InetSocketAddress stunServer) {
         super(local, stunServer);
     }
 

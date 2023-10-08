@@ -80,6 +80,8 @@ public class StunClient implements InitializingBean {
                 while (true) {
                     try {
                         selfCheckResult = check(stunServer);
+                        System.out.println(String.format("mapping=%s, filtering=%s, address=%s",
+                                selfCheckResult.getMapping(), selfCheckResult.getFiltering(), selfCheckResult.getMappingAddress()));
                     } catch (Exception e) {
                         log.error(e.getMessage(), e);
                     }
