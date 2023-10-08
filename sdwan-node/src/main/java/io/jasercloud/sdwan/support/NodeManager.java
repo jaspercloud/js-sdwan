@@ -38,9 +38,7 @@ public class NodeManager {
             } else if (StunRule.EndpointIndependent.equals(stunFiltering)) {
                 InetSocketAddress target = new InetSocketAddress(sdArpResp.getPublicIP(), sdArpResp.getPublicPort());
                 StunPacket stunPacket = stunClient.sendBind(target);
-                AddressAttr mappedAddress = (AddressAttr) stunPacket.content().getAttrs().get(AttrType.MappedAddress);
-                InetSocketAddress resp = new InetSocketAddress(mappedAddress.getIp(), mappedAddress.getPort());
-                return resp;
+                return stunPacket.recipient();
             } else if (StunRule.AddressDependent.equals(self.getFiltering())) {
 
             } else if (StunRule.AddressDependent.equals(stunFiltering)) {
