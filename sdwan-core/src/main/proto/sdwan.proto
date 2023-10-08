@@ -34,8 +34,8 @@ message RegReq {
   required string macAddress = 2;
   required string stunMapping = 3;
   required string stunFiltering = 4;
-  required string publicIP = 5;
-  required int32 publicPort = 6;
+  optional string publicIP = 5;
+  optional int32 publicPort = 6;
 }
 
 message RegResp {

@@ -1,13 +1,15 @@
 package io.jasercloud.sdwan.support;
 
-import io.jasercloud.sdwan.*;
-import io.jasercloud.sdwan.tun.IpPacket;
+import io.jasercloud.sdwan.CheckResult;
+import io.jasercloud.sdwan.StunClient;
+import io.jasercloud.sdwan.StunMessage;
+import io.jasercloud.sdwan.StunPacket;
+import io.jasercloud.sdwan.StunRule;
 import io.jaspercloud.sdwan.AsyncTask;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
 
 import java.net.InetSocketAddress;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public class NodeManager {
@@ -32,7 +34,7 @@ public class NodeManager {
                 InetSocketAddress resp = new InetSocketAddress(sdArpResp.getPublicIP(), sdArpResp.getPublicPort());
                 return resp;
             } else if (StunRule.EndpointIndependent.equals(self.getFiltering())) {
-                String tranId = UUID.randomUUID().toString();
+                String tranId = StunMessage.genTranId();
                 CompletableFuture<StunPacket> waitTask = AsyncTask.waitTask(tranId, 3000);
                 sdWanNode.punching(address.getHostString(), address.getPort(), vip, tranId);
                 InetSocketAddress resp = waitTask.get().recipient();
@@ -40,9 +42,7 @@ public class NodeManager {
             } else if (StunRule.EndpointIndependent.equals(stunFiltering)) {
                 InetSocketAddress target = new InetSocketAddress(sdArpResp.getPublicIP(), sdArpResp.getPublicPort());
                 StunPacket stunPacket = stunClient.sendBind(target);
-                AddressAttr mappedAddress = (AddressAttr) stunPacket.content().getAttrs().get(AttrType.MappedAddress);
-                InetSocketAddress resp = new InetSocketAddress(mappedAddress.getIp(), mappedAddress.getPort());
-                return resp;
+                return stunPacket.recipient();
             } else if (StunRule.AddressDependent.equals(self.getFiltering())) {
 
             } else if (StunRule.AddressDependent.equals(stunFiltering)) {
