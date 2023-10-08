@@ -60,6 +60,11 @@ public class PunchingManager implements InitializingBean {
             String vip = sdArpResp.getVip();
             String stunMapping = sdArpResp.getStunMapping();
             String stunFiltering = sdArpResp.getStunFiltering();
+            NodeHeart nodeHeart = nodeHeartMap.get(vip);
+            if (null != nodeHeart) {
+                InetSocketAddress address = nodeHeart.getAddress();
+                return CompletableFuture.completedFuture(address);
+            }
             CheckResult self = stunClient.getSelfCheckResult();
             InetSocketAddress address = self.getMappingAddress();
             if (StunRule.EndpointIndependent.equals(self.getFiltering())
