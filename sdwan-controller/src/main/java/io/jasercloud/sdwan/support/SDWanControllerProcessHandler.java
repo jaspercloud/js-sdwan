@@ -40,7 +40,7 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
                 });
         properties.getStaticRoutes().values()
                 .forEach(e -> {
-                    routeMap.add(e.getVip(), e.getCidr());
+                    routeMap.add(e.getNextHop(), e.getDestination());
                 });
     }
 

@@ -27,7 +27,7 @@ public class SDWanControllerProperties {
     public static class StaticRoute {
 
         private String id;
-        private String cidr;
-        private String vip;
+        private String destination;
+        private String nextHop;
     }
 }

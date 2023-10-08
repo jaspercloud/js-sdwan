@@ -15,8 +15,8 @@ sdwan:
         vip: 10.1.0.6
     staticRoutes:
       - id: route-159
-        cidr: 192.222.8.159/32
-        vip: 10.1.0.6
+        destination: 192.222.8.159/32
+        nextHop: 10.1.0.6
       - id: route-192.168.1.0
-        cidr: 192.168.1.0/24
-        vip: 10.1.0.6
+        destination: 192.168.1.0/24
+        nextHop: 10.1.0.6
