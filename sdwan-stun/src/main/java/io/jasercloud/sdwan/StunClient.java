@@ -59,9 +59,8 @@ public class StunClient implements InitializingBean {
                                     response.getAttrs().put(AttrType.MappedAddress, addressAttr);
                                     StunPacket resp = new StunPacket(response, recipient);
                                     channel.writeAndFlush(resp);
-                                } else {
-                                    AsyncTask.completeTask(request.getTranId(), packet);
                                 }
+                                AsyncTask.completeTask(request.getTranId(), packet);
                             }
                         });
                     }

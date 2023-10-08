@@ -195,4 +195,19 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                 .build();
         channel.writeAndFlush(message);
     }
+
+    public void punching(String ip, int port, String dstVIP, String tranId) {
+        SDWanProtos.Punching punching = SDWanProtos.Punching.newBuilder()
+                .setSrcIP(ip)
+                .setSrcPort(port)
+                .setDstVIP(dstVIP)
+                .setTranId(tranId)
+                .build();
+        SDWanProtos.Message message = SDWanProtos.Message.newBuilder()
+                .setReqId(UUID.randomUUID().toString())
+                .setType(SDWanProtos.MsgTypeCode.PunchingType)
+                .setData(punching.toByteString())
+                .build();
+        channel.writeAndFlush(message);
+    }
 }
