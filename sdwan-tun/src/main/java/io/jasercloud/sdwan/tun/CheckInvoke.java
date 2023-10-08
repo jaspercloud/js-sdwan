@@ -13,4 +13,13 @@ public final class CheckInvoke {
             throw new ProcessException();
         }
     }
+
+    public static void check(int value, int... expected) {
+        for (int item : expected) {
+            if (value == item) {
+                return;
+            }
+        }
+        throw new ProcessException();
+    }
 }
