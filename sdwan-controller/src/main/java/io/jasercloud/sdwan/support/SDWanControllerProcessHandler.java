@@ -25,7 +25,7 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
 
     //key: ip, value: channel
     private Map<String, AtomicReference<Channel>> bindIPMap = new ConcurrentHashMap<>();
-    //key: vip, value: cidr
+    //key: vip, value: destination
     private MultiValueMap<String, String> routeMap = new LinkedMultiValueMap<>();
     private Cidr ipPool;
 
