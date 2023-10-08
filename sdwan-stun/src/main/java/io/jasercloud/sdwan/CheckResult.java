@@ -7,11 +7,11 @@ import java.net.InetSocketAddress;
 @Data
 public class CheckResult {
 
-    private StunMapping mapping;
-    private StunFiltering filtering;
+    private String mapping;
+    private String filtering;
     private InetSocketAddress mappingAddress;
 
-    public CheckResult(StunMapping mapping, StunFiltering filtering, InetSocketAddress mappingAddress) {
+    public CheckResult(String mapping, String filtering, InetSocketAddress mappingAddress) {
         this.mapping = mapping;
         this.filtering = filtering;
         this.mappingAddress = mappingAddress;

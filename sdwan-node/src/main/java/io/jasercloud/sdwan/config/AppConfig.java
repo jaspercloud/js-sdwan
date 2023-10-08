@@ -1,13 +1,13 @@
 package io.jasercloud.sdwan.config;
 
-import io.jasercloud.sdwan.support.NatManager;
-import io.jasercloud.sdwan.support.SDWanNode;
-import io.jasercloud.sdwan.support.SDWanNodeProperties;
-import io.jasercloud.sdwan.support.TunEngine;
+import io.jasercloud.sdwan.StunClient;
+import io.jasercloud.sdwan.support.*;
 import io.jasercloud.sdwan.support.transporter.UdpTransporter;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.net.InetSocketAddress;
 
 @EnableConfigurationProperties(SDWanNodeProperties.class)
 @Configuration
@@ -24,15 +24,27 @@ public class AppConfig {
     }
 
     @Bean
-    public NatManager natManager() {
-        return new NatManager();
+    public StunClient stunClient() {
+        InetSocketAddress target = new InetSocketAddress("stun.miwifi.com", 3478);
+        return new StunClient(new InetSocketAddress("0.0.0.0", 0), target);
+    }
+
+    @Bean
+    public NodeManager nodeManager(SDWanNode sdWanNode, StunClient stunClient) {
+        return new NodeManager(sdWanNode, stunClient);
+    }
+
+    @Bean
+    public NatManager natManager(NodeManager nodeManager) {
+        return new NatManager(nodeManager);
     }
 
     @Bean
     public TunEngine tunEngine(SDWanNodeProperties properties,
                                SDWanNode sdWanNode,
                                UdpTransporter udpTransporter,
-                               NatManager natManager) {
-        return new TunEngine(properties, sdWanNode, udpTransporter, natManager);
+                               NatManager natManager,
+                               StunClient stunClient) {
+        return new TunEngine(properties, sdWanNode, udpTransporter, natManager, stunClient);
     }
 }

@@ -6,6 +6,10 @@ public enum ProtoFamily {
     IPv6(2);
     private int code;
 
+    public int getCode() {
+        return code;
+    }
+
     ProtoFamily(int code) {
         this.code = code;
     }

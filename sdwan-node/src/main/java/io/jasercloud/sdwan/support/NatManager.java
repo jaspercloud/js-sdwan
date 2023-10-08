@@ -1,5 +1,6 @@
 package io.jasercloud.sdwan.support;
 
+import io.jasercloud.sdwan.StunRule;
 import io.jasercloud.sdwan.support.transporter.Transporter;
 import io.jasercloud.sdwan.tun.IpPacket;
 import io.jasercloud.sdwan.tun.Ipv4Packet;
@@ -28,6 +29,12 @@ public class NatManager {
             new DefaultThreadFactory("arp-timeout", true),
             30, TimeUnit.MILLISECONDS);
     private Map<String, SDWanProtos.SDArpResp> arpCache = new ConcurrentHashMap<>();
+
+    private NodeManager nodeManager;
+
+    public NatManager(NodeManager nodeManager) {
+        this.nodeManager = nodeManager;
+    }
 
     public void output(SDWanNode sdWanNode, Transporter transporter, IpPacket ipPacket) {
         String ip = ipPacket.getDstIP();
@@ -58,14 +65,32 @@ public class NatManager {
             if (null == sdArp) {
                 return;
             }
-            String publicIP = sdArp.getPublicIP();
-            int publicPort = sdArp.getPublicPort();
-            System.out.println(String.format("output: %s -> %s", ipPacket.getSrcIP(), ipPacket.getDstIP()));
-            InetSocketAddress address = new InetSocketAddress(publicIP, publicPort);
+            InetSocketAddress address;
+            if (isEndpointIndependent(sdArp)) {
+                String publicIP = sdArp.getPublicIP();
+                int publicPort = sdArp.getPublicPort();
+                System.out.println(String.format("output: %s -> %s", ipPacket.getSrcIP(), ipPacket.getDstIP()));
+                address = new InetSocketAddress(publicIP, publicPort);
+            } else {
+                address = nodeManager.getPublicAddress(sdArp.getVip(), sdArp.getStunMapping(), sdArp.getStunFiltering());
+            }
+            if (null == address) {
+                return;
+            }
             Ipv4Packet ipv4Packet = (Ipv4Packet) ipPacket;
             ByteBuf byteBuf = ipv4Packet.encode();
             transporter.writePacket(address, byteBuf);
         });
+    }
+
+    private boolean isEndpointIndependent(SDWanProtos.SDArpResp sdArp) {
+        if (!StunRule.EndpointIndependent.equals(sdArp.getStunMapping())) {
+            return false;
+        }
+        if (!StunRule.EndpointIndependent.equals(sdArp.getStunFiltering())) {
+            return false;
+        }
+        return true;
     }
 
     public void input(Channel tunChannel, IpPacket ipPacket) {

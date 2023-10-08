@@ -106,16 +106,21 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
         }
         NodeInfo nodeInfo = AttributeKeys.nodeInfo(targetChannel).get();
         String vip = nodeInfo.getVip();
-        String host = nodeInfo.getPublicAddress().getHostString();
-        int port = nodeInfo.getPublicAddress().getPort();
-        log.info("sdArp: ip={}, vip={}, addr={}:{}", ip, vip, host, port);
-        SDWanProtos.SDArpResp arpResp = SDWanProtos.SDArpResp.newBuilder()
+        log.info("sdArp: ip={}, vip={}", ip, vip);
+        SDWanProtos.SDArpResp.Builder sdArpBuilder = SDWanProtos.SDArpResp.newBuilder()
                 .setCode(0)
                 .setVip(vip)
-                .setPublicIP(host)
-                .setPublicPort(port)
-                .setTtl(properties.getSdArpTTL())
-                .build();
+                .setStunMapping(nodeInfo.getStunMapping())
+                .setStunFiltering(nodeInfo.getStunFiltering())
+                .setTtl(properties.getSdArpTTL());
+        if (null != nodeInfo.getPublicAddress()) {
+            InetSocketAddress address = nodeInfo.getPublicAddress();
+            String host = address.getHostString();
+            int port = address.getPort();
+            sdArpBuilder.setPublicIP(host);
+            sdArpBuilder.setPublicPort(port);
+        }
+        SDWanProtos.SDArpResp arpResp = sdArpBuilder.build();
         SDWanProtos.Message response = request.toBuilder()
                 .setType(SDWanProtos.MsgTypeCode.SDArpRespType)
                 .setData(arpResp.toByteString())

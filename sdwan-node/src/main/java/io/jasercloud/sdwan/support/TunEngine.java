@@ -15,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 
-import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -29,23 +28,24 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
     private SDWanNode sdWanNode;
     private Transporter transporter;
     private NatManager natManager;
-
     private StunClient stunClient;
+
     private TunChannel tunChannel;
 
     public TunEngine(SDWanNodeProperties properties,
                      SDWanNode sdWanNode,
                      Transporter transporter,
-                     NatManager natManager) {
+                     NatManager natManager,
+                     StunClient stunClient) {
         this.properties = properties;
         this.sdWanNode = sdWanNode;
         this.transporter = transporter;
         this.natManager = natManager;
+        this.stunClient = stunClient;
     }
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        stunClient = new StunClient(new InetSocketAddress("0.0.0.0", 0));
         tunChannel = bootTunDevices();
         transporter.setReceiveHandler(new Transporter.ReceiveHandler() {
             @Override
@@ -66,7 +66,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
     public void run() {
         while (true) {
             try {
-                CheckResult checkResult = stunClient.check(new InetSocketAddress("stun.miwifi.com", 3478));
+                CheckResult checkResult = stunClient.getSelfCheckResult();
                 SDWanProtos.RegResp regResp = sdWanNode.regist(
                         checkResult.getMapping(),
                         checkResult.getFiltering(),

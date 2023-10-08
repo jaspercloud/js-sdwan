@@ -1,7 +1,5 @@
 package io.jasercloud.sdwan.support;
 
-import io.jasercloud.sdwan.StunFiltering;
-import io.jasercloud.sdwan.StunMapping;
 import io.jaspercloud.sdwan.*;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
@@ -163,8 +161,8 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
         return future;
     }
 
-    public SDWanProtos.RegResp regist(StunMapping mapping,
-                                      StunFiltering filtering,
+    public SDWanProtos.RegResp regist(String mapping,
+                                      String filtering,
                                       InetSocketAddress mappingAddress,
                                       int timeout) throws Exception {
         NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(properties.getLocalIP());
@@ -172,8 +170,8 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
         SDWanProtos.RegReq.Builder regReqBuilder = SDWanProtos.RegReq.newBuilder()
                 .setMacAddress(hardwareAddress)
                 .setNodeType(SDWanProtos.NodeTypeCode.forNumber(properties.getNodeType().getCode()))
-                .setStunMapping(mapping.name())
-                .setStunFiltering(filtering.name());
+                .setStunMapping(mapping)
+                .setStunFiltering(filtering);
         if (null != mappingAddress) {
             regReqBuilder.setPublicIP(mappingAddress.getHostString());
             regReqBuilder.setPublicPort(mappingAddress.getPort());

@@ -1,5 +1,6 @@
 package io.jasercloud.sdwan;
 
+import io.jaspercloud.sdwan.IPUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -18,21 +19,10 @@ public class StunEncoder extends MessageToMessageEncoder<StunPacket> {
         ByteBuf attrsByteBuf = channel.alloc().heapBuffer();
         for (Map.Entry<AttrType, Attr> entry : message.getAttrs().entrySet()) {
             AttrType key = entry.getKey();
-            Attr value = entry.getValue();
             if (AttrType.ChangeRequest.equals(key)) {
-                ChangeRequestAttr changeRequestAttr = (ChangeRequestAttr) value;
-                ByteBuf attrByteBuf = channel.alloc().heapBuffer();
-                attrByteBuf.writeShort(key.getCode());
-                attrByteBuf.writeShort(4);
-                int flag = 0;
-                if (changeRequestAttr.getChangeIP()) {
-                    flag |= 0b100;
-                }
-                if (changeRequestAttr.getChangePort()) {
-                    flag |= 0b10;
-                }
-                attrByteBuf.writeInt(flag);
-                attrsByteBuf.writeBytes(attrByteBuf);
+                processChangeRequest(channel, entry, attrsByteBuf);
+            } else if (AttrType.MappedAddress.equals(key)) {
+                processMappedAddress(channel, entry, attrsByteBuf);
             }
         }
         ByteBuf byteBuf = channel.alloc().heapBuffer();
@@ -43,5 +33,35 @@ public class StunEncoder extends MessageToMessageEncoder<StunPacket> {
         byteBuf.writeBytes(attrsByteBuf);
         DatagramPacket datagramPacket = new DatagramPacket(byteBuf, msg.recipient());
         out.add(datagramPacket);
+    }
+
+    private void processMappedAddress(Channel channel, Map.Entry<AttrType, Attr> entry, ByteBuf attrsByteBuf) {
+        AttrType key = entry.getKey();
+        AddressAttr addressAttr = (AddressAttr) entry.getValue();
+        ByteBuf attrByteBuf = channel.alloc().heapBuffer();
+        attrByteBuf.writeShort(key.getCode());
+        attrByteBuf.writeShort(8);
+        attrByteBuf.writeByte(0);
+        attrByteBuf.writeByte(addressAttr.getFamily().getCode());
+        attrByteBuf.writeShort(addressAttr.getPort());
+        attrByteBuf.writeBytes(IPUtil.ip2bytes(addressAttr.getIp()));
+        attrsByteBuf.writeBytes(attrByteBuf);
+    }
+
+    private void processChangeRequest(Channel channel, Map.Entry<AttrType, Attr> entry, ByteBuf attrsByteBuf) {
+        AttrType key = entry.getKey();
+        ChangeRequestAttr changeRequestAttr = (ChangeRequestAttr) entry.getValue();
+        ByteBuf attrByteBuf = channel.alloc().heapBuffer();
+        attrByteBuf.writeShort(key.getCode());
+        attrByteBuf.writeShort(4);
+        int flag = 0;
+        if (changeRequestAttr.getChangeIP()) {
+            flag |= 0b100;
+        }
+        if (changeRequestAttr.getChangePort()) {
+            flag |= 0b10;
+        }
+        attrByteBuf.writeInt(flag);
+        attrsByteBuf.writeBytes(attrByteBuf);
     }
 }
