@@ -5,7 +5,7 @@ sdwan:
     port: 18848
     cidr: 10.1.0.0/20
     # second
-    nodeArpTTL: 300
+    sdArpTTL: 300
     staticNodes:
       - id: 66
         macAddress: fa:50:03:01:f8:00

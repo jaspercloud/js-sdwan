@@ -148,7 +148,7 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                 .build();
         SDWanProtos.Message request = SDWanProtos.Message.newBuilder()
                 .setReqId(UUID.randomUUID().toString())
-                .setType(SDWanProtos.MsgTypeCode.NodeArpReqType)
+                .setType(SDWanProtos.MsgTypeCode.SDArpReqType)
                 .setData(nodeArpReq.toByteString())
                 .build();
         CompletableFuture<SDWanProtos.SDArpResp> future = requestAsync(request, timeout)

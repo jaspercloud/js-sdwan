@@ -72,13 +72,13 @@ public class SdwanClient {
         {
             //NodeArp
             Channel channel = createChannel();
-            SDWanProtos.SDArpReq nodeArpReq = SDWanProtos.SDArpReq.newBuilder()
+            SDWanProtos.SDArpReq sdArpReq = SDWanProtos.SDArpReq.newBuilder()
                     .setIp("192.222.0.5")
                     .build();
             SDWanProtos.Message message = SDWanProtos.Message.newBuilder()
                     .setReqId(UUID.randomUUID().toString())
-                    .setType(SDWanProtos.MsgTypeCode.NodeArpReqType)
-                    .setData(nodeArpReq.toByteString())
+                    .setType(SDWanProtos.MsgTypeCode.SDArpReqType)
+                    .setData(sdArpReq.toByteString())
                     .build();
             channel.writeAndFlush(message);
         }
@@ -112,7 +112,7 @@ public class SdwanClient {
                                         System.out.println(msg.toString());
                                         break;
                                     }
-                                    case SDWanProtos.MsgTypeCode.NodeArpRespType_VALUE: {
+                                    case SDWanProtos.MsgTypeCode.SDArpRespType_VALUE: {
                                         SDWanProtos.SDArpResp sdArpResp = SDWanProtos.SDArpResp.parseFrom(msg.getData());
                                         System.out.println(msg.toString());
                                         System.out.println(sdArpResp.toString());

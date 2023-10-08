@@ -4,6 +4,7 @@ import io.jaspercloud.sdwan.Cidr;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessCodeException;
 import io.netty.channel.*;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.util.LinkedMultiValueMap;
@@ -16,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+@Slf4j
 @ChannelHandler.Sharable
 public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<SDWanProtos.Message> implements InitializingBean {
 
@@ -56,7 +58,7 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
                 processReg(channel, request);
                 break;
             }
-            case SDWanProtos.MsgTypeCode.NodeArpReqType_VALUE: {
+            case SDWanProtos.MsgTypeCode.SDArpReqType_VALUE: {
                 processSDArp(channel, request);
                 break;
             }
@@ -88,13 +90,15 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
 
     private void processSDArp(Channel channel, SDWanProtos.Message request) throws Exception {
         SDWanProtos.SDArpReq nodeArpReq = SDWanProtos.SDArpReq.parseFrom(request.getData());
-        Channel targetChannel = findNodeByIP(nodeArpReq.getIp());
+        String ip = nodeArpReq.getIp();
+        Channel targetChannel = findNodeByIP(ip);
+        log.info("sdArp: ip={}, findNode={}", ip, null != targetChannel);
         if (null == targetChannel) {
             SDWanProtos.SDArpResp arpResp = SDWanProtos.SDArpResp.newBuilder()
                     .setCode(1)
                     .build();
             SDWanProtos.Message response = request.toBuilder()
-                    .setType(SDWanProtos.MsgTypeCode.NodeArpRespType)
+                    .setType(SDWanProtos.MsgTypeCode.SDArpRespType)
                     .setData(arpResp.toByteString())
                     .build();
             channel.writeAndFlush(response);
@@ -104,15 +108,16 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
         String vip = nodeInfo.getVip();
         String host = nodeInfo.getPublicAddress().getHostString();
         int port = nodeInfo.getPublicAddress().getPort();
+        log.info("sdArp: ip={}, vip={}, addr={}:{}", ip, vip, host, port);
         SDWanProtos.SDArpResp arpResp = SDWanProtos.SDArpResp.newBuilder()
                 .setCode(0)
                 .setVip(vip)
                 .setPublicIP(host)
                 .setPublicPort(port)
-                .setTtl(properties.getNodeArpTTL())
+                .setTtl(properties.getSdArpTTL())
                 .build();
         SDWanProtos.Message response = request.toBuilder()
-                .setType(SDWanProtos.MsgTypeCode.NodeArpRespType)
+                .setType(SDWanProtos.MsgTypeCode.SDArpRespType)
                 .setData(arpResp.toByteString())
                 .build();
         channel.writeAndFlush(response);

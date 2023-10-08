@@ -11,7 +11,7 @@ public class SDWanControllerProperties {
 
     private Integer port;
     private String cidr;
-    private Integer nodeArpTTL;
+    private Integer sdArpTTL;
     private Map<String, StaticNode> staticNodes;
     private Map<String, StaticRoute> staticRoutes;
 

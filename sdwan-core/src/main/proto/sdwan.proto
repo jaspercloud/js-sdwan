@@ -6,8 +6,8 @@ enum MsgTypeCode {
   HeartType = 1;
   RegReqType = 2;
   RegRespType = 3;
-  NodeArpReqType = 4;
-  NodeArpRespType = 5;
+  SDArpReqType = 4;
+  SDArpRespType = 5;
   RefreshRouteList = 6;
 }
 
