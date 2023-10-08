@@ -3,14 +3,23 @@ package io.jasercloud.sdwan.support;
 import io.jasercloud.sdwan.CheckResult;
 import io.jasercloud.sdwan.StunClient;
 import io.jasercloud.sdwan.support.transporter.Transporter;
-import io.jasercloud.sdwan.tun.*;
+import io.jasercloud.sdwan.tun.TunAddress;
+import io.jasercloud.sdwan.tun.TunChannel;
+import io.jasercloud.sdwan.tun.TunChannelConfig;
 import io.jaspercloud.sdwan.NetworkInterfaceInfo;
 import io.jaspercloud.sdwan.NetworkInterfaceUtil;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.DefaultEventLoopGroup;
+import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
@@ -49,8 +58,8 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
         tunChannel = bootTunDevices();
         transporter.setReceiveHandler(new Transporter.ReceiveHandler() {
             @Override
-            public void onPacket(IpPacket ipPacket) {
-                natManager.input(tunChannel, ipPacket);
+            public void onPacket(ByteBuf byteBuf) {
+                natManager.input(tunChannel, byteBuf);
             }
         });
         Thread thread = new Thread(this, "tun-device");
@@ -118,8 +127,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                                     return;
                                 }
                                 msg.resetReaderIndex();
-                                Ipv4Packet ipv4Packet = Ipv4Packet.decode(msg.retain());
-                                natManager.output(sdWanNode, transporter, ipv4Packet);
+                                natManager.output(sdWanNode, transporter, msg.retain());
                             }
                         });
                     }

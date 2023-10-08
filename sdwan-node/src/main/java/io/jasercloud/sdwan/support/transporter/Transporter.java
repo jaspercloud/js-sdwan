@@ -1,6 +1,5 @@
 package io.jasercloud.sdwan.support.transporter;
 
-import io.jasercloud.sdwan.tun.IpPacket;
 import io.netty.buffer.ByteBuf;
 
 import java.net.InetSocketAddress;
@@ -13,6 +12,6 @@ public interface Transporter {
 
     interface ReceiveHandler {
 
-        void onPacket(IpPacket ipPacket);
+        void onPacket(ByteBuf byteBuf);
     }
 }

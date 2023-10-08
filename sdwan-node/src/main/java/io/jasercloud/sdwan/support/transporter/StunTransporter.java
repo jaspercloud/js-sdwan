@@ -20,8 +20,7 @@ public class StunTransporter extends StunClient implements Transporter {
     protected void processForward(StunPacket packet) {
         DataAttr dataAttr = (DataAttr) packet.content().getAttrs().get(AttrType.Data);
         ByteBuf byteBuf = dataAttr.getByteBuf();
-        Ipv4Packet ipv4Packet = Ipv4Packet.decode(byteBuf);
-        handler.onPacket(ipv4Packet);
+        handler.onPacket(byteBuf);
     }
 
     @Override

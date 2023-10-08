@@ -122,6 +122,13 @@ public class Ipv4Packet implements IpPacket {
 
     }
 
+    public static Ipv4Packet decodeMark(ByteBuf byteBuf) {
+        byteBuf.markReaderIndex();
+        Ipv4Packet packet = decode(byteBuf);
+        byteBuf.resetReaderIndex();
+        return packet;
+    }
+
     public static Ipv4Packet decode(ByteBuf byteBuf) {
         Ipv4Packet ipv4Packet = new Ipv4Packet();
         short head = byteBuf.readUnsignedByte();
