@@ -129,6 +129,24 @@ public class StunClient implements InitializingBean {
         }
     }
 
+    public StunPacket sendBindBatch(InetSocketAddress address, int count, long interval) throws Exception {
+        try {
+            System.out.println("sendBind: " + address);
+            StunMessage message = new StunMessage(MessageType.BindRequest);
+            StunPacket request = new StunPacket(message, address);
+            CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), 1000);
+            for (int i = 0; i < count; i++) {
+                channel.writeAndFlush(request);
+                Thread.sleep(interval);
+            }
+            StunPacket response = future.get(1000, TimeUnit.MILLISECONDS);
+            System.out.println("response:" + response.recipient());
+            return response;
+        } catch (TimeoutException e) {
+            return null;
+        }
+    }
+
     public StunPacket sendBind(InetSocketAddress address) throws Exception {
         try {
             System.out.println("sendBind: " + address);

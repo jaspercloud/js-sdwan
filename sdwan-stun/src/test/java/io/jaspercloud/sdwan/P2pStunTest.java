@@ -16,10 +16,10 @@ public class P2pStunTest {
         stunClient1.afterPropertiesSet();
         StunClient stunClient2 = new StunClient(address2, null);
         stunClient2.afterPropertiesSet();
-        StunPacket stunPacket1 = stunClient1.sendBind(address2);
-        System.out.println(stunPacket1.content().getAttrs().get(AttrType.MappedAddress));
-        StunPacket stunPacket2 = stunClient2.sendBind(address1);
-        System.out.println(stunPacket2.content().getAttrs().get(AttrType.MappedAddress));
+        StunPacket stunPacket1 = stunClient1.sendBindBatch(address2, 15, 20);
+        System.out.println(address1 + " -> " + stunPacket1.content().getAttrs().get(AttrType.MappedAddress));
+        StunPacket stunPacket2 = stunClient2.sendBindBatch(address1, 15, 20);
+        System.out.println(address2 + " -> " + stunPacket2.content().getAttrs().get(AttrType.MappedAddress));
         CountDownLatch countDownLatch = new CountDownLatch(1);
         countDownLatch.await();
     }
