@@ -11,6 +11,8 @@ import java.util.List;
 public class NodeInfo {
 
     private NodeType nodeType;
+    private String stunMapping;
+    private String stunFiltering;
     private InetSocketAddress publicAddress;
     private String macAddress;
     private String vip;

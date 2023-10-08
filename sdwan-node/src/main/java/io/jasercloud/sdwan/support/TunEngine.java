@@ -153,6 +153,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
     private void addRoutes(int index, String vip, List<String> routes) {
         routes.forEach(route -> {
             try {
+                log.info("addRoute: {} -> {}", route, vip);
                 tunChannel.addRoute(index, route, vip);
             } catch (Exception e) {
                 log.error(e.getMessage(), e);

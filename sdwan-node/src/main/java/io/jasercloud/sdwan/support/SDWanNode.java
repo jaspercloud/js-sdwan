@@ -80,7 +80,16 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
 
                             @Override
                             protected void channelRead0(ChannelHandlerContext ctx, SDWanProtos.Message request) throws Exception {
-                                AsyncTask.completeTask(request.getReqId(), request);
+                                switch (request.getType().getNumber()) {
+                                    case SDWanProtos.MsgTypeCode.RefreshRouteList_VALUE: {
+                                        SDWanProtos.RouteList routeList = SDWanProtos.RouteList.parseFrom(request.getData());
+                                        break;
+                                    }
+                                    default: {
+                                        AsyncTask.completeTask(request.getReqId(), request);
+                                        break;
+                                    }
+                                }
                             }
                         });
                     }

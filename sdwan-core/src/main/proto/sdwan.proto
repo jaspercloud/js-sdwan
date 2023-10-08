@@ -8,6 +8,7 @@ enum MsgTypeCode {
   RegRespType = 3;
   NodeArpReqType = 4;
   NodeArpRespType = 5;
+  RefreshRouteList = 6;
 }
 
 enum NodeTypeCode {
@@ -49,7 +50,12 @@ message SDArpReq {
 
 message SDArpResp {
   required int32 code = 1;
-  optional string publicIP = 2;
-  optional int32 publicPort = 3;
-  optional string vip = 4;
+  optional string vip = 2;
+  optional string publicIP = 3;
+  optional int32 publicPort = 4;
+  optional int32 ttl = 5;
+}
+
+message RouteList {
+  repeated string route = 1;
 }

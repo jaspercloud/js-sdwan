@@ -106,9 +106,10 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
         int port = nodeInfo.getPublicAddress().getPort();
         SDWanProtos.SDArpResp arpResp = SDWanProtos.SDArpResp.newBuilder()
                 .setCode(0)
+                .setVip(vip)
                 .setPublicIP(host)
                 .setPublicPort(port)
-                .setVip(vip)
+                .setTtl(properties.getNodeArpTTL())
                 .build();
         SDWanProtos.Message response = request.toBuilder()
                 .setType(SDWanProtos.MsgTypeCode.NodeArpRespType)
@@ -141,6 +142,8 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
                 nodeInfo.setNodeType(NodeType.valueOf(regReq.getNodeType().getNumber()));
                 nodeInfo.setMacAddress(macAddress);
                 nodeInfo.setVip(vip);
+                nodeInfo.setStunMapping(regReq.getStunMapping());
+                nodeInfo.setStunFiltering(regReq.getStunFiltering());
                 nodeInfo.setPublicAddress(new InetSocketAddress(regReq.getPublicIP(), regReq.getPublicPort()));
                 if (SDWanProtos.NodeTypeCode.MeshType.equals(regReq.getNodeType())) {
                     List<String> routeList = routeMap.get(vip);

@@ -4,6 +4,8 @@ sdwan:
   controller:
     port: 18848
     cidr: 10.1.0.0/20
+    # second
+    nodeArpTTL: 300
     staticNodes:
       - id: 66
         macAddress: fa:50:03:01:f8:00
@@ -12,6 +14,9 @@ sdwan:
         macAddress: fa:2e:16:1b:26:00
         vip: 10.1.0.6
     staticRoutes:
-      - id: route159
+      - id: route-159
         cidr: 192.222.8.159/32
+        vip: 10.1.0.6
+      - id: route-192.168.1.0
+        cidr: 192.168.1.0/24
         vip: 10.1.0.6

@@ -1,11 +1,16 @@
 package io.jasercloud.sdwan.support;
 
 import io.jasercloud.sdwan.support.transporter.Transporter;
-import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jasercloud.sdwan.tun.IpPacket;
 import io.jasercloud.sdwan.tun.Ipv4Packet;
+import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
+import io.netty.util.HashedWheelTimer;
+import io.netty.util.Timeout;
+import io.netty.util.Timer;
+import io.netty.util.TimerTask;
+import io.netty.util.concurrent.DefaultThreadFactory;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
@@ -13,11 +18,15 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 @Slf4j
 public class NatManager {
 
+    public Timer TIMEOUT = new HashedWheelTimer(
+            new DefaultThreadFactory("arp-timeout", true),
+            30, TimeUnit.MILLISECONDS);
     private Map<String, SDWanProtos.SDArpResp> arpCache = new ConcurrentHashMap<>();
 
     public void output(SDWanNode sdWanNode, Transporter transporter, IpPacket ipPacket) {
@@ -38,6 +47,12 @@ public class NatManager {
                 return null;
             }
             arpCache.put(ip, sdArp);
+            TIMEOUT.newTimeout(new TimerTask() {
+                @Override
+                public void run(Timeout timeout) throws Exception {
+                    arpCache.remove(ip);
+                }
+            }, sdArp.getTtl(), TimeUnit.SECONDS);
             return sdArp;
         }).thenAccept(sdArp -> {
             if (null == sdArp) {
