@@ -19,6 +19,7 @@ public final class NetworkInterfaceUtil {
             for (InterfaceAddress interfaceAddress : networkInterface.getInterfaceAddresses()) {
                 if (StringUtils.equals(interfaceAddress.getAddress().getHostAddress(), ip)) {
                     NetworkInterfaceInfo networkInterfaceInfo = new NetworkInterfaceInfo();
+                    networkInterfaceInfo.setName(networkInterface.getName());
                     networkInterfaceInfo.setIndex(networkInterface.getIndex());
                     networkInterfaceInfo.setInterfaceAddress(interfaceAddress);
                     if (null != networkInterface.getHardwareAddress()) {

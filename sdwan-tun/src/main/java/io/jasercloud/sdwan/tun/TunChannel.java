@@ -2,6 +2,7 @@ package io.jasercloud.sdwan.tun;
 
 import io.jasercloud.sdwan.tun.linux.LinuxTunDevice;
 import io.jasercloud.sdwan.tun.windows.WinTunDevice;
+import io.jaspercloud.sdwan.NetworkInterfaceInfo;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
@@ -50,8 +51,8 @@ public class TunChannel extends AbstractChannel {
         tunDevice.setIP(ip, maskBits);
     }
 
-    public void addRoute(int index, String route, String ip) throws Exception {
-        tunDevice.addRoute(index, route, ip);
+    public void addRoute(NetworkInterfaceInfo interfaceInfo, String route, String ip) throws Exception {
+        tunDevice.addRoute(interfaceInfo, route, ip);
     }
 
     @Override

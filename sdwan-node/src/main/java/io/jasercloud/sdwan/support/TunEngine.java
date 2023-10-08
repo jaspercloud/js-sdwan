@@ -86,7 +86,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                         .stream()
                         .collect(Collectors.toList());
                 NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(regResp.getVip());
-                addRoutes(interfaceInfo.getIndex(), regResp.getVip(), routes);
+                addRoutes(interfaceInfo, regResp.getVip(), routes);
                 sdWanNode.getChannel().closeFuture().sync();
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
@@ -150,11 +150,11 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
         }
     }
 
-    private void addRoutes(int index, String vip, List<String> routes) {
+    private void addRoutes(NetworkInterfaceInfo interfaceInfo, String vip, List<String> routes) {
         routes.forEach(route -> {
             try {
                 log.info("addRoute: {} -> {}", route, vip);
-                tunChannel.addRoute(index, route, vip);
+                tunChannel.addRoute(interfaceInfo, route, vip);
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
             }
