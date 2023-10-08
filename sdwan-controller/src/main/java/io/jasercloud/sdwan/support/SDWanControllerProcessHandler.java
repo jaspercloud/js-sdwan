@@ -157,6 +157,13 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
                     }
                 }
                 AttributeKeys.nodeInfo(channel).set(nodeInfo);
+                log.info("reg: nodeType={}, macAddr={}, vip={}, publicAddr={}, mapping={}, filtering={}",
+                        nodeInfo.getNodeType(),
+                        nodeInfo.getMacAddress(),
+                        nodeInfo.getVip(),
+                        nodeInfo.getPublicAddress(),
+                        nodeInfo.getStunMapping(),
+                        nodeInfo.getStunFiltering());
             }
             List<String> routes = routeMap.values().stream()
                     .flatMap(e -> e.stream())
