@@ -72,7 +72,7 @@ public class NatManager {
                 System.out.println(String.format("output: %s -> %s", ipPacket.getSrcIP(), ipPacket.getDstIP()));
                 address = new InetSocketAddress(publicIP, publicPort);
             } else {
-                address = nodeManager.getPublicAddress(ipPacket, sdArp);
+                address = nodeManager.getPublicAddress(sdArp);
             }
             if (null == address) {
                 return;

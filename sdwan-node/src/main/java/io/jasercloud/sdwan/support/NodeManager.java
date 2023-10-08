@@ -20,7 +20,7 @@ public class NodeManager {
         this.stunClient = stunClient;
     }
 
-    public InetSocketAddress getPublicAddress(IpPacket ipPacket, SDWanProtos.SDArpResp sdArpResp) {
+    public InetSocketAddress getPublicAddress(SDWanProtos.SDArpResp sdArpResp) {
         try {
             String vip = sdArpResp.getVip();
             String stunMapping = sdArpResp.getStunMapping();
