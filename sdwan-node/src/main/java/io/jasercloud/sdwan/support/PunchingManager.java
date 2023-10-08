@@ -31,19 +31,18 @@ public class PunchingManager implements InitializingBean {
         Thread thread = new Thread(() -> {
             while (true) {
                 for (Map.Entry<String, NodeHeart> entry : nodeHeartMap.entrySet()) {
+                    String key = entry.getKey();
                     NodeHeart nodeHeart = entry.getValue();
-                    long diffTime = System.currentTimeMillis() - nodeHeart.getLastHeart();
-                    if (diffTime > (15 * 1000)) {
-                        stunClient.sendBind(nodeHeart.getAddress())
-                                .whenComplete((packet, throwable) -> {
-                                    if (null != throwable) {
-                                        System.out.println("updatePunchingHeartError: " + nodeHeart.getAddress());
-                                        return;
-                                    }
-                                    System.out.println("updatePunchingHeartSuccess: " + nodeHeart.getAddress());
-                                    nodeHeart.setLastHeart(System.currentTimeMillis());
-                                });
-                    }
+                    stunClient.sendBind(nodeHeart.getAddress())
+                            .whenComplete((packet, throwable) -> {
+                                if (null != throwable) {
+                                    nodeHeartMap.remove(key);
+                                    System.out.println("updatePunchingHeartError: " + nodeHeart.getAddress());
+                                    return;
+                                }
+                                System.out.println("updatePunchingHeartSuccess: " + nodeHeart.getAddress());
+                                nodeHeart.setLastHeart(System.currentTimeMillis());
+                            });
                 }
                 try {
                     Thread.sleep(5 * 1000);
@@ -101,9 +100,10 @@ public class PunchingManager implements InitializingBean {
     public static class NodeHeart {
 
         private InetSocketAddress address;
-        private Long lastHeart;
+        private long lastHeart;
+        private int errCount;
 
-        public NodeHeart(InetSocketAddress address, Long lastHeart) {
+        public NodeHeart(InetSocketAddress address, long lastHeart) {
             this.address = address;
             this.lastHeart = lastHeart;
         }
