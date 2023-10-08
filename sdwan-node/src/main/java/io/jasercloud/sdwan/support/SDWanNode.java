@@ -225,7 +225,6 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
     private void processPunching(SDWanProtos.Punching punching) {
         try {
             InetSocketAddress target = new InetSocketAddress(punching.getSrcIP(), punching.getSrcPort());
-            System.out.println("punching: " + punching.getTranId());
             StunPacket resp = stunClient.sendBindBatch(target, punching.getTranId(), 15, 20);
             AddressAttr mappedAddress = (AddressAttr) resp.content().getAttrs().get(AttrType.MappedAddress);
         } catch (Exception e) {
