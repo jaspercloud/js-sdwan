@@ -8,6 +8,7 @@ import io.netty.util.Timer;
 import io.netty.util.TimerTask;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
 
 import java.net.InetSocketAddress;
 import java.util.Map;
@@ -29,6 +30,11 @@ public class SdArpManager {
 
     public SdArpManager(PunchingManager punchingManager) {
         this.punchingManager = punchingManager;
+    }
+
+    @EventListener(NodeOfflineEvent.class)
+    public void onNodeOfflineEvent(NodeOfflineEvent event) {
+        sdArpCache.remove(event.getVip());
     }
 
     public CompletableFuture<InetSocketAddress> sdArp(SDWanNode sdWanNode, IpPacket packet) {

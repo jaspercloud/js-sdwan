@@ -7,6 +7,8 @@ import io.jaspercloud.sdwan.exception.ProcessException;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.net.InetSocketAddress;
 import java.util.Map;
@@ -15,6 +17,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 public class PunchingManager implements InitializingBean {
+
+    @Autowired
+    private ApplicationEventPublisher publisher;
 
     private SDWanNode sdWanNode;
     private StunClient stunClient;
@@ -56,13 +61,14 @@ public class PunchingManager implements InitializingBean {
         Thread nodeHeartThread = new Thread(() -> {
             while (true) {
                 for (Map.Entry<String, Node> entry : nodeMap.entrySet()) {
-                    String key = entry.getKey();
+                    String vip = entry.getKey();
                     Node nodeHeart = entry.getValue();
                     stunClient.sendBind(nodeHeart.getAddress(), 3000)
                             .whenComplete((packet, throwable) -> {
                                 if (null != throwable) {
-                                    nodeMap.remove(key);
-                                    log.error("updatePunchingHeartError: {}", nodeHeart.getAddress());
+                                    nodeMap.remove(vip);
+                                    publisher.publishEvent(new NodeOfflineEvent(this, vip));
+                                    log.error("punchingTimout: {}", nodeHeart.getAddress());
                                     return;
                                 }
                                 nodeHeart.setLastHeart(System.currentTimeMillis());
