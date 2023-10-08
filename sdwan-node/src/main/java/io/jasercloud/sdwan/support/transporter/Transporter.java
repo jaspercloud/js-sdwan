@@ -1,17 +1,8 @@
 package io.jasercloud.sdwan.support.transporter;
 
-import io.netty.buffer.ByteBuf;
-
-import java.net.InetSocketAddress;
+import io.jasercloud.sdwan.tun.TunChannel;
 
 public interface Transporter {
 
-    void writePacket(InetSocketAddress address, ByteBuf byteBuf);
-
-    void setReceiveHandler(ReceiveHandler handler);
-
-    interface ReceiveHandler {
-
-        void onPacket(ByteBuf byteBuf);
-    }
+    void bind(TunChannel tunChannel);
 }

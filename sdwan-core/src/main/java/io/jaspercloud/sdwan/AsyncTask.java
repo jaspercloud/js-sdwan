@@ -16,7 +16,7 @@ public class AsyncTask<T> {
 
     public static final Timer TIMEOUT = new HashedWheelTimer(
             new DefaultThreadFactory("async-future-timeout", true),
-            30, TimeUnit.MILLISECONDS);
+            20, TimeUnit.MILLISECONDS);
     private static Map<String, CompletableFuture> futureMap = new ConcurrentHashMap<>();
 
     public static <T> CompletableFuture<T> waitTask(String id, long timeout) {

@@ -43,7 +43,7 @@ public class StunDecoder extends MessageToMessageDecoder<DatagramPacket> {
                 message.getAttrs().put(AttrType.valueOf(t), attr);
             }
         }
-        StunPacket packet = new StunPacket(message, msg.sender());
+        StunPacket packet = new StunPacket(message, msg.recipient(), msg.sender());
         out.add(packet);
     }
 }

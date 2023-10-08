@@ -18,29 +18,53 @@ public class PunchingManager implements InitializingBean {
 
     private SDWanNode sdWanNode;
     private StunClient stunClient;
+    private InetSocketAddress stunServer;
 
-    private Map<String, NodeHeart> nodeHeartMap = new ConcurrentHashMap<>();
+    private Map<String, Node> nodeMap = new ConcurrentHashMap<>();
 
-    public PunchingManager(SDWanNode sdWanNode, StunClient stunClient) {
+    private CheckResult checkResult;
+
+    public CheckResult getCheckResult() {
+        return checkResult;
+    }
+
+    public PunchingManager(SDWanNode sdWanNode, StunClient stunClient, InetSocketAddress stunServer) {
         this.sdWanNode = sdWanNode;
         this.stunClient = stunClient;
+        this.stunServer = stunServer;
     }
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        Thread thread = new Thread(() -> {
+        checkResult = stunClient.check(stunServer, 3000);
+        Thread stunCheckThread = new Thread(() -> {
             while (true) {
-                for (Map.Entry<String, NodeHeart> entry : nodeHeartMap.entrySet()) {
+                try {
+                    checkResult = stunClient.check(stunServer, 3000);
+                } catch (Exception e) {
+                    log.error(e.getMessage(), e);
+                }
+                try {
+                    Thread.sleep(5 * 1000);
+                } catch (InterruptedException e) {
+                    log.error(e.getMessage(), e);
+                }
+            }
+        }, "stun-check");
+        stunCheckThread.setDaemon(true);
+        stunCheckThread.start();
+        Thread nodeHeartThread = new Thread(() -> {
+            while (true) {
+                for (Map.Entry<String, Node> entry : nodeMap.entrySet()) {
                     String key = entry.getKey();
-                    NodeHeart nodeHeart = entry.getValue();
-                    stunClient.sendBind(nodeHeart.getAddress())
+                    Node nodeHeart = entry.getValue();
+                    stunClient.sendBind(nodeHeart.getAddress(), 3000)
                             .whenComplete((packet, throwable) -> {
                                 if (null != throwable) {
-                                    nodeHeartMap.remove(key);
-                                    System.out.println("updatePunchingHeartError: " + nodeHeart.getAddress());
+                                    nodeMap.remove(key);
+                                    log.error("updatePunchingHeartError: {}", nodeHeart.getAddress());
                                     return;
                                 }
-                                System.out.println("updatePunchingHeartSuccess: " + nodeHeart.getAddress());
                                 nodeHeart.setLastHeart(System.currentTimeMillis());
                             });
                 }
@@ -51,7 +75,8 @@ public class PunchingManager implements InitializingBean {
                 }
             }
         }, "node-heart");
-        thread.start();
+        nodeHeartThread.setDaemon(true);
+        nodeHeartThread.start();
     }
 
     public CompletableFuture<InetSocketAddress> getPublicAddress(SDWanProtos.SDArpResp sdArpResp) {
@@ -59,12 +84,12 @@ public class PunchingManager implements InitializingBean {
             String vip = sdArpResp.getVip();
             String stunMapping = sdArpResp.getStunMapping();
             String stunFiltering = sdArpResp.getStunFiltering();
-            NodeHeart nodeHeart = nodeHeartMap.get(vip);
+            Node nodeHeart = nodeMap.get(vip);
             if (null != nodeHeart) {
                 InetSocketAddress address = nodeHeart.getAddress();
                 return CompletableFuture.completedFuture(address);
             }
-            CheckResult self = stunClient.getSelfCheckResult();
+            CheckResult self = getCheckResult();
             InetSocketAddress address = self.getMappingAddress();
             if (StunRule.EndpointIndependent.equals(self.getFiltering())
                     && StunRule.EndpointIndependent.equals(stunFiltering)) {
@@ -74,15 +99,15 @@ public class PunchingManager implements InitializingBean {
                 String tranId = StunMessage.genTranId();
                 CompletableFuture<StunPacket> future = AsyncTask.waitTask(tranId, 3000);
                 sdWanNode.punching(address.getHostString(), address.getPort(), vip, tranId);
-                return future.thenApply(e -> e.recipient()).thenApply(addr -> {
-                    nodeHeartMap.put(vip, new NodeHeart(addr, System.currentTimeMillis()));
+                return future.thenApply(e -> e.sender()).thenApply(addr -> {
+                    nodeMap.put(vip, new Node(addr, System.currentTimeMillis()));
                     return addr;
                 });
             } else if (StunRule.EndpointIndependent.equals(stunFiltering)) {
                 InetSocketAddress target = new InetSocketAddress(sdArpResp.getPublicIP(), sdArpResp.getPublicPort());
-                CompletableFuture<StunPacket> future = stunClient.sendBind(target);
-                return future.thenApply(e -> e.recipient()).thenApply(addr -> {
-                    nodeHeartMap.put(vip, new NodeHeart(addr, System.currentTimeMillis()));
+                CompletableFuture<StunPacket> future = stunClient.sendBind(target, 3000);
+                return future.thenApply(e -> e.sender()).thenApply(addr -> {
+                    nodeMap.put(vip, new Node(addr, System.currentTimeMillis()));
                     return addr;
                 });
             } else if (StunRule.AddressDependent.equals(self.getFiltering())) {
@@ -97,13 +122,13 @@ public class PunchingManager implements InitializingBean {
     }
 
     @Data
-    public static class NodeHeart {
+    public static class Node {
 
         private InetSocketAddress address;
         private long lastHeart;
         private int errCount;
 
-        public NodeHeart(InetSocketAddress address, long lastHeart) {
+        public Node(InetSocketAddress address, long lastHeart) {
             this.address = address;
             this.lastHeart = lastHeart;
         }

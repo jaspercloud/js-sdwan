@@ -2,37 +2,50 @@ package io.jasercloud.sdwan.support.transporter;
 
 import io.jasercloud.sdwan.*;
 import io.jasercloud.sdwan.tun.Ipv4Packet;
+import io.jasercloud.sdwan.tun.TunChannel;
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.socket.DatagramPacket;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
 
 @Slf4j
-public class StunTransporter extends StunClient implements Transporter {
+public class StunTransporter implements Transporter {
 
-    private ReceiveHandler handler;
+    private StunClient stunClient;
 
-    public StunTransporter(InetSocketAddress local, InetSocketAddress stunServer) {
-        super(local, stunServer);
+    public StunTransporter(StunClient stunClient) {
+        this.stunClient = stunClient;
     }
 
     @Override
-    protected void processForward(StunPacket packet) {
-        DataAttr dataAttr = (DataAttr) packet.content().getAttrs().get(AttrType.Data);
-        ByteBuf byteBuf = dataAttr.getByteBuf();
-        handler.onPacket(byteBuf);
-    }
-
-    @Override
-    public void writePacket(InetSocketAddress address, ByteBuf byteBuf) {
-        StunMessage message = new StunMessage(MessageType.Forward);
-        message.getAttrs().put(AttrType.Data, new DataAttr(byteBuf));
-        StunPacket request = new StunPacket(message, address);
-        getChannel().writeAndFlush(request);
-    }
-
-    @Override
-    public void setReceiveHandler(ReceiveHandler handler) {
-        this.handler = handler;
+    public void bind(TunChannel tunChannel) {
+        stunClient.getChannel().pipeline().addLast(new SimpleChannelInboundHandler<StunPacket>() {
+            @Override
+            protected void channelRead0(ChannelHandlerContext ctx, StunPacket packet) throws Exception {
+                DataAttr dataAttr = (DataAttr) packet.content().getAttrs().get(AttrType.Data);
+                ByteBuf byteBuf = dataAttr.getByteBuf();
+                Ipv4Packet ipv4Packet = Ipv4Packet.decodeMark(byteBuf);
+                System.out.println(String.format("input: %s -> %s -> %s",
+                        packet.sender(), ipv4Packet.getSrcIP(), ipv4Packet.getDstIP()));
+                tunChannel.writeAndFlush(byteBuf.retain());
+            }
+        });
+        tunChannel.pipeline().addLast(new SimpleChannelInboundHandler<DatagramPacket>() {
+            @Override
+            protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket packet) throws Exception {
+                InetSocketAddress address = packet.recipient();
+                ByteBuf byteBuf = packet.content();
+                Ipv4Packet ipv4Packet = Ipv4Packet.decodeMark(byteBuf);
+                System.out.println(String.format("output: %s -> %s -> %s",
+                        ipv4Packet.getSrcIP(), ipv4Packet.getDstIP(), address));
+                StunMessage message = new StunMessage(MessageType.Transfer);
+                message.getAttrs().put(AttrType.Data, new DataAttr(byteBuf.retain()));
+                StunPacket request = new StunPacket(message, address);
+                stunClient.getChannel().writeAndFlush(request);
+            }
+        });
     }
 }

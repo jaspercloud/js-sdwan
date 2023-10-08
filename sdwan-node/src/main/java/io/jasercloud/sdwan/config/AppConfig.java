@@ -15,9 +15,13 @@ import java.net.InetSocketAddress;
 public class AppConfig {
 
     @Bean
-    public StunTransporter stunTransporter() {
-        InetSocketAddress target = new InetSocketAddress("stun.miwifi.com", 3478);
-        return new StunTransporter(new InetSocketAddress("0.0.0.0", 0), target);
+    public StunClient stunClient() throws Exception {
+        return StunClient.boot(new InetSocketAddress("0.0.0.0", 0));
+    }
+
+    @Bean
+    public StunTransporter stunTransporter(StunClient stunClient) {
+        return new StunTransporter(stunClient);
     }
 
     @Bean
@@ -26,21 +30,22 @@ public class AppConfig {
     }
 
     @Bean
-    public PunchingManager nodeManager(SDWanNode sdWanNode, StunClient stunClient) {
-        return new PunchingManager(sdWanNode, stunClient);
+    public PunchingManager punchingManager(SDWanNode sdWanNode, StunClient stunClient) {
+        InetSocketAddress target = new InetSocketAddress("stun.miwifi.com", 3478);
+        return new PunchingManager(sdWanNode, stunClient, target);
     }
 
     @Bean
-    public NatManager natManager(PunchingManager punchingManager) {
-        return new NatManager(punchingManager);
+    public SdArpManager sdArpManager(PunchingManager punchingManager) {
+        return new SdArpManager(punchingManager);
     }
 
     @Bean
     public TunEngine tunEngine(SDWanNodeProperties properties,
                                SDWanNode sdWanNode,
-                               Transporter udpTransporter,
-                               NatManager natManager,
-                               StunClient stunClient) {
-        return new TunEngine(properties, sdWanNode, udpTransporter, natManager, stunClient);
+                               Transporter transporter,
+                               PunchingManager punchingManager,
+                               SdArpManager sdArpManager) {
+        return new TunEngine(properties, sdWanNode, transporter, punchingManager, sdArpManager);
     }
 }

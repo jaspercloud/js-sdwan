@@ -1,6 +1,8 @@
 package io.jasercloud.sdwan.tun;
 
-public interface IpPacket {
+import io.jaspercloud.sdwan.Referenced;
+
+public interface IpPacket extends Referenced {
 
     short getVersion();
 

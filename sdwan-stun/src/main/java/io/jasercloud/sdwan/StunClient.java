@@ -1,54 +1,38 @@
 package io.jasercloud.sdwan;
 
 import io.jaspercloud.sdwan.AsyncTask;
+import io.jaspercloud.sdwan.NioEventLoopFactory;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.UnpooledByteBufAllocator;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.channel.*;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.InitializingBean;
 
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 @Slf4j
-public class StunClient implements InitializingBean {
+public class StunClient {
 
-    private InetSocketAddress local;
-    private InetSocketAddress stunServer;
     private Channel channel;
-    private CheckResult selfCheckResult;
+    private InetSocketAddress local;
 
     public Channel getChannel() {
         return channel;
     }
 
-    public CheckResult getSelfCheckResult() {
-        return selfCheckResult;
-    }
-
-    public StunClient(InetSocketAddress local, InetSocketAddress stunServer) {
+    private StunClient(Channel channel, InetSocketAddress local) {
+        this.channel = channel;
         this.local = local;
-        this.stunServer = stunServer;
     }
 
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        NioEventLoopGroup group = new NioEventLoopGroup();
+    public static StunClient boot(InetSocketAddress local) throws Exception {
         Bootstrap bootstrap = new Bootstrap()
-                .group(group)
+                .group(NioEventLoopFactory.BossGroup)
                 .channel(NioDatagramChannel.class)
-                .option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT)
+                .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
                 .handler(new ChannelInitializer<Channel>() {
                     @Override
                     protected void initChannel(Channel ch) throws Exception {
@@ -59,56 +43,33 @@ public class StunClient implements InitializingBean {
                             @Override
                             protected void channelRead0(ChannelHandlerContext ctx, StunPacket packet) throws Exception {
                                 Channel channel = ctx.channel();
-                                InetSocketAddress recipient = packet.recipient();
+                                InetSocketAddress sender = packet.sender();
                                 StunMessage request = packet.content();
                                 if (MessageType.BindRequest.equals(request.getMessageType())) {
                                     StunMessage response = new StunMessage(MessageType.BindResponse);
                                     response.setTranId(request.getTranId());
-                                    AddressAttr addressAttr = new AddressAttr(ProtoFamily.IPv4, recipient.getHostString(), recipient.getPort());
+                                    AddressAttr addressAttr = new AddressAttr(ProtoFamily.IPv4, sender.getHostString(), sender.getPort());
                                     response.getAttrs().put(AttrType.MappedAddress, addressAttr);
-                                    StunPacket resp = new StunPacket(response, recipient);
+                                    StunPacket resp = new StunPacket(response, sender);
                                     channel.writeAndFlush(resp);
-                                } else if (MessageType.Forward.equals(request.getMessageType())) {
-                                    processForward(packet);
+                                    AsyncTask.completeTask(request.getTranId(), packet);
+                                } else if (MessageType.BindResponse.equals(request.getMessageType())) {
+                                    AsyncTask.completeTask(request.getTranId(), packet);
+                                } else if (MessageType.Transfer.equals(request.getMessageType())) {
+                                    ctx.fireChannelRead(packet.retain());
                                 }
-                                AsyncTask.completeTask(request.getTranId(), packet);
                             }
                         });
                     }
                 });
-        channel = bootstrap.bind(local).sync().channel();
-        if (null != stunServer) {
-            selfCheckResult = check(stunServer);
-            System.out.println(String.format("stun: mapping=%s, filtering=%s, address=%s",
-                    selfCheckResult.getMapping(), selfCheckResult.getFiltering(), selfCheckResult.getMappingAddress()));
-            Thread thread = new Thread(() -> {
-                while (true) {
-                    try {
-                        selfCheckResult = check(stunServer);
-                        System.out.println(String.format("stun: mapping=%s, filtering=%s, address=%s",
-                                selfCheckResult.getMapping(), selfCheckResult.getFiltering(), selfCheckResult.getMappingAddress()));
-                    } catch (Exception e) {
-                        log.error(e.getMessage(), e);
-                    }
-                    try {
-                        Thread.sleep(5 * 1000L);
-                    } catch (Exception e) {
-                        log.error(e.getMessage(), e);
-                    }
-                }
-            }, "stunClient");
-            thread.start();
-        }
+        Channel channel = bootstrap.bind(local).sync().channel();
+        return new StunClient(channel, local);
     }
 
-    protected void processForward(StunPacket packet) {
-
-    }
-
-    public CheckResult check(InetSocketAddress remote) throws Exception {
+    public CheckResult check(InetSocketAddress remote, long timeout) throws Exception {
         String mapping;
         String filtering;
-        StunPacket response = sendBind(remote).get();
+        StunPacket response = sendBind(remote, timeout).get();
         Map<AttrType, Attr> attrs = response.content().getAttrs();
         AddressAttr otherAddressAttr = (AddressAttr) attrs.get(AttrType.OtherAddress);
         InetSocketAddress otherAddress = new InetSocketAddress(otherAddressAttr.getIp(), otherAddressAttr.getPort());
@@ -119,13 +80,13 @@ public class StunClient implements InitializingBean {
             filtering = StunRule.Internet;
             return new CheckResult(mapping, filtering, mappedAddress1);
         }
-        if (null != (response = testChangeBind(remote, true, true))) {
+        if (null != (response = testChangeBind(remote, true, true, timeout))) {
             filtering = StunRule.EndpointIndependent;
-        } else if (null != (response = testChangeBind(remote, false, true))) {
+        } else if (null != (response = testChangeBind(remote, false, true, timeout))) {
             filtering = StunRule.AddressDependent;
         } else {
             InetSocketAddress addr = new InetSocketAddress(otherAddress.getHostString(), remote.getPort());
-            response = sendBind(addr).get();
+            response = sendBind(addr, timeout).get();
             filtering = StunRule.AddressAndPortDependent;
         }
         attrs = response.content().getAttrs();
@@ -149,29 +110,29 @@ public class StunClient implements InitializingBean {
         channel.writeAndFlush(request);
     }
 
-    public CompletableFuture<StunPacket> sendBind(InetSocketAddress address) {
+    public CompletableFuture<StunPacket> sendBind(InetSocketAddress address, long timeout) {
         StunMessage message = new StunMessage(MessageType.BindRequest);
         StunPacket request = new StunPacket(message, address);
-        CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), 15 * 1000L);
+        CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), timeout);
         channel.writeAndFlush(request);
         return future;
     }
 
-    private CompletableFuture<StunPacket> sendChangeBind(InetSocketAddress address, boolean changeIP, boolean changePort) {
+    private CompletableFuture<StunPacket> sendChangeBind(InetSocketAddress address, boolean changeIP, boolean changePort, long timeout) {
         StunMessage message = new StunMessage(MessageType.BindRequest);
         ChangeRequestAttr changeRequestAttr = new ChangeRequestAttr(changeIP, changePort);
         message.getAttrs().put(AttrType.ChangeRequest, changeRequestAttr);
         StunPacket request = new StunPacket(message, address);
-        CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), 15 * 1000L);
+        CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), timeout);
         channel.writeAndFlush(request);
         return future;
     }
 
-    private StunPacket testChangeBind(InetSocketAddress address, boolean changeIP, boolean changePort) throws Exception {
+    private StunPacket testChangeBind(InetSocketAddress address, boolean changeIP, boolean changePort, long timeout) {
         try {
-            StunPacket response = sendChangeBind(address, changeIP, changePort).get(3 * 1000, TimeUnit.MILLISECONDS);
+            StunPacket response = sendChangeBind(address, changeIP, changePort, timeout).get();
             return response;
-        } catch (TimeoutException e) {
+        } catch (Exception e) {
             return null;
         }
     }

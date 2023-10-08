@@ -9,4 +9,8 @@ public class StunPacket extends DefaultAddressedEnvelope<StunMessage, InetSocket
     public StunPacket(StunMessage message, InetSocketAddress recipient) {
         super(message, recipient);
     }
+
+    public StunPacket(StunMessage message, InetSocketAddress recipient, InetSocketAddress sender) {
+        super(message, recipient, sender);
+    }
 }

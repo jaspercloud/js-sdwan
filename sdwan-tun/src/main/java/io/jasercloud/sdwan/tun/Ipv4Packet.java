@@ -215,4 +215,15 @@ public class Ipv4Packet implements IpPacket {
         sum = 0b11111111_11111111 & ~sum;
         return sum;
     }
+
+    @Override
+    public Ipv4Packet retain(int increment) {
+        payload.retain(increment);
+        return this;
+    }
+
+    @Override
+    public boolean release(int decrement) {
+        return payload.release(decrement);
+    }
 }

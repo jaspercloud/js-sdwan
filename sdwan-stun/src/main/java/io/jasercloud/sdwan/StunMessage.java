@@ -1,5 +1,6 @@
 package io.jasercloud.sdwan;
 
+import io.jaspercloud.sdwan.Referenced;
 import lombok.Data;
 
 import java.util.HashMap;
@@ -7,7 +8,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Data
-public class StunMessage {
+public class StunMessage implements Referenced {
 
     public static final byte[] Cookie = new byte[]{(byte) 0x21, (byte) 0x12, (byte) 0xa4, (byte) 0x42};
 
@@ -36,5 +37,21 @@ public class StunMessage {
                 .replaceAll("\\-", "")
                 .substring(0, 12);
         return id;
+    }
+
+    @Override
+    public StunMessage retain(int increment) {
+        for (Attr attr : attrs.values()) {
+            attr.retain(increment);
+        }
+        return this;
+    }
+
+    @Override
+    public boolean release(int decrement) {
+        for (Attr attr : attrs.values()) {
+            attr.release(decrement);
+        }
+        return false;
     }
 }
