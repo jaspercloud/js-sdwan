@@ -3,6 +3,7 @@ package io.jasercloud.sdwan.support;
 import io.jasercloud.sdwan.CheckResult;
 import io.jasercloud.sdwan.StunClient;
 import io.jasercloud.sdwan.support.transporter.Transporter;
+import io.jasercloud.sdwan.tun.Ipv4Packet;
 import io.jasercloud.sdwan.tun.TunAddress;
 import io.jasercloud.sdwan.tun.TunChannel;
 import io.jasercloud.sdwan.tun.TunChannelConfig;
@@ -121,12 +122,10 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                         pipeline.addLast(new SimpleChannelInboundHandler<ByteBuf>() {
                             @Override
                             protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
-                                msg.markReaderIndex();
-                                int version = (msg.readUnsignedByte() >> 4);
-                                if (4 != version) {
+                                Ipv4Packet packet = Ipv4Packet.decodeMark(msg);
+                                if (4 != packet.getVersion()) {
                                     return;
                                 }
-                                msg.resetReaderIndex();
                                 natManager.output(sdWanNode, transporter, msg.retain());
                             }
                         });
