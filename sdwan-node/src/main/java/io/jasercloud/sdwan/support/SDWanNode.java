@@ -84,6 +84,7 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                                 switch (request.getType().getNumber()) {
                                     case SDWanProtos.MsgTypeCode.RefreshRouteList_VALUE: {
                                         SDWanProtos.RouteList routeList = SDWanProtos.RouteList.parseFrom(request.getData());
+                                        // TODO: 2023/10/9
                                         break;
                                     }
                                     case SDWanProtos.MsgTypeCode.PunchingType_VALUE: {

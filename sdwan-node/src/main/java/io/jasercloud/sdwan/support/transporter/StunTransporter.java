@@ -25,11 +25,12 @@ public class StunTransporter implements Transporter {
         stunClient.getChannel().pipeline().addLast(new SimpleChannelInboundHandler<StunPacket>() {
             @Override
             protected void channelRead0(ChannelHandlerContext ctx, StunPacket packet) throws Exception {
+                InetSocketAddress address = packet.sender();
                 DataAttr dataAttr = (DataAttr) packet.content().getAttrs().get(AttrType.Data);
                 ByteBuf byteBuf = dataAttr.getByteBuf();
                 Ipv4Packet ipv4Packet = Ipv4Packet.decodeMark(byteBuf);
-                System.out.println(String.format("input: %s -> %s -> %s",
-                        packet.sender(), ipv4Packet.getSrcIP(), ipv4Packet.getDstIP()));
+                log.info("input: {} -> {} -> {}",
+                        address.getHostString(), ipv4Packet.getSrcIP(), ipv4Packet.getDstIP());
                 tunChannel.writeAndFlush(byteBuf.retain());
             }
         });
@@ -39,8 +40,8 @@ public class StunTransporter implements Transporter {
                 InetSocketAddress address = packet.recipient();
                 ByteBuf byteBuf = packet.content();
                 Ipv4Packet ipv4Packet = Ipv4Packet.decodeMark(byteBuf);
-                System.out.println(String.format("output: %s -> %s -> %s",
-                        ipv4Packet.getSrcIP(), ipv4Packet.getDstIP(), address));
+                log.info("output: {} -> {} -> {}",
+                        ipv4Packet.getSrcIP(), ipv4Packet.getDstIP(), address.getHostString());
                 StunMessage message = new StunMessage(MessageType.Transfer);
                 message.getAttrs().put(AttrType.Data, new DataAttr(byteBuf.retain()));
                 StunPacket request = new StunPacket(message, address);
