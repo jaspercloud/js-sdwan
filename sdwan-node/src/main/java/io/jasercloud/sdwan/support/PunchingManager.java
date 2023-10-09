@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 
 @Slf4j
 public class PunchingManager implements InitializingBean {
@@ -131,11 +132,23 @@ public class PunchingManager implements InitializingBean {
             return CompletableFuture.completedFuture(address);
         }
         InetSocketAddress internalAddress = new InetSocketAddress(sdArp.getInternalAddr().getIp(), sdArp.getInternalAddr().getPort());
-        CompletableFuture<InetSocketAddress> internalFuture = punching(localVIP, sdArp, internalAddress);
         InetSocketAddress publicAddress = new InetSocketAddress(sdArp.getPublicAddr().getIp(), sdArp.getPublicAddr().getPort());
-        CompletableFuture<InetSocketAddress> publicFuture = punching(localVIP, sdArp, publicAddress);
-        CompletableFuture<InetSocketAddress> future = CompletableFuture.anyOf(internalFuture, publicFuture)
-                .thenApply(addr -> (InetSocketAddress) addr);
+        CompletableFuture<InetSocketAddress> future = new CompletableFuture<>();
+        punching(localVIP, sdArp, internalAddress)
+                .whenComplete((address1, throwable1) -> {
+                    if (null != throwable1) {
+                        punching(localVIP, sdArp, publicAddress)
+                                .whenComplete((address2, throwable2) -> {
+                                    if (null != throwable1) {
+                                        future.completeExceptionally(throwable2);
+                                        return;
+                                    }
+                                    future.complete(address2);
+                                });
+                        return;
+                    }
+                    future.complete(address1);
+                });
         return future;
     }
 
@@ -148,6 +161,7 @@ public class PunchingManager implements InitializingBean {
         InetSocketAddress address = self.getMappingAddress();
         if (StunRule.EndpointIndependent.equals(self.getFiltering())
                 && StunRule.EndpointIndependent.equals(stunFiltering)) {
+            nodeMap.put(dstVIP, new Node(socketAddress, System.currentTimeMillis()));
             return CompletableFuture.completedFuture(socketAddress);
         } else if (StunRule.EndpointIndependent.equals(self.getFiltering())) {
             String tranId = StunMessage.genTranId();
