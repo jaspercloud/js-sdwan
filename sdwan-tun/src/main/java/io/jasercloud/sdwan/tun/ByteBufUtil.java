@@ -5,7 +5,7 @@ import io.netty.buffer.PooledByteBufAllocator;
 
 public class ByteBufUtil {
 
-    private static final PooledByteBufAllocator DEFAULT = new PooledByteBufAllocator(false);
+    private static final PooledByteBufAllocator DEFAULT = new PooledByteBufAllocator();
 
     public static ByteBuf newPacketBuf() {
         return DEFAULT.buffer(1500);

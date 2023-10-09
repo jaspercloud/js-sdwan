@@ -54,6 +54,13 @@ public class UdpPacket {
         this.payload = payload;
     }
 
+    public static UdpPacket decodeMark(ByteBuf byteBuf) {
+        byteBuf.markReaderIndex();
+        UdpPacket packet = decode(byteBuf);
+        byteBuf.resetReaderIndex();
+        return packet;
+    }
+
     public static UdpPacket decode(ByteBuf byteBuf) {
         int srcPort = byteBuf.readUnsignedShort();
         int dstPort = byteBuf.readUnsignedShort();

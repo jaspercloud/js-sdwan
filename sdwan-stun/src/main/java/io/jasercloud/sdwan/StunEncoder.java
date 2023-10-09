@@ -16,23 +16,27 @@ public class StunEncoder extends MessageToMessageEncoder<StunPacket> {
     protected void encode(ChannelHandlerContext ctx, StunPacket msg, List<Object> out) throws Exception {
         Channel channel = ctx.channel();
         StunMessage message = msg.content();
-        ByteBuf attrsByteBuf = channel.alloc().heapBuffer();
-        for (Map.Entry<AttrType, Attr> entry : message.getAttrs().entrySet()) {
-            AttrType key = entry.getKey();
-            if (AttrType.ChangeRequest.equals(key)) {
-                processChangeRequest(channel, entry, attrsByteBuf);
-            } else if (AttrType.MappedAddress.equals(key)) {
-                processMappedAddress(channel, entry, attrsByteBuf);
-            } else if (AttrType.Data.equals(key)) {
-                processData(channel, entry, attrsByteBuf);
+        ByteBuf byteBuf = channel.alloc().buffer();
+        ByteBuf attrsByteBuf = channel.alloc().buffer();
+        try {
+            for (Map.Entry<AttrType, Attr> entry : message.getAttrs().entrySet()) {
+                AttrType key = entry.getKey();
+                if (AttrType.ChangeRequest.equals(key)) {
+                    processChangeRequest(channel, entry, attrsByteBuf);
+                } else if (AttrType.MappedAddress.equals(key)) {
+                    processMappedAddress(channel, entry, attrsByteBuf);
+                } else if (AttrType.Data.equals(key)) {
+                    processData(channel, entry, attrsByteBuf);
+                }
             }
+            byteBuf.writeShort(message.getMessageType().getCode());
+            byteBuf.writeShort(attrsByteBuf.readableBytes());
+            byteBuf.writeBytes(StunMessage.Cookie);
+            byteBuf.writeBytes(message.getTranId().getBytes());
+            byteBuf.writeBytes(attrsByteBuf);
+        } finally {
+            attrsByteBuf.release();
         }
-        ByteBuf byteBuf = channel.alloc().heapBuffer();
-        byteBuf.writeShort(message.getMessageType().getCode());
-        byteBuf.writeShort(attrsByteBuf.readableBytes());
-        byteBuf.writeBytes(StunMessage.Cookie);
-        byteBuf.writeBytes(message.getTranId().getBytes());
-        byteBuf.writeBytes(attrsByteBuf);
         DatagramPacket datagramPacket = new DatagramPacket(byteBuf, msg.recipient());
         out.add(datagramPacket);
     }
@@ -41,40 +45,52 @@ public class StunEncoder extends MessageToMessageEncoder<StunPacket> {
         AttrType key = entry.getKey();
         DataAttr dataAttr = (DataAttr) entry.getValue();
         ByteBuf byteBuf = dataAttr.getByteBuf();
-        ByteBuf attrByteBuf = channel.alloc().heapBuffer();
-        attrByteBuf.writeShort(key.getCode());
-        attrByteBuf.writeShort(byteBuf.readableBytes());
-        attrByteBuf.writeBytes(byteBuf);
-        attrsByteBuf.writeBytes(attrByteBuf);
+        ByteBuf attrByteBuf = channel.alloc().buffer();
+        try {
+            attrByteBuf.writeShort(key.getCode());
+            attrByteBuf.writeShort(byteBuf.readableBytes());
+            attrByteBuf.writeBytes(byteBuf);
+            attrsByteBuf.writeBytes(attrByteBuf);
+        } finally {
+            attrByteBuf.release();
+        }
     }
 
     private void processMappedAddress(Channel channel, Map.Entry<AttrType, Attr> entry, ByteBuf attrsByteBuf) {
         AttrType key = entry.getKey();
         AddressAttr addressAttr = (AddressAttr) entry.getValue();
-        ByteBuf attrByteBuf = channel.alloc().heapBuffer();
-        attrByteBuf.writeShort(key.getCode());
-        attrByteBuf.writeShort(8);
-        attrByteBuf.writeByte(0);
-        attrByteBuf.writeByte(addressAttr.getFamily().getCode());
-        attrByteBuf.writeShort(addressAttr.getPort());
-        attrByteBuf.writeBytes(IPUtil.ip2bytes(addressAttr.getIp()));
-        attrsByteBuf.writeBytes(attrByteBuf);
+        ByteBuf attrByteBuf = channel.alloc().buffer();
+        try {
+            attrByteBuf.writeShort(key.getCode());
+            attrByteBuf.writeShort(8);
+            attrByteBuf.writeByte(0);
+            attrByteBuf.writeByte(addressAttr.getFamily().getCode());
+            attrByteBuf.writeShort(addressAttr.getPort());
+            attrByteBuf.writeBytes(IPUtil.ip2bytes(addressAttr.getIp()));
+            attrsByteBuf.writeBytes(attrByteBuf);
+        } finally {
+            attrByteBuf.release();
+        }
     }
 
     private void processChangeRequest(Channel channel, Map.Entry<AttrType, Attr> entry, ByteBuf attrsByteBuf) {
         AttrType key = entry.getKey();
         ChangeRequestAttr changeRequestAttr = (ChangeRequestAttr) entry.getValue();
-        ByteBuf attrByteBuf = channel.alloc().heapBuffer();
-        attrByteBuf.writeShort(key.getCode());
-        attrByteBuf.writeShort(4);
-        int flag = 0;
-        if (changeRequestAttr.getChangeIP()) {
-            flag |= 0b100;
+        ByteBuf attrByteBuf = channel.alloc().buffer();
+        try {
+            attrByteBuf.writeShort(key.getCode());
+            attrByteBuf.writeShort(4);
+            int flag = 0;
+            if (changeRequestAttr.getChangeIP()) {
+                flag |= 0b100;
+            }
+            if (changeRequestAttr.getChangePort()) {
+                flag |= 0b10;
+            }
+            attrByteBuf.writeInt(flag);
+            attrsByteBuf.writeBytes(attrByteBuf);
+        } finally {
+            attrByteBuf.release();
         }
-        if (changeRequestAttr.getChangePort()) {
-            flag |= 0b10;
-        }
-        attrByteBuf.writeInt(flag);
-        attrsByteBuf.writeBytes(attrByteBuf);
     }
 }

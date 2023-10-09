@@ -189,31 +189,35 @@ public class Ipv4Packet implements IpPacket {
 
     private int calcChecksum() {
         ByteBuf byteBuf = ByteBufUtil.newPacketBuf();
-        byte head = (byte) ((version << 4) | (headerLen / 4));
-        byteBuf.writeByte(head);
-        byteBuf.writeByte(diffServices);
-        byteBuf.writeShort(totalLen);
-        byteBuf.writeShort(id);
-        byteBuf.writeShort(flags);
-        byteBuf.writeByte(liveTime);
-        byteBuf.writeByte(protocol);
-        //checksum字段置为0
-        byteBuf.writeShort(0);
-        byteBuf.writeBytes(IPUtil.ip2bytes(srcIP));
-        byteBuf.writeBytes(IPUtil.ip2bytes(dstIP));
-        //数据长度为奇数，在该字节之后补一个字节
-        if (0 != byteBuf.readableBytes() % 2) {
-            byteBuf.writeByte(0);
+        try {
+            byte head = (byte) ((version << 4) | (headerLen / 4));
+            byteBuf.writeByte(head);
+            byteBuf.writeByte(diffServices);
+            byteBuf.writeShort(totalLen);
+            byteBuf.writeShort(id);
+            byteBuf.writeShort(flags);
+            byteBuf.writeByte(liveTime);
+            byteBuf.writeByte(protocol);
+            //checksum字段置为0
+            byteBuf.writeShort(0);
+            byteBuf.writeBytes(IPUtil.ip2bytes(srcIP));
+            byteBuf.writeBytes(IPUtil.ip2bytes(dstIP));
+            //数据长度为奇数，在该字节之后补一个字节
+            if (0 != byteBuf.readableBytes() % 2) {
+                byteBuf.writeByte(0);
+            }
+            int sum = 0;
+            while (byteBuf.readableBytes() > 0) {
+                sum += byteBuf.readUnsignedShort();
+            }
+            int h = sum >> 16;
+            int l = sum & 0b11111111_11111111;
+            sum = (h + l);
+            sum = 0b11111111_11111111 & ~sum;
+            return sum;
+        } finally {
+            byteBuf.release();
         }
-        int sum = 0;
-        while (byteBuf.readableBytes() > 0) {
-            sum += byteBuf.readUnsignedShort();
-        }
-        int h = sum >> 16;
-        int l = sum & 0b11111111_11111111;
-        sum = (h + l);
-        sum = 0b11111111_11111111 & ~sum;
-        return sum;
     }
 
     @Override

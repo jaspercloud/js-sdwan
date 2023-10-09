@@ -196,6 +196,13 @@ public class TcpPacket {
 
     }
 
+    public static TcpPacket decodeMark(ByteBuf byteBuf) {
+        byteBuf.markReaderIndex();
+        TcpPacket packet = decode(byteBuf);
+        byteBuf.resetReaderIndex();
+        return packet;
+    }
+
     public static TcpPacket decode(ByteBuf byteBuf) {
         TcpPacket tcpPacket = new TcpPacket();
         int srcPort = byteBuf.readUnsignedShort();
@@ -267,36 +274,40 @@ public class TcpPacket {
 
     private int calcChecksum(Ipv4Packet ipv4Packet) {
         ByteBuf byteBuf = ByteBufUtil.newPacketBuf();
-        //ipHeader
-        byteBuf.writeBytes(IPUtil.ip2bytes(ipv4Packet.getSrcIP()));
-        byteBuf.writeBytes(IPUtil.ip2bytes(ipv4Packet.getDstIP()));
-        byteBuf.writeByte(0);
-        byteBuf.writeByte(ipv4Packet.getProtocol());
-        byteBuf.writeShort(ipv4Packet.getPayload().readableBytes());
-        //tcp
-        byteBuf.writeShort(srcPort);
-        byteBuf.writeShort(dstPort);
-        byteBuf.writeInt((int) seq);
-        byteBuf.writeInt((int) ack);
-        byteBuf.writeShort(flags);
-        byteBuf.writeShort(window);
-        //checksum字段置为0
-        byteBuf.writeShort(0);
-        byteBuf.writeShort(urgentPointer);
-        byteBuf.writeBytes(getOptionsByteBuf());
-        byteBuf.writeBytes(getPayload());
-        //数据长度为奇数，在该字节之后补一个字节
-        if (0 != byteBuf.readableBytes() % 2) {
+        try {
+            //ipHeader
+            byteBuf.writeBytes(IPUtil.ip2bytes(ipv4Packet.getSrcIP()));
+            byteBuf.writeBytes(IPUtil.ip2bytes(ipv4Packet.getDstIP()));
             byteBuf.writeByte(0);
+            byteBuf.writeByte(ipv4Packet.getProtocol());
+            byteBuf.writeShort(ipv4Packet.getPayload().readableBytes());
+            //tcp
+            byteBuf.writeShort(srcPort);
+            byteBuf.writeShort(dstPort);
+            byteBuf.writeInt((int) seq);
+            byteBuf.writeInt((int) ack);
+            byteBuf.writeShort(flags);
+            byteBuf.writeShort(window);
+            //checksum字段置为0
+            byteBuf.writeShort(0);
+            byteBuf.writeShort(urgentPointer);
+            byteBuf.writeBytes(getOptionsByteBuf());
+            byteBuf.writeBytes(getPayload());
+            //数据长度为奇数，在该字节之后补一个字节
+            if (0 != byteBuf.readableBytes() % 2) {
+                byteBuf.writeByte(0);
+            }
+            int sum = 0;
+            while (byteBuf.readableBytes() > 0) {
+                sum += byteBuf.readUnsignedShort();
+            }
+            int h = sum >> 16;
+            int l = sum & 0b11111111_11111111;
+            sum = (h + l);
+            sum = 0b11111111_11111111 & ~sum;
+            return sum;
+        } finally {
+            byteBuf.release();
         }
-        int sum = 0;
-        while (byteBuf.readableBytes() > 0) {
-            sum += byteBuf.readUnsignedShort();
-        }
-        int h = sum >> 16;
-        int l = sum & 0b11111111_11111111;
-        sum = (h + l);
-        sum = 0b11111111_11111111 & ~sum;
-        return sum;
     }
 }
