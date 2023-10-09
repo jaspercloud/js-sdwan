@@ -1,6 +1,14 @@
 package io.jasercloud.sdwan.support;
 
-import io.jasercloud.sdwan.*;
+import io.jasercloud.sdwan.AddressAttr;
+import io.jasercloud.sdwan.AttrType;
+import io.jasercloud.sdwan.CheckResult;
+import io.jasercloud.sdwan.MessageType;
+import io.jasercloud.sdwan.ProtoFamily;
+import io.jasercloud.sdwan.StunClient;
+import io.jasercloud.sdwan.StunMessage;
+import io.jasercloud.sdwan.StunPacket;
+import io.jasercloud.sdwan.StunRule;
 import io.jaspercloud.sdwan.AsyncTask;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
@@ -105,45 +113,50 @@ public class PunchingManager implements InitializingBean {
 
             @Override
             public void onData(SDWanProtos.Punching request) {
+                String vip = request.getSrcVIP();
                 InetSocketAddress target = new InetSocketAddress(request.getSrcIP(), request.getSrcPort());
                 stunClient.sendPunchingBind(target, request.getTranId(), 3000)
                         .whenComplete((packet, throwable) -> {
-                            System.out.println();
+                            if (null != throwable) {
+                                return;
+                            }
+                            InetSocketAddress addr = packet.sender();
+                            nodeMap.put(vip, new Node(addr, System.currentTimeMillis()));
                         });
             }
         });
     }
 
-    public CompletableFuture<InetSocketAddress> getPublicAddress(SDWanProtos.SDArpResp sdArpResp) {
+    public CompletableFuture<InetSocketAddress> getPublicAddress(String srcVIP, SDWanProtos.SDArpResp sdArp) {
         try {
-            String vip = sdArpResp.getVip();
-            String stunMapping = sdArpResp.getStunMapping();
-            String stunFiltering = sdArpResp.getStunFiltering();
-            Node node = nodeMap.get(vip);
+            String dstVIP = sdArp.getVip();
+            String stunMapping = sdArp.getStunMapping();
+            String stunFiltering = sdArp.getStunFiltering();
+            Node node = nodeMap.get(dstVIP);
             if (null != node) {
                 InetSocketAddress address = node.getAddress();
                 return CompletableFuture.completedFuture(address);
             }
-            log.info("getPublicAddress: {}", vip);
+            log.info("getPublicAddress: {}", dstVIP);
             CheckResult self = getCheckResult();
             InetSocketAddress address = self.getMappingAddress();
             if (StunRule.EndpointIndependent.equals(self.getFiltering())
                     && StunRule.EndpointIndependent.equals(stunFiltering)) {
-                InetSocketAddress resp = new InetSocketAddress(sdArpResp.getPublicIP(), sdArpResp.getPublicPort());
+                InetSocketAddress resp = new InetSocketAddress(sdArp.getPublicIP(), sdArp.getPublicPort());
                 return CompletableFuture.completedFuture(resp);
             } else if (StunRule.EndpointIndependent.equals(self.getFiltering())) {
                 String tranId = StunMessage.genTranId();
                 CompletableFuture<StunPacket> future = AsyncTask.waitTask(tranId, 3000);
-                sdWanNode.forwardPunching(address.getHostString(), address.getPort(), vip, tranId);
+                sdWanNode.forwardPunching(srcVIP, dstVIP, address.getHostString(), address.getPort(), tranId);
                 return future.thenApply(e -> e.sender()).thenApply(addr -> {
-                    nodeMap.put(vip, new Node(addr, System.currentTimeMillis()));
+                    nodeMap.put(dstVIP, new Node(addr, System.currentTimeMillis()));
                     return addr;
                 });
             } else if (StunRule.EndpointIndependent.equals(stunFiltering)) {
-                InetSocketAddress target = new InetSocketAddress(sdArpResp.getPublicIP(), sdArpResp.getPublicPort());
+                InetSocketAddress target = new InetSocketAddress(sdArp.getPublicIP(), sdArp.getPublicPort());
                 CompletableFuture<StunPacket> future = stunClient.sendBind(target, 3000);
                 return future.thenApply(e -> e.sender()).thenApply(addr -> {
-                    nodeMap.put(vip, new Node(addr, System.currentTimeMillis()));
+                    nodeMap.put(dstVIP, new Node(addr, System.currentTimeMillis()));
                     return addr;
                 });
             } else if (StunRule.AddressDependent.equals(self.getFiltering())) {

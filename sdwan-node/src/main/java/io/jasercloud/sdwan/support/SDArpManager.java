@@ -37,20 +37,21 @@ public class SDArpManager {
     }
 
     public CompletableFuture<InetSocketAddress> sdArp(SDWanNode sdWanNode, IpPacket packet) {
-        String ip = packet.getDstIP();
+        String srcIP = packet.getSrcIP();
+        String dstIP = packet.getDstIP();
         return CompletableFuture.supplyAsync(() -> {
-            AtomicReference<SDWanProtos.SDArpResp> ref = sdArpCache.get(ip);
+            AtomicReference<SDWanProtos.SDArpResp> ref = sdArpCache.get(dstIP);
             return ref;
         }).thenComposeAsync(ref -> {
             if (null == ref) {
-                log.info("sdArpQuery: {}", ip);
-                return sdWanNode.sdArp(ip, 3000)
+                log.info("sdArpQuery: {}", dstIP);
+                return sdWanNode.sdArp(dstIP, 3000)
                         .thenApply(sdArp -> {
-                            sdArpCache.put(ip, new AtomicReference<>(sdArp));
+                            sdArpCache.put(dstIP, new AtomicReference<>(sdArp));
                             TIMEOUT.newTimeout(new TimerTask() {
                                 @Override
                                 public void run(Timeout timeout) throws Exception {
-                                    sdArpCache.remove(ip);
+                                    sdArpCache.remove(dstIP);
                                 }
                             }, sdArp.getTtl(), TimeUnit.SECONDS);
                             return sdArp;
@@ -61,7 +62,7 @@ public class SDArpManager {
             if (SDWanProtos.MessageCode.Success_VALUE != sdArp.getCode()) {
                 return CompletableFuture.completedFuture(null);
             }
-            CompletableFuture<InetSocketAddress> future = punchingManager.getPublicAddress(sdArp);
+            CompletableFuture<InetSocketAddress> future = punchingManager.getPublicAddress(srcIP, sdArp);
             return future;
         });
     }

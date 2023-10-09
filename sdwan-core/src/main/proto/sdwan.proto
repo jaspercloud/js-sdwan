@@ -64,8 +64,9 @@ message RouteList {
 }
 
 message Punching {
-  required string srcIP = 1;
-  required int32 srcPort = 2;
-  required string dstVIP = 3;
-  required string tranId = 4;
+  required string srcVIP = 1;
+  required string dstVIP = 2;
+  required string srcIP = 3;
+  required int32 srcPort = 4;
+  required string tranId = 5;
 }
