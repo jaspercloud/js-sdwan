@@ -11,7 +11,6 @@ import io.jasercloud.sdwan.StunPacket;
 import io.jasercloud.sdwan.StunRule;
 import io.jaspercloud.sdwan.AsyncTask;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.exception.ProcessException;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import lombok.Data;
@@ -132,46 +131,42 @@ public class PunchingManager implements InitializingBean {
     }
 
     public CompletableFuture<InetSocketAddress> getPublicAddress(String localVIP, SDWanProtos.SDArpResp sdArp) {
-        try {
-            String dstVIP = sdArp.getVip();
-            String stunMapping = sdArp.getStunMapping();
-            String stunFiltering = sdArp.getStunFiltering();
-            Node node = nodeMap.get(dstVIP);
-            if (null != node) {
-                InetSocketAddress address = node.getAddress();
-                return CompletableFuture.completedFuture(address);
-            }
-            log.info("getPublicAddress: {}", dstVIP);
-            CheckResult self = getCheckResult();
-            InetSocketAddress address = self.getMappingAddress();
-            if (StunRule.EndpointIndependent.equals(self.getFiltering())
-                    && StunRule.EndpointIndependent.equals(stunFiltering)) {
-                InetSocketAddress resp = new InetSocketAddress(sdArp.getPublicIP(), sdArp.getPublicPort());
-                return CompletableFuture.completedFuture(resp);
-            } else if (StunRule.EndpointIndependent.equals(self.getFiltering())) {
-                String tranId = StunMessage.genTranId();
-                CompletableFuture<StunPacket> future = AsyncTask.waitTask(tranId, 3000);
-                sdWanNode.forwardPunching(localVIP, dstVIP, address.getHostString(), address.getPort(), tranId);
-                return future.thenApply(e -> e.sender()).thenApply(addr -> {
-                    nodeMap.put(dstVIP, new Node(addr, System.currentTimeMillis()));
-                    return addr;
-                });
-            } else if (StunRule.EndpointIndependent.equals(stunFiltering)) {
-                InetSocketAddress target = new InetSocketAddress(sdArp.getPublicIP(), sdArp.getPublicPort());
-                CompletableFuture<StunPacket> future = stunClient.sendBind(target, 3000);
-                return future.thenApply(e -> e.sender()).thenApply(addr -> {
-                    nodeMap.put(dstVIP, new Node(addr, System.currentTimeMillis()));
-                    return addr;
-                });
-            } else if (StunRule.AddressDependent.equals(self.getFiltering())) {
-                // TODO: 2023/10/8
-            } else if (StunRule.AddressDependent.equals(stunFiltering)) {
-                // TODO: 2023/10/8
-            }
-            return null;
-        } catch (Exception e) {
-            throw new ProcessException(e.getMessage(), e);
+        String dstVIP = sdArp.getVip();
+        String stunMapping = sdArp.getStunMapping();
+        String stunFiltering = sdArp.getStunFiltering();
+        Node node = nodeMap.get(dstVIP);
+        if (null != node) {
+            InetSocketAddress address = node.getAddress();
+            return CompletableFuture.completedFuture(address);
         }
+        log.info("getPublicAddress: {}", dstVIP);
+        CheckResult self = getCheckResult();
+        InetSocketAddress address = self.getMappingAddress();
+        if (StunRule.EndpointIndependent.equals(self.getFiltering())
+                && StunRule.EndpointIndependent.equals(stunFiltering)) {
+            InetSocketAddress resp = new InetSocketAddress(sdArp.getPublicIP(), sdArp.getPublicPort());
+            return CompletableFuture.completedFuture(resp);
+        } else if (StunRule.EndpointIndependent.equals(self.getFiltering())) {
+            String tranId = StunMessage.genTranId();
+            CompletableFuture<StunPacket> future = AsyncTask.waitTask(tranId, 3000);
+            sdWanNode.forwardPunching(localVIP, dstVIP, address.getHostString(), address.getPort(), tranId);
+            return future.thenApply(e -> e.sender()).thenApply(addr -> {
+                nodeMap.put(dstVIP, new Node(addr, System.currentTimeMillis()));
+                return addr;
+            });
+        } else if (StunRule.EndpointIndependent.equals(stunFiltering)) {
+            InetSocketAddress target = new InetSocketAddress(sdArp.getPublicIP(), sdArp.getPublicPort());
+            CompletableFuture<StunPacket> future = stunClient.sendBind(target, 3000);
+            return future.thenApply(e -> e.sender()).thenApply(addr -> {
+                nodeMap.put(dstVIP, new Node(addr, System.currentTimeMillis()));
+                return addr;
+            });
+        } else if (StunRule.AddressDependent.equals(self.getFiltering())) {
+            // TODO: 2023/10/8
+        } else if (StunRule.AddressDependent.equals(stunFiltering)) {
+            // TODO: 2023/10/8
+        }
+        return null;
     }
 
     @Data
