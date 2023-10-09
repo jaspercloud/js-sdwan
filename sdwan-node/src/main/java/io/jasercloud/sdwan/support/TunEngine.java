@@ -81,9 +81,8 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                 } else if (SDWanProtos.MessageCode.NodeTypeError_VALUE == regResp.getCode()) {
                     throw new ProcessException("no more vip");
                 }
+                //配置地址
                 tunChannel.setAddress(regResp.getVip(), regResp.getMaskBits());
-                //等待ip设置成功，再配置路由
-                waitAddress(regResp.getVip(), 15000);
                 log.info("tunAddress: {}/{}", regResp.getVip(), regResp.getMaskBits());
                 //配置路由
                 List<String> routes = regResp.getRouteList()
@@ -119,15 +118,18 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                         pipeline.addLast(new SimpleChannelInboundHandler<ByteBuf>() {
                             @Override
                             protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
+                                TunAddress tunAddress = (TunAddress) ctx.channel().localAddress();
                                 msg.markReaderIndex();
                                 int version = (msg.readUnsignedByte() >> 4);
                                 if (4 != version) {
                                     return;
                                 }
                                 msg.resetReaderIndex();
+
+                                String localVIP = tunAddress.getVip();
                                 Ipv4Packet ipv4Packet = Ipv4Packet.decodeMark(msg);
                                 ByteBuf byteBuf = msg.retain();
-                                sdArpManager.sdArp(sdWanNode, ipv4Packet)
+                                sdArpManager.sdArp(sdWanNode, localVIP, ipv4Packet)
                                         .whenComplete((address, throwable) -> {
                                             if (null != throwable) {
                                                 byteBuf.release();
@@ -147,22 +149,6 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
         ChannelFuture future = bootstrap.bind(new TunAddress(TUN));
         TunChannel tunChannel = (TunChannel) future.syncUninterruptibly().channel();
         return tunChannel;
-    }
-
-    private void waitAddress(String vip, int timeout) throws Exception {
-        long s = System.currentTimeMillis();
-        while (true) {
-            NetworkInterfaceInfo networkInterfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(vip);
-            if (null != networkInterfaceInfo) {
-                return;
-            }
-            long e = System.currentTimeMillis();
-            long diff = e - s;
-            if (diff > timeout) {
-                throw new TimeoutException();
-            }
-            Thread.sleep(100);
-        }
     }
 
     private void addRoutes(NetworkInterfaceInfo interfaceInfo, String vip, List<String> routes) {

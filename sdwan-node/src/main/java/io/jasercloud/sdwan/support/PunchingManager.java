@@ -127,7 +127,7 @@ public class PunchingManager implements InitializingBean {
         });
     }
 
-    public CompletableFuture<InetSocketAddress> getPublicAddress(String srcVIP, SDWanProtos.SDArpResp sdArp) {
+    public CompletableFuture<InetSocketAddress> getPublicAddress(String localVIP, SDWanProtos.SDArpResp sdArp) {
         try {
             String dstVIP = sdArp.getVip();
             String stunMapping = sdArp.getStunMapping();
@@ -147,7 +147,7 @@ public class PunchingManager implements InitializingBean {
             } else if (StunRule.EndpointIndependent.equals(self.getFiltering())) {
                 String tranId = StunMessage.genTranId();
                 CompletableFuture<StunPacket> future = AsyncTask.waitTask(tranId, 3000);
-                sdWanNode.forwardPunching(srcVIP, dstVIP, address.getHostString(), address.getPort(), tranId);
+                sdWanNode.forwardPunching(localVIP, dstVIP, address.getHostString(), address.getPort(), tranId);
                 return future.thenApply(e -> e.sender()).thenApply(addr -> {
                     nodeMap.put(dstVIP, new Node(addr, System.currentTimeMillis()));
                     return addr;

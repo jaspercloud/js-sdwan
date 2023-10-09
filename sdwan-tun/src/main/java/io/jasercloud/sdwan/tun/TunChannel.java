@@ -3,6 +3,7 @@ package io.jasercloud.sdwan.tun;
 import io.jasercloud.sdwan.tun.linux.LinuxTunDevice;
 import io.jasercloud.sdwan.tun.windows.WinTunDevice;
 import io.jaspercloud.sdwan.NetworkInterfaceInfo;
+import io.jaspercloud.sdwan.NetworkInterfaceUtil;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
@@ -14,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeoutException;
 
 public class TunChannel extends AbstractChannel {
 
@@ -49,10 +51,28 @@ public class TunChannel extends AbstractChannel {
 
     public void setAddress(String ip, int maskBits) throws Exception {
         tunDevice.setIP(ip, maskBits);
+        waitAddress(ip, 30 * 1000);
+        tunAddress.setVip(ip);
     }
 
     public void addRoute(NetworkInterfaceInfo interfaceInfo, String route, String ip) throws Exception {
         tunDevice.addRoute(interfaceInfo, route, ip);
+    }
+
+    private void waitAddress(String vip, int timeout) throws Exception {
+        long s = System.currentTimeMillis();
+        while (true) {
+            NetworkInterfaceInfo networkInterfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(vip);
+            if (null != networkInterfaceInfo) {
+                return;
+            }
+            long e = System.currentTimeMillis();
+            long diff = e - s;
+            if (diff > timeout) {
+                throw new TimeoutException();
+            }
+            Thread.sleep(100);
+        }
     }
 
     @Override

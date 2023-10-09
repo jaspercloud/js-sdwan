@@ -36,8 +36,7 @@ public class SDArpManager {
         sdArpCache.remove(event.getVip());
     }
 
-    public CompletableFuture<InetSocketAddress> sdArp(SDWanNode sdWanNode, IpPacket packet) {
-        String srcIP = packet.getSrcIP();
+    public CompletableFuture<InetSocketAddress> sdArp(SDWanNode sdWanNode, String localVIP, IpPacket packet) {
         String dstIP = packet.getDstIP();
         return CompletableFuture.supplyAsync(() -> {
             AtomicReference<SDWanProtos.SDArpResp> ref = sdArpCache.get(dstIP);
@@ -62,7 +61,7 @@ public class SDArpManager {
             if (SDWanProtos.MessageCode.Success_VALUE != sdArp.getCode()) {
                 return CompletableFuture.completedFuture(null);
             }
-            CompletableFuture<InetSocketAddress> future = punchingManager.getPublicAddress(srcIP, sdArp);
+            CompletableFuture<InetSocketAddress> future = punchingManager.getPublicAddress(localVIP, sdArp);
             return future;
         });
     }
