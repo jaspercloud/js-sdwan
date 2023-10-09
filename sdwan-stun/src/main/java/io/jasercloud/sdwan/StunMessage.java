@@ -25,8 +25,8 @@ public class StunMessage implements Referenced {
     }
 
     public StunMessage(MessageType messageType, String tranId) {
-        if (tranId.length() > 12) {
-            throw new IllegalArgumentException();
+        if (tranId.length() != 12) {
+            throw new IllegalArgumentException("tranId 12 bytes");
         }
         this.messageType = messageType;
         this.tranId = tranId;

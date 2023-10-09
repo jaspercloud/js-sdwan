@@ -1,6 +1,7 @@
 package io.jasercloud.sdwan.support.transporter;
 
 import io.jasercloud.sdwan.*;
+import io.jasercloud.sdwan.support.StunChannelInboundHandler;
 import io.jasercloud.sdwan.tun.Ipv4Packet;
 import io.jasercloud.sdwan.tun.TunChannel;
 import io.netty.buffer.ByteBuf;
@@ -22,7 +23,8 @@ public class StunTransporter implements Transporter {
 
     @Override
     public void bind(TunChannel tunChannel) {
-        stunClient.getChannel().pipeline().addLast(new SimpleChannelInboundHandler<StunPacket>() {
+        stunClient.getChannel().pipeline().addLast(new StunChannelInboundHandler(MessageType.Transfer) {
+
             @Override
             protected void channelRead0(ChannelHandlerContext ctx, StunPacket packet) throws Exception {
                 InetSocketAddress address = packet.sender();
@@ -35,6 +37,7 @@ public class StunTransporter implements Transporter {
             }
         });
         tunChannel.pipeline().addLast(new SimpleChannelInboundHandler<DatagramPacket>() {
+
             @Override
             protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket packet) throws Exception {
                 InetSocketAddress address = packet.recipient();

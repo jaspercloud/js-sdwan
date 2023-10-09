@@ -15,7 +15,7 @@ import java.util.concurrent.TimeoutException;
 public class AsyncTask<T> {
 
     public static final Timer TIMEOUT = new HashedWheelTimer(
-            new DefaultThreadFactory("async-future-timeout", true),
+            new DefaultThreadFactory("async-task-timeout", true),
             20, TimeUnit.MILLISECONDS);
     private static Map<String, CompletableFuture> futureMap = new ConcurrentHashMap<>();
 

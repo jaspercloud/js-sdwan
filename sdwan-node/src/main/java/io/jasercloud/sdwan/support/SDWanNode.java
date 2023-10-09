@@ -1,6 +1,5 @@
 package io.jasercloud.sdwan.support;
 
-import io.jasercloud.sdwan.StunClient;
 import io.jaspercloud.sdwan.*;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
@@ -20,6 +19,8 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -28,17 +29,21 @@ import java.util.concurrent.TimeUnit;
 public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
 
     private SDWanNodeProperties properties;
-    private StunClient stunClient;
     private Bootstrap bootstrap;
     private Channel channel;
+
+    private List<SDWanDataHandler> handlerList = new ArrayList<>();
 
     public Channel getChannel() {
         return channel;
     }
 
-    public SDWanNode(SDWanNodeProperties properties, StunClient stunClient) {
+    public void addDataHandler(SDWanDataHandler handler) {
+        handlerList.add(handler);
+    }
+
+    public SDWanNode(SDWanNodeProperties properties) {
         this.properties = properties;
-        this.stunClient = stunClient;
     }
 
     @Override
@@ -88,14 +93,22 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                                         break;
                                     }
                                     case SDWanProtos.MsgTypeCode.PunchingType_VALUE: {
-                                        SDWanProtos.Punching punching = SDWanProtos.Punching.parseFrom(request.getData());
-                                        processPunching(punching);
+                                        SDWanProtos.Punching punchingRequest = SDWanProtos.Punching.parseFrom(request.getData());
+                                        ctx.fireChannelRead(punchingRequest);
                                         break;
                                     }
                                     default: {
                                         AsyncTask.completeTask(request.getReqId(), request);
                                         break;
                                     }
+                                }
+                            }
+                        });
+                        pipeline.addLast(new ChannelInboundHandlerAdapter() {
+                            @Override
+                            public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                                for (SDWanDataHandler handler : handlerList) {
+                                    handler.receive(msg);
                                 }
                             }
                         });
@@ -211,7 +224,7 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
         channel.writeAndFlush(message);
     }
 
-    public void punching(String ip, int port, String dstVIP, String tranId) {
+    public void forwardPunching(String ip, int port, String dstVIP, String tranId) {
         SDWanProtos.Punching punching = SDWanProtos.Punching.newBuilder()
                 .setSrcIP(ip)
                 .setSrcPort(port)
@@ -224,10 +237,5 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                 .setData(punching.toByteString())
                 .build();
         channel.writeAndFlush(message);
-    }
-
-    private void processPunching(SDWanProtos.Punching punching) {
-        InetSocketAddress target = new InetSocketAddress(punching.getSrcIP(), punching.getSrcPort());
-        stunClient.tryPunching(target, punching.getTranId());
     }
 }

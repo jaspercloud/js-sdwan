@@ -23,7 +23,8 @@ public class StunTest {
     private InetSocketAddress target = new InetSocketAddress("stun.miwifi.com", 3478);
 
     private void run() throws Exception {
-        StunClient stunClient = StunClient.boot(local);
+        StunClient stunClient = new StunClient(local);
+        stunClient.afterPropertiesSet();
         CheckResult checkResult = stunClient.check(target, 3000);
         System.out.println("mapping:" + checkResult.getMapping());
         System.out.println("filtering:" + checkResult.getFiltering());

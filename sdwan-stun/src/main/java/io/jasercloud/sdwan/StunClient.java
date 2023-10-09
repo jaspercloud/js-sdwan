@@ -7,6 +7,7 @@ import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.InitializingBean;
 
 import java.net.InetSocketAddress;
 import java.util.Map;
@@ -14,7 +15,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 @Slf4j
-public class StunClient {
+public class StunClient implements InitializingBean {
 
     private Channel channel;
     private InetSocketAddress local;
@@ -23,12 +24,12 @@ public class StunClient {
         return channel;
     }
 
-    private StunClient(Channel channel, InetSocketAddress local) {
-        this.channel = channel;
+    public StunClient(InetSocketAddress local) {
         this.local = local;
     }
 
-    public static StunClient boot(InetSocketAddress local) throws Exception {
+    @Override
+    public void afterPropertiesSet() throws Exception {
         Bootstrap bootstrap = new Bootstrap()
                 .group(NioEventLoopFactory.BossGroup)
                 .channel(NioDatagramChannel.class)
@@ -45,25 +46,16 @@ public class StunClient {
                                 Channel channel = ctx.channel();
                                 InetSocketAddress sender = packet.sender();
                                 StunMessage request = packet.content();
-                                if (MessageType.BindRequest.equals(request.getMessageType())) {
-                                    StunMessage response = new StunMessage(MessageType.BindResponse);
-                                    response.setTranId(request.getTranId());
-                                    AddressAttr addressAttr = new AddressAttr(ProtoFamily.IPv4, sender.getHostString(), sender.getPort());
-                                    response.getAttrs().put(AttrType.MappedAddress, addressAttr);
-                                    StunPacket resp = new StunPacket(response, sender);
-                                    channel.writeAndFlush(resp);
+                                if (MessageType.BindResponse.equals(request.getMessageType())) {
                                     AsyncTask.completeTask(request.getTranId(), packet);
-                                } else if (MessageType.BindResponse.equals(request.getMessageType())) {
-                                    AsyncTask.completeTask(request.getTranId(), packet);
-                                } else if (MessageType.Transfer.equals(request.getMessageType())) {
+                                } else {
                                     ctx.fireChannelRead(packet.retain());
                                 }
                             }
                         });
                     }
                 });
-        Channel channel = bootstrap.bind(local).sync().channel();
-        return new StunClient(channel, local);
+        channel = bootstrap.bind(local).sync().channel();
     }
 
     public CheckResult check(InetSocketAddress remote, long timeout) throws Exception {
@@ -104,10 +96,12 @@ public class StunClient {
         }
     }
 
-    public void tryPunching(InetSocketAddress address, String tranId) {
+    public CompletableFuture<StunPacket> sendPunchingBind(InetSocketAddress address, String tranId, long timeout) {
+        CompletableFuture<StunPacket> future = AsyncTask.waitTask(tranId, timeout);
         StunMessage message = new StunMessage(MessageType.BindRequest, tranId);
         StunPacket request = new StunPacket(message, address);
         channel.writeAndFlush(request);
+        return future;
     }
 
     public CompletableFuture<StunPacket> sendBind(InetSocketAddress address, long timeout) {

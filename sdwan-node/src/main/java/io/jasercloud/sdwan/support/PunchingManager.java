@@ -4,6 +4,8 @@ import io.jasercloud.sdwan.*;
 import io.jaspercloud.sdwan.AsyncTask;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
@@ -83,6 +85,33 @@ public class PunchingManager implements InitializingBean {
         }, "node-heart");
         nodeHeartThread.setDaemon(true);
         nodeHeartThread.start();
+        stunClient.getChannel().pipeline().addLast(new StunChannelInboundHandler(MessageType.BindRequest) {
+
+            @Override
+            protected void channelRead0(ChannelHandlerContext ctx, StunPacket packet) throws Exception {
+                Channel channel = ctx.channel();
+                InetSocketAddress sender = packet.sender();
+                StunMessage request = packet.content();
+                StunMessage response = new StunMessage(MessageType.BindResponse);
+                response.setTranId(request.getTranId());
+                AddressAttr addressAttr = new AddressAttr(ProtoFamily.IPv4, sender.getHostString(), sender.getPort());
+                response.getAttrs().put(AttrType.MappedAddress, addressAttr);
+                StunPacket resp = new StunPacket(response, sender);
+                channel.writeAndFlush(resp);
+                AsyncTask.completeTask(request.getTranId(), packet);
+            }
+        });
+        sdWanNode.addDataHandler(new SDWanDataHandler<SDWanProtos.Punching>() {
+
+            @Override
+            public void onData(SDWanProtos.Punching request) {
+                InetSocketAddress target = new InetSocketAddress(request.getSrcIP(), request.getSrcPort());
+                stunClient.sendPunchingBind(target, request.getTranId(), 3000)
+                        .whenComplete((packet, throwable) -> {
+                            System.out.println();
+                        });
+            }
+        });
     }
 
     public CompletableFuture<InetSocketAddress> getPublicAddress(SDWanProtos.SDArpResp sdArpResp) {
@@ -105,7 +134,7 @@ public class PunchingManager implements InitializingBean {
             } else if (StunRule.EndpointIndependent.equals(self.getFiltering())) {
                 String tranId = StunMessage.genTranId();
                 CompletableFuture<StunPacket> future = AsyncTask.waitTask(tranId, 3000);
-                sdWanNode.punching(address.getHostString(), address.getPort(), vip, tranId);
+                sdWanNode.forwardPunching(address.getHostString(), address.getPort(), vip, tranId);
                 return future.thenApply(e -> e.sender()).thenApply(addr -> {
                     nodeMap.put(vip, new Node(addr, System.currentTimeMillis()));
                     return addr;

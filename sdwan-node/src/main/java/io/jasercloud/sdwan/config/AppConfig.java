@@ -16,17 +16,12 @@ public class AppConfig {
 
     @Bean
     public StunClient stunClient() throws Exception {
-        return StunClient.boot(new InetSocketAddress("0.0.0.0", 0));
+        return new StunClient(new InetSocketAddress("0.0.0.0", 0));
     }
 
     @Bean
-    public StunTransporter stunTransporter(StunClient stunClient) {
-        return new StunTransporter(stunClient);
-    }
-
-    @Bean
-    public SDWanNode sdWanNode(SDWanNodeProperties properties, StunClient stunClient) throws Exception {
-        return new SDWanNode(properties, stunClient);
+    public SDWanNode sdWanNode(SDWanNodeProperties properties) {
+        return new SDWanNode(properties);
     }
 
     @Bean
@@ -38,6 +33,11 @@ public class AppConfig {
     @Bean
     public SDArpManager sdArpManager(PunchingManager punchingManager) {
         return new SDArpManager(punchingManager);
+    }
+
+    @Bean
+    public StunTransporter stunTransporter(StunClient stunClient) {
+        return new StunTransporter(stunClient);
     }
 
     @Bean
