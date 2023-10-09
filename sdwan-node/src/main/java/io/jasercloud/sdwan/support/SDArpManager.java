@@ -13,22 +13,21 @@ import org.springframework.context.event.EventListener;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
-public class SdArpManager {
+public class SDArpManager {
 
     public Timer TIMEOUT = new HashedWheelTimer(
             new DefaultThreadFactory("sd-arp-timeout", true),
             20, TimeUnit.MILLISECONDS);
-    private Map<String, SDWanProtos.SDArpResp> sdArpCache = new ConcurrentHashMap<>();
+    private Map<String, AtomicReference<SDWanProtos.SDArpResp>> sdArpCache = new ConcurrentHashMap<>();
 
     private PunchingManager punchingManager;
 
-    public SdArpManager(PunchingManager punchingManager) {
+    public SDArpManager(PunchingManager punchingManager) {
         this.punchingManager = punchingManager;
     }
 
@@ -40,30 +39,26 @@ public class SdArpManager {
     public CompletableFuture<InetSocketAddress> sdArp(SDWanNode sdWanNode, IpPacket packet) {
         String ip = packet.getDstIP();
         return CompletableFuture.supplyAsync(() -> {
-            SDWanProtos.SDArpResp sdArp = sdArpCache.get(ip);
-            return sdArp;
-        }).thenComposeAsync(new Function<SDWanProtos.SDArpResp, CompletionStage<SDWanProtos.SDArpResp>>() {
-            @Override
-            public CompletionStage<SDWanProtos.SDArpResp> apply(SDWanProtos.SDArpResp sdArp) {
-                if (null == sdArp) {
-                    return sdWanNode.sdArp(packet.getDstIP(), 3000);
-                }
-                return CompletableFuture.completedFuture(sdArp);
+            AtomicReference<SDWanProtos.SDArpResp> ref = sdArpCache.get(ip);
+            return ref;
+        }).thenComposeAsync(ref -> {
+            if (null == ref) {
+                log.info("sdArpQuery: {}", ip);
+                return sdWanNode.sdArp(ip, 3000)
+                        .thenApply(sdArp -> {
+                            sdArpCache.put(ip, new AtomicReference<>(sdArp));
+                            TIMEOUT.newTimeout(new TimerTask() {
+                                @Override
+                                public void run(Timeout timeout) throws Exception {
+                                    sdArpCache.remove(ip);
+                                }
+                            }, sdArp.getTtl(), TimeUnit.SECONDS);
+                            return sdArp;
+                        });
             }
-        }).thenApply(sdArp -> {
-            if (SDWanProtos.MessageCode.Success_VALUE != sdArp.getCode()) {
-                return null;
-            }
-            sdArpCache.put(ip, sdArp);
-            TIMEOUT.newTimeout(new TimerTask() {
-                @Override
-                public void run(Timeout timeout) throws Exception {
-                    sdArpCache.remove(ip);
-                }
-            }, sdArp.getTtl(), TimeUnit.SECONDS);
-            return sdArp;
+            return CompletableFuture.completedFuture(ref.get());
         }).thenComposeAsync(sdArp -> {
-            if (null == sdArp) {
+            if (SDWanProtos.MessageCode.Success_VALUE != sdArp.getCode()) {
                 return CompletableFuture.completedFuture(null);
             }
             CompletableFuture<InetSocketAddress> future = punchingManager.getPublicAddress(sdArp);

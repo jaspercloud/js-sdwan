@@ -31,7 +31,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
     private SDWanNode sdWanNode;
     private Transporter transporter;
     private PunchingManager punchingManager;
-    private SdArpManager sdArpManager;
+    private SDArpManager sdArpManager;
 
     private TunChannel tunChannel;
 
@@ -39,7 +39,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                      SDWanNode sdWanNode,
                      Transporter transporter,
                      PunchingManager punchingManager,
-                     SdArpManager sdArpManager) {
+                     SDArpManager sdArpManager) {
         this.properties = properties;
         this.sdWanNode = sdWanNode;
         this.transporter = transporter;
@@ -65,12 +65,17 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
         while (true) {
             try {
                 CheckResult checkResult = punchingManager.getCheckResult();
-                SDWanProtos.RegResp regResp = sdWanNode.regist(
-                        checkResult.getMapping(),
-                        checkResult.getFiltering(),
-                        checkResult.getMappingAddress(),
-                        5000
-                );
+                SDWanProtos.RegResp regResp;
+                try {
+                    regResp = sdWanNode.regist(
+                            checkResult.getMapping(),
+                            checkResult.getFiltering(),
+                            checkResult.getMappingAddress(),
+                            5000
+                    );
+                } catch (TimeoutException e) {
+                    throw new ProcessException("sdWANNode.regist timeout");
+                }
                 if (SDWanProtos.MessageCode.NodeTypeError_VALUE == regResp.getCode()) {
                     throw new ProcessException("meshNode must staticNode");
                 } else if (SDWanProtos.MessageCode.NodeTypeError_VALUE == regResp.getCode()) {
@@ -86,6 +91,8 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                 NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(regResp.getVip());
                 addRoutes(interfaceInfo, regResp.getVip(), routes);
                 sdWanNode.getChannel().closeFuture().sync();
+            } catch (ProcessException e) {
+                log.error(e.getMessage(), e);
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
             }

@@ -36,8 +36,8 @@ public class AppConfig {
     }
 
     @Bean
-    public SdArpManager sdArpManager(PunchingManager punchingManager) {
-        return new SdArpManager(punchingManager);
+    public SDArpManager sdArpManager(PunchingManager punchingManager) {
+        return new SDArpManager(punchingManager);
     }
 
     @Bean
@@ -45,7 +45,7 @@ public class AppConfig {
                                SDWanNode sdWanNode,
                                Transporter transporter,
                                PunchingManager punchingManager,
-                               SdArpManager sdArpManager) {
+                               SDArpManager sdArpManager) {
         return new TunEngine(properties, sdWanNode, transporter, punchingManager, sdArpManager);
     }
 }

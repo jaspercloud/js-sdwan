@@ -62,16 +62,16 @@ public class PunchingManager implements InitializingBean {
             while (true) {
                 for (Map.Entry<String, Node> entry : nodeMap.entrySet()) {
                     String vip = entry.getKey();
-                    Node nodeHeart = entry.getValue();
-                    stunClient.sendBind(nodeHeart.getAddress(), 3000)
+                    Node node = entry.getValue();
+                    stunClient.sendBind(node.getAddress(), 3000)
                             .whenComplete((packet, throwable) -> {
                                 if (null != throwable) {
                                     nodeMap.remove(vip);
                                     publisher.publishEvent(new NodeOfflineEvent(this, vip));
-                                    log.error("punchingTimout: {}", nodeHeart.getAddress());
+                                    log.error("punchingTimout: {}", node.getAddress());
                                     return;
                                 }
-                                nodeHeart.setLastHeart(System.currentTimeMillis());
+                                node.setLastHeart(System.currentTimeMillis());
                             });
                 }
                 try {
@@ -90,11 +90,12 @@ public class PunchingManager implements InitializingBean {
             String vip = sdArpResp.getVip();
             String stunMapping = sdArpResp.getStunMapping();
             String stunFiltering = sdArpResp.getStunFiltering();
-            Node nodeHeart = nodeMap.get(vip);
-            if (null != nodeHeart) {
-                InetSocketAddress address = nodeHeart.getAddress();
+            Node node = nodeMap.get(vip);
+            if (null != node) {
+                InetSocketAddress address = node.getAddress();
                 return CompletableFuture.completedFuture(address);
             }
+            log.info("getPublicAddress: {}", vip);
             CheckResult self = getCheckResult();
             InetSocketAddress address = self.getMappingAddress();
             if (StunRule.EndpointIndependent.equals(self.getFiltering())
