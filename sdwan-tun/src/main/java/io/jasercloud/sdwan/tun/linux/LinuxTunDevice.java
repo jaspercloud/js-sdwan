@@ -84,16 +84,13 @@ public class LinuxTunDevice extends TunDevice {
 
     @Override
     public void writePacket(ByteBufAllocator alloc, ByteBuf msg) {
-        try {
-            if (closing) {
-                throw new ProcessException("Device is closed.");
-            }
-            byte[] bytes = new byte[msg.readableBytes()];
-            msg.readBytes(bytes);
-            NativeLinuxApi.write(fd, bytes, bytes.length);
-        } finally {
-            msg.release();
+        if (closing) {
+            throw new ProcessException("Device is closed.");
         }
+        //TunChannel已回收
+        byte[] bytes = new byte[msg.readableBytes()];
+        msg.readBytes(bytes);
+        NativeLinuxApi.write(fd, bytes, bytes.length);
     }
 
     @Override

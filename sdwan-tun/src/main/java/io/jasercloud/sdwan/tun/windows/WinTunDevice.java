@@ -79,18 +79,15 @@ public class WinTunDevice extends TunDevice {
 
     @Override
     public void writePacket(ByteBufAllocator alloc, ByteBuf msg) {
-        try {
-            if (closing) {
-                throw new ProcessException("Device is closed.");
-            }
-            byte[] bytes = new byte[msg.readableBytes()];
-            msg.readBytes(bytes);
-            Pointer packetPointer = NativeWinTunApi.WintunAllocateSendPacket(session, bytes.length);
-            packetPointer.write(0, bytes, 0, bytes.length);
-            NativeWinTunApi.WintunSendPacket(session, packetPointer);
-        } finally {
-            msg.release();
+        if (closing) {
+            throw new ProcessException("Device is closed.");
         }
+        //TunChannel已回收
+        byte[] bytes = new byte[msg.readableBytes()];
+        msg.readBytes(bytes);
+        Pointer packetPointer = NativeWinTunApi.WintunAllocateSendPacket(session, bytes.length);
+        packetPointer.write(0, bytes, 0, bytes.length);
+        NativeWinTunApi.WintunSendPacket(session, packetPointer);
     }
 
     @Override
