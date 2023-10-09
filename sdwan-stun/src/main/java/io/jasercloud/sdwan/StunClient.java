@@ -62,6 +62,7 @@ public class StunClient implements InitializingBean {
         String mapping;
         String filtering;
         StunPacket response = sendBind(remote, timeout).get();
+        int localPort = response.recipient().getPort();
         Map<AttrType, Attr> attrs = response.content().getAttrs();
         AddressAttr otherAddressAttr = (AddressAttr) attrs.get(AttrType.OtherAddress);
         InetSocketAddress otherAddress = new InetSocketAddress(otherAddressAttr.getIp(), otherAddressAttr.getPort());
@@ -70,7 +71,7 @@ public class StunClient implements InitializingBean {
         if (Objects.equals(mappedAddress1, local)) {
             mapping = StunRule.Internet;
             filtering = StunRule.Internet;
-            return new CheckResult(mapping, filtering, mappedAddress1);
+            return new CheckResult(localPort, mapping, filtering, mappedAddress1);
         }
         if (null != (response = testChangeBind(remote, true, true, timeout))) {
             filtering = StunRule.EndpointIndependent;
@@ -86,13 +87,13 @@ public class StunClient implements InitializingBean {
         InetSocketAddress mappedAddress2 = new InetSocketAddress(mappedAddressAttr.getIp(), mappedAddressAttr.getPort());
         if (Objects.equals(mappedAddress1, mappedAddress2)) {
             mapping = StunRule.EndpointIndependent;
-            return new CheckResult(mapping, filtering, mappedAddress1);
+            return new CheckResult(localPort, mapping, filtering, mappedAddress1);
         } else if (Objects.equals(mappedAddress1.getHostString(), mappedAddress2.getHostString())) {
             mapping = StunRule.AddressDependent;
-            return new CheckResult(mapping, filtering, null);
+            return new CheckResult(localPort, mapping, filtering, null);
         } else {
             mapping = StunRule.AddressAndPortDependent;
-            return new CheckResult(mapping, filtering, null);
+            return new CheckResult(localPort, mapping, filtering, null);
         }
     }
 

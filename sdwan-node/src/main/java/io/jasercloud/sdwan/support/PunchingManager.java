@@ -1,14 +1,6 @@
 package io.jasercloud.sdwan.support;
 
-import io.jasercloud.sdwan.AddressAttr;
-import io.jasercloud.sdwan.AttrType;
-import io.jasercloud.sdwan.CheckResult;
-import io.jasercloud.sdwan.MessageType;
-import io.jasercloud.sdwan.ProtoFamily;
-import io.jasercloud.sdwan.StunClient;
-import io.jasercloud.sdwan.StunMessage;
-import io.jasercloud.sdwan.StunPacket;
-import io.jasercloud.sdwan.StunRule;
+import io.jasercloud.sdwan.*;
 import io.jaspercloud.sdwan.AsyncTask;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.netty.channel.Channel;
@@ -116,7 +108,8 @@ public class PunchingManager implements InitializingBean {
             @Override
             public void onData(SDWanProtos.Punching request) {
                 String vip = request.getSrcVIP();
-                InetSocketAddress target = new InetSocketAddress(request.getSrcIP(), request.getSrcPort());
+                SDWanProtos.SocketAddress srcAddr = request.getSrcAddr();
+                InetSocketAddress target = new InetSocketAddress(srcAddr.getIp(), srcAddr.getPort());
                 stunClient.sendPunchingBind(target, request.getTranId(), 3000)
                         .whenComplete((packet, throwable) -> {
                             if (null != throwable) {
@@ -132,20 +125,30 @@ public class PunchingManager implements InitializingBean {
 
     public CompletableFuture<InetSocketAddress> getPublicAddress(String localVIP, SDWanProtos.SDArpResp sdArp) {
         String dstVIP = sdArp.getVip();
-        String stunMapping = sdArp.getStunMapping();
-        String stunFiltering = sdArp.getStunFiltering();
         Node node = nodeMap.get(dstVIP);
         if (null != node) {
             InetSocketAddress address = node.getAddress();
             return CompletableFuture.completedFuture(address);
         }
+        InetSocketAddress internalAddress = new InetSocketAddress(sdArp.getInternalAddr().getIp(), sdArp.getInternalAddr().getPort());
+        CompletableFuture<InetSocketAddress> internalFuture = punching(localVIP, sdArp, internalAddress);
+        InetSocketAddress publicAddress = new InetSocketAddress(sdArp.getPublicAddr().getIp(), sdArp.getPublicAddr().getPort());
+        CompletableFuture<InetSocketAddress> publicFuture = punching(localVIP, sdArp, publicAddress);
+        CompletableFuture<InetSocketAddress> future = CompletableFuture.anyOf(internalFuture, publicFuture)
+                .thenApply(addr -> (InetSocketAddress) addr);
+        return future;
+    }
+
+    private CompletableFuture<InetSocketAddress> punching(String localVIP, SDWanProtos.SDArpResp sdArp, InetSocketAddress socketAddress) {
+        String dstVIP = sdArp.getVip();
+        String stunMapping = sdArp.getStunMapping();
+        String stunFiltering = sdArp.getStunFiltering();
         log.info("getPublicAddress: {}", dstVIP);
         CheckResult self = getCheckResult();
         InetSocketAddress address = self.getMappingAddress();
         if (StunRule.EndpointIndependent.equals(self.getFiltering())
                 && StunRule.EndpointIndependent.equals(stunFiltering)) {
-            InetSocketAddress resp = new InetSocketAddress(sdArp.getPublicIP(), sdArp.getPublicPort());
-            return CompletableFuture.completedFuture(resp);
+            return CompletableFuture.completedFuture(socketAddress);
         } else if (StunRule.EndpointIndependent.equals(self.getFiltering())) {
             String tranId = StunMessage.genTranId();
             CompletableFuture<StunPacket> future = AsyncTask.waitTask(tranId, 3000);
@@ -155,8 +158,7 @@ public class PunchingManager implements InitializingBean {
                 return addr;
             });
         } else if (StunRule.EndpointIndependent.equals(stunFiltering)) {
-            InetSocketAddress target = new InetSocketAddress(sdArp.getPublicIP(), sdArp.getPublicPort());
-            CompletableFuture<StunPacket> future = stunClient.sendBind(target, 3000);
+            CompletableFuture<StunPacket> future = stunClient.sendBind(socketAddress, 3000);
             return future.thenApply(e -> e.sender()).thenApply(addr -> {
                 nodeMap.put(dstVIP, new Node(addr, System.currentTimeMillis()));
                 return addr;

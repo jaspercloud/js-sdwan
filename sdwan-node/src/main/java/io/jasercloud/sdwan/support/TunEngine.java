@@ -77,6 +77,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                 SDWanProtos.RegResp regResp;
                 try {
                     regResp = sdWanNode.regist(
+                            checkResult.getLocalPort(),
                             checkResult.getMapping(),
                             checkResult.getFiltering(),
                             checkResult.getMappingAddress(),

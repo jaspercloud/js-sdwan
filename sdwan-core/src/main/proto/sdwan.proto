@@ -29,13 +29,18 @@ enum NodeTypeCode {
   MeshType = 2;
 }
 
+message SocketAddress {
+  required string ip = 1;
+  required int32 port = 2;
+}
+
 message RegReq {
   required NodeTypeCode nodeType = 1;
   required string macAddress = 2;
-  required string stunMapping = 3;
-  required string stunFiltering = 4;
-  optional string publicIP = 5;
-  optional int32 publicPort = 6;
+  required SocketAddress internalAddr = 3;
+  required string stunMapping = 4;
+  required string stunFiltering = 5;
+  optional SocketAddress publicAddr = 6;
 }
 
 message RegResp {
@@ -52,10 +57,10 @@ message SDArpReq {
 message SDArpResp {
   required int32 code = 1;
   optional string vip = 2;
-  optional string stunMapping = 3;
-  optional string stunFiltering = 4;
-  optional string publicIP = 5;
-  optional int32 publicPort = 6;
+  optional SocketAddress internalAddr = 3;
+  optional string stunMapping = 4;
+  optional string stunFiltering = 5;
+  optional SocketAddress publicAddr = 6;
   optional int32 ttl = 7;
 }
 
@@ -66,7 +71,6 @@ message RouteList {
 message Punching {
   required string srcVIP = 1;
   required string dstVIP = 2;
-  required string srcIP = 3;
-  required int32 srcPort = 4;
-  required string tranId = 5;
+  required SocketAddress srcAddr = 3;
+  required string tranId = 4;
 }

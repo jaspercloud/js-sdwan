@@ -1,21 +1,11 @@
 package io.jasercloud.sdwan.support;
 
-import io.jaspercloud.sdwan.AsyncTask;
-import io.jaspercloud.sdwan.LogHandler;
-import io.jaspercloud.sdwan.NetworkInterfaceInfo;
-import io.jaspercloud.sdwan.NetworkInterfaceUtil;
-import io.jaspercloud.sdwan.NioEventLoopFactory;
+import io.jaspercloud.sdwan.*;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.protobuf.ProtobufDecoder;
@@ -199,20 +189,29 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
         return future;
     }
 
-    public SDWanProtos.RegResp regist(String mapping,
+    public SDWanProtos.RegResp regist(int localPort,
+                                      String mapping,
                                       String filtering,
                                       InetSocketAddress mappingAddress,
                                       int timeout) throws Exception {
         NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(properties.getLocalIP());
         String hardwareAddress = interfaceInfo.getHardwareAddress();
+        SDWanProtos.SocketAddress internalAddr = SDWanProtos.SocketAddress.newBuilder()
+                .setIp(interfaceInfo.getInterfaceAddress().getAddress().getHostAddress())
+                .setPort(localPort)
+                .build();
         SDWanProtos.RegReq.Builder regReqBuilder = SDWanProtos.RegReq.newBuilder()
                 .setMacAddress(hardwareAddress)
                 .setNodeType(SDWanProtos.NodeTypeCode.forNumber(properties.getNodeType().getCode()))
+                .setInternalAddr(internalAddr)
                 .setStunMapping(mapping)
                 .setStunFiltering(filtering);
         if (null != mappingAddress) {
-            regReqBuilder.setPublicIP(mappingAddress.getHostString());
-            regReqBuilder.setPublicPort(mappingAddress.getPort());
+            SDWanProtos.SocketAddress publicAddr = SDWanProtos.SocketAddress.newBuilder()
+                    .setIp(mappingAddress.getHostString())
+                    .setPort(mappingAddress.getPort())
+                    .build();
+            regReqBuilder.setPublicAddr(publicAddr);
         }
         SDWanProtos.RegReq regReq = regReqBuilder.build();
         SDWanProtos.Message request = SDWanProtos.Message.newBuilder()
@@ -235,11 +234,14 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
     }
 
     public void forwardPunching(String srcVIP, String dstVIP, String ip, int port, String tranId) {
+        SDWanProtos.SocketAddress srcAddr = SDWanProtos.SocketAddress.newBuilder()
+                .setIp(ip)
+                .setPort(port)
+                .build();
         SDWanProtos.Punching punching = SDWanProtos.Punching.newBuilder()
                 .setSrcVIP(srcVIP)
                 .setDstVIP(dstVIP)
-                .setSrcIP(ip)
-                .setSrcPort(port)
+                .setSrcAddr(srcAddr)
                 .setTranId(tranId)
                 .build();
         SDWanProtos.Message message = SDWanProtos.Message.newBuilder()

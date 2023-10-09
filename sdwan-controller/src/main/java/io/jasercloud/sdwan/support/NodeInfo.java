@@ -13,6 +13,7 @@ public class NodeInfo {
     private NodeType nodeType;
     private String stunMapping;
     private String stunFiltering;
+    private InetSocketAddress internalAddress;
     private InetSocketAddress publicAddress;
     private String macAddress;
     private String vip;

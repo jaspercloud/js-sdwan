@@ -124,15 +124,18 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
         SDWanProtos.SDArpResp.Builder sdArpBuilder = SDWanProtos.SDArpResp.newBuilder()
                 .setCode(0)
                 .setVip(vip)
+                .setInternalAddr(SDWanProtos.SocketAddress.newBuilder()
+                        .setIp(nodeInfo.getInternalAddress().getHostString())
+                        .setPort(nodeInfo.getInternalAddress().getPort())
+                        .build())
                 .setStunMapping(nodeInfo.getStunMapping())
                 .setStunFiltering(nodeInfo.getStunFiltering())
                 .setTtl(properties.getSdArpTTL());
         if (null != nodeInfo.getPublicAddress()) {
-            InetSocketAddress address = nodeInfo.getPublicAddress();
-            String host = address.getHostString();
-            int port = address.getPort();
-            sdArpBuilder.setPublicIP(host);
-            sdArpBuilder.setPublicPort(port);
+            sdArpBuilder.setPublicAddr(SDWanProtos.SocketAddress.newBuilder()
+                    .setIp(nodeInfo.getPublicAddress().getHostString())
+                    .setPort(nodeInfo.getPublicAddress().getPort())
+                    .build());
         }
         SDWanProtos.SDArpResp arpResp = sdArpBuilder.build();
         SDWanProtos.Message response = request.toBuilder()
@@ -166,9 +169,10 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
                 nodeInfo.setNodeType(NodeType.valueOf(regReq.getNodeType().getNumber()));
                 nodeInfo.setMacAddress(macAddress);
                 nodeInfo.setVip(vip);
+                nodeInfo.setInternalAddress(new InetSocketAddress(regReq.getInternalAddr().getIp(), regReq.getInternalAddr().getPort()));
                 nodeInfo.setStunMapping(regReq.getStunMapping());
                 nodeInfo.setStunFiltering(regReq.getStunFiltering());
-                nodeInfo.setPublicAddress(new InetSocketAddress(regReq.getPublicIP(), regReq.getPublicPort()));
+                nodeInfo.setPublicAddress(new InetSocketAddress(regReq.getPublicAddr().getIp(), regReq.getPublicAddr().getPort()));
                 if (SDWanProtos.NodeTypeCode.MeshType.equals(regReq.getNodeType())) {
                     List<String> routeList = routeMap.get(vip);
                     for (String route : routeList) {
