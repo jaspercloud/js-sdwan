@@ -81,15 +81,17 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                 } else if (SDWanProtos.MessageCode.NodeTypeError_VALUE == regResp.getCode()) {
                     throw new ProcessException("no more vip");
                 }
-                log.info("tunAddress: {}/{}", regResp.getVip(), regResp.getMaskBits());
                 tunChannel.setAddress(regResp.getVip(), regResp.getMaskBits());
                 //等待ip设置成功，再配置路由
                 waitAddress(regResp.getVip(), 15000);
+                log.info("tunAddress: {}/{}", regResp.getVip(), regResp.getMaskBits());
+                //配置路由
                 List<String> routes = regResp.getRouteList()
                         .stream()
                         .collect(Collectors.toList());
                 NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(regResp.getVip());
                 addRoutes(interfaceInfo, regResp.getVip(), routes);
+                //wait closed reconnect
                 sdWanNode.getChannel().closeFuture().sync();
             } catch (ProcessException e) {
                 log.error(e.getMessage(), e);
@@ -159,6 +161,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
             if (diff > timeout) {
                 throw new TimeoutException();
             }
+            Thread.sleep(100);
         }
     }
 
