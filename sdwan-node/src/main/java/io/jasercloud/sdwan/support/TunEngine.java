@@ -13,13 +13,21 @@ import io.jaspercloud.sdwan.exception.ProcessException;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.DefaultEventLoopGroup;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.socket.DatagramPacket;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
@@ -76,6 +84,12 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                     );
                 } catch (TimeoutException e) {
                     throw new ProcessException("sdWANNode.regist timeout");
+                } catch (ExecutionException e) {
+                    Throwable cause = e.getCause();
+                    if (cause instanceof TimeoutException) {
+                        throw new ProcessException("sdWANNode.regist timeout");
+                    }
+                    throw e;
                 }
                 if (SDWanProtos.MessageCode.NodeTypeError_VALUE == regResp.getCode()) {
                     throw new ProcessException("meshNode must staticNode");
