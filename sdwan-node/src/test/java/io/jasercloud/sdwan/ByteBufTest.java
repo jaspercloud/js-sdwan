@@ -3,6 +3,7 @@ package io.jasercloud.sdwan;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.jupiter.api.Test;
+import org.springframework.util.Assert;
 
 public class ByteBufTest {
 
@@ -34,5 +35,6 @@ public class ByteBufTest {
         ByteBuf buf = Unpooled.directBuffer();
         c(b(a(buf)));
         int cnt = buf.refCnt();
+        Assert.isTrue(0 == cnt);
     }
 }
