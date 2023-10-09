@@ -12,7 +12,13 @@ import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.DefaultEventLoopGroup;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.socket.DatagramPacket;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
@@ -132,6 +138,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                                 sdArpManager.sdArp(sdWanNode, localVIP, ipv4Packet)
                                         .whenComplete((address, throwable) -> {
                                             if (null != throwable) {
+                                                log.error("sdArpTimeout: {}", ipv4Packet.getDstIP());
                                                 byteBuf.release();
                                                 return;
                                             }

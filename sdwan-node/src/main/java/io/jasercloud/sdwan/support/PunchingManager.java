@@ -24,6 +24,7 @@ import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeoutException;
 
 @Slf4j
 public class PunchingManager implements InitializingBean {
@@ -56,6 +57,8 @@ public class PunchingManager implements InitializingBean {
             while (true) {
                 try {
                     checkResult = stunClient.check(stunServer, 3000);
+                } catch (TimeoutException e) {
+                    log.info("checkStunServer timeout");
                 } catch (Exception e) {
                     log.error(e.getMessage(), e);
                 }
@@ -118,6 +121,7 @@ public class PunchingManager implements InitializingBean {
                 stunClient.sendPunchingBind(target, request.getTranId(), 3000)
                         .whenComplete((packet, throwable) -> {
                             if (null != throwable) {
+                                log.error("punchingBindTimout: {}", vip);
                                 return;
                             }
                             InetSocketAddress addr = packet.sender();
