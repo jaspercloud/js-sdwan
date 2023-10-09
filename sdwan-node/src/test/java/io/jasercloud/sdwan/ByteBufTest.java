@@ -1,9 +1,7 @@
 package io.jasercloud.sdwan;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.Unpooled;
-import io.netty.buffer.UnpooledByteBufAllocator;
 import org.junit.jupiter.api.Test;
 
 public class ByteBufTest {
@@ -31,6 +29,8 @@ public class ByteBufTest {
 
     @Test
     public void test() {
+        System.setProperty("io.netty.leakDetection.level", "ADVANCED");
+        System.setProperty("io.netty.leakDetection.samplingInterval", "1");
         ByteBuf buf = Unpooled.directBuffer();
         c(b(a(buf)));
         int cnt = buf.refCnt();
