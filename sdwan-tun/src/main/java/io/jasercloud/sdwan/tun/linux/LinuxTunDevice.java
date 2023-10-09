@@ -16,7 +16,6 @@ public class LinuxTunDevice extends TunDevice {
 
     private int fd;
     private int mtu = 65535;
-    private FdSet fdSet;
     private Timeval timeval;
     private boolean closing = false;
 
@@ -30,8 +29,6 @@ public class LinuxTunDevice extends TunDevice {
         int flags = NativeLinuxApi.fcntl(fd, NativeLinuxApi.F_GETFL, 0);
         int noblock = NativeLinuxApi.fcntl(fd, NativeLinuxApi.F_SETFL, flags | NativeLinuxApi.O_NONBLOCK);
         CheckInvoke.check(noblock, 0);
-        fdSet = new FdSet();
-        fdSet.FD_SET(fd);
         timeval = new Timeval();
         timeval.tv_sec = 5;
         Ifreq ifreq = new Ifreq(getName(), (short) (NativeLinuxApi.IFF_TUN | NativeLinuxApi.IFF_NO_PI));
@@ -65,6 +62,8 @@ public class LinuxTunDevice extends TunDevice {
             if (closing) {
                 throw new ProcessException("Device is closed.");
             }
+            FdSet fdSet = new FdSet();
+            fdSet.FD_SET(fd);
             int select = NativeLinuxApi.select(fd + 1, fdSet, null, null, timeval);
             if (-1 == select) {
                 throw new ProcessException("select -1");
