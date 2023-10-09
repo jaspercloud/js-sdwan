@@ -1,6 +1,7 @@
 package io.jasercloud.sdwan.support;
 
 import io.jasercloud.sdwan.*;
+import io.jasercloud.sdwan.tun.IpPacket;
 import io.jaspercloud.sdwan.AsyncTask;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.netty.channel.Channel;
@@ -13,10 +14,11 @@ import org.springframework.context.ApplicationEventPublisher;
 
 import java.net.InetSocketAddress;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Function;
 
 @Slf4j
 public class PunchingManager implements InitializingBean {
@@ -71,8 +73,10 @@ public class PunchingManager implements InitializingBean {
                     stunClient.sendBind(node.getAddress(), 3000)
                             .whenComplete((packet, throwable) -> {
                                 if (null != throwable) {
+                                    for (String accessIP : node.getAccessIPList()) {
+                                        publisher.publishEvent(new NodeOfflineEvent(this, accessIP));
+                                    }
                                     nodeMap.remove(vip);
-                                    publisher.publishEvent(new NodeOfflineEvent(this, vip));
                                     log.error("punchingTimout: {}", node.getAddress());
                                     return;
                                 }
@@ -124,10 +128,13 @@ public class PunchingManager implements InitializingBean {
         });
     }
 
-    public CompletableFuture<InetSocketAddress> getPublicAddress(String localVIP, SDWanProtos.SDArpResp sdArp) {
-        String dstVIP = sdArp.getVip();
-        Node node = nodeMap.get(dstVIP);
+    public CompletableFuture<InetSocketAddress> getPublicAddress(String localVIP,
+                                                                 IpPacket ipPacket,
+                                                                 SDWanProtos.SDArpResp sdArp) {
+        String nodeVIP = sdArp.getVip();
+        Node node = nodeMap.get(nodeVIP);
         if (null != node) {
+            node.addAccessIP(ipPacket.getDstIP());
             InetSocketAddress address = node.getAddress();
             return CompletableFuture.completedFuture(address);
         }
@@ -149,34 +156,31 @@ public class PunchingManager implements InitializingBean {
                     }
                     future.complete(address1);
                 });
-        return future;
+        return future.thenApply(address -> {
+            Node computeNode = nodeMap.computeIfAbsent(nodeVIP, key -> new Node(address, System.currentTimeMillis()));
+            computeNode.addAccessIP(ipPacket.getDstIP());
+            log.info("findPublicAddress: {} -> {}", nodeVIP, address);
+            return address;
+        });
     }
 
     private CompletableFuture<InetSocketAddress> punching(String localVIP, SDWanProtos.SDArpResp sdArp, InetSocketAddress socketAddress) {
         String dstVIP = sdArp.getVip();
         String stunMapping = sdArp.getStunMapping();
         String stunFiltering = sdArp.getStunFiltering();
-        log.info("getPublicAddress: {}", dstVIP);
         CheckResult self = getCheckResult();
         InetSocketAddress address = self.getMappingAddress();
         if (StunRule.EndpointIndependent.equals(self.getFiltering())
                 && StunRule.EndpointIndependent.equals(stunFiltering)) {
-            nodeMap.put(dstVIP, new Node(socketAddress, System.currentTimeMillis()));
             return CompletableFuture.completedFuture(socketAddress);
         } else if (StunRule.EndpointIndependent.equals(self.getFiltering())) {
             String tranId = StunMessage.genTranId();
             CompletableFuture<StunPacket> future = AsyncTask.waitTask(tranId, 3000);
             sdWanNode.forwardPunching(localVIP, dstVIP, address.getHostString(), address.getPort(), tranId);
-            return future.thenApply(e -> e.sender()).thenApply(addr -> {
-                nodeMap.put(dstVIP, new Node(addr, System.currentTimeMillis()));
-                return addr;
-            });
+            return future.thenApply(e -> e.sender());
         } else if (StunRule.EndpointIndependent.equals(stunFiltering)) {
             CompletableFuture<StunPacket> future = stunClient.sendBind(socketAddress, 3000);
-            return future.thenApply(e -> e.sender()).thenApply(addr -> {
-                nodeMap.put(dstVIP, new Node(addr, System.currentTimeMillis()));
-                return addr;
-            });
+            return future.thenApply(e -> e.sender());
         } else if (StunRule.AddressDependent.equals(self.getFiltering())) {
             // TODO: 2023/10/8
         } else if (StunRule.AddressDependent.equals(stunFiltering)) {
@@ -189,8 +193,16 @@ public class PunchingManager implements InitializingBean {
     public static class Node {
 
         private InetSocketAddress address;
+        private Set<String> accessIPList = new ConcurrentSkipListSet<>();
         private long lastHeart;
-        private int errCount;
+
+        public Set<String> getAccessIPList() {
+            return accessIPList;
+        }
+
+        public void addAccessIP(String ip) {
+            accessIPList.add(ip);
+        }
 
         public Node(InetSocketAddress address, long lastHeart) {
             this.address = address;

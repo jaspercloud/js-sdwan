@@ -4,15 +4,15 @@ import org.springframework.context.ApplicationEvent;
 
 public class NodeOfflineEvent extends ApplicationEvent {
 
-    private String vip;
+    private String ip;
 
-    public String getVip() {
-        return vip;
+    public String getIp() {
+        return ip;
     }
 
-    public NodeOfflineEvent(Object source, String vip) {
+    public NodeOfflineEvent(Object source, String ip) {
         super(source);
-        this.vip = vip;
+        this.ip = ip;
     }
 
 }

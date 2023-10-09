@@ -33,7 +33,7 @@ public class SDArpManager {
 
     @EventListener(NodeOfflineEvent.class)
     public void onNodeOfflineEvent(NodeOfflineEvent event) {
-        sdArpCache.remove(event.getVip());
+        sdArpCache.remove(event.getIp());
     }
 
     public CompletableFuture<InetSocketAddress> sdArp(SDWanNode sdWanNode, String localVIP, IpPacket packet) {
@@ -61,7 +61,7 @@ public class SDArpManager {
             if (SDWanProtos.MessageCode.Success_VALUE != sdArp.getCode()) {
                 return CompletableFuture.completedFuture(null);
             }
-            CompletableFuture<InetSocketAddress> future = punchingManager.getPublicAddress(localVIP, sdArp);
+            CompletableFuture<InetSocketAddress> future = punchingManager.getPublicAddress(localVIP, packet, sdArp);
             return future;
         });
     }
