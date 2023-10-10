@@ -3,7 +3,12 @@ package io.jasercloud.sdwan.support;
 import io.jaspercloud.sdwan.Cidr;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessCodeException;
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.InitializingBean;
@@ -109,7 +114,7 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
         log.debug("sdArp: ip={}, findNode={}", ip, null != targetChannel);
         if (null == targetChannel) {
             SDWanProtos.SDArpResp arpResp = SDWanProtos.SDArpResp.newBuilder()
-                    .setCode(1)
+                    .setCode(SDWanProtos.MessageCode.NotFoundSDArp_VALUE)
                     .build();
             SDWanProtos.Message response = request.toBuilder()
                     .setType(SDWanProtos.MsgTypeCode.SDArpRespType)
@@ -122,7 +127,7 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
         String vip = nodeInfo.getVip();
         log.debug("sdArp: ip={}, vip={}", ip, vip);
         SDWanProtos.SDArpResp.Builder sdArpBuilder = SDWanProtos.SDArpResp.newBuilder()
-                .setCode(0)
+                .setCode(SDWanProtos.MessageCode.Success_VALUE)
                 .setVip(vip)
                 .setInternalAddr(SDWanProtos.SocketAddress.newBuilder()
                         .setIp(nodeInfo.getInternalAddress().getHostString())
@@ -152,22 +157,12 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
     private void processReg(Channel channel, SDWanProtos.Message request) throws Exception {
         SDWanProtos.RegReq regReq = SDWanProtos.RegReq.parseFrom(request.getData());
         try {
-            String macAddress = regReq.getMacAddress();
             NodeInfo nodeInfo = AttributeKeys.nodeInfo(channel).get();
             if (null == nodeInfo) {
+                String vip = bindVip(regReq, channel);
                 nodeInfo = new NodeInfo();
-                String vip = bindStaticNode(macAddress, channel);
-                if (null == vip) {
-                    if (SDWanProtos.NodeTypeCode.MeshType.equals(regReq.getNodeType())) {
-                        throw new ProcessCodeException(SDWanProtos.MessageCode.NodeTypeError_VALUE);
-                    }
-                    vip = bindDynamicNode(channel);
-                }
-                if (null == vip) {
-                    throw new ProcessCodeException(SDWanProtos.MessageCode.NotEnough_VALUE);
-                }
                 nodeInfo.setNodeType(NodeType.valueOf(regReq.getNodeType().getNumber()));
-                nodeInfo.setMacAddress(macAddress);
+                nodeInfo.setMacAddress(regReq.getMacAddress());
                 nodeInfo.setVip(vip);
                 nodeInfo.setInternalAddress(new InetSocketAddress(regReq.getInternalAddr().getIp(), regReq.getInternalAddr().getPort()));
                 nodeInfo.setStunMapping(regReq.getStunMapping());
@@ -194,7 +189,7 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
                     .flatMap(e -> e.getValue().stream())
                     .collect(Collectors.toList());
             SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
-                    .setCode(0)
+                    .setCode(SDWanProtos.MessageCode.Success_VALUE)
                     .setVip(vip)
                     .setMaskBits(ipPool.getMaskBits())
                     .addAllRoute(routes)
@@ -216,20 +211,36 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
         }
     }
 
+    private String bindVip(SDWanProtos.RegReq regReq, Channel channel) {
+        String vip = bindStaticNode(regReq.getMacAddress(), channel);
+        if (null == vip) {
+            if (SDWanProtos.NodeTypeCode.MeshType.equals(regReq.getNodeType())) {
+                throw new ProcessCodeException(SDWanProtos.MessageCode.NodeTypeError_VALUE);
+            }
+            vip = bindDynamicNode(channel);
+        }
+        if (null == vip) {
+            throw new ProcessCodeException(SDWanProtos.MessageCode.NotEnough_VALUE);
+        }
+        return vip;
+    }
+
     private String bindStaticNode(String macAddress, Channel channel) {
         for (Map.Entry<String, SDWanControllerProperties.StaticNode> entry : properties.getStaticNodes().entrySet()) {
             SDWanControllerProperties.StaticNode node = entry.getValue();
             if (StringUtils.equals(node.getMacAddress(), macAddress)) {
                 AtomicReference<Channel> ref = bindIPMap.get(node.getVip());
-                if (ref.compareAndSet(null, channel)) {
-                    channel.closeFuture().addListener(new ChannelFutureListener() {
-                        @Override
-                        public void operationComplete(ChannelFuture future) throws Exception {
-                            ref.set(null);
-                        }
-                    });
-                    return node.getVip();
+                //CAS
+                if (!ref.compareAndSet(null, channel)) {
+                    throw new ProcessCodeException(SDWanProtos.MessageCode.VipBound_VALUE);
                 }
+                channel.closeFuture().addListener(new ChannelFutureListener() {
+                    @Override
+                    public void operationComplete(ChannelFuture future) throws Exception {
+                        ref.set(null);
+                    }
+                });
+                return node.getVip();
             }
         }
         return null;
@@ -244,6 +255,7 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
                 continue;
             }
             AtomicReference<Channel> ref = entry.getValue();
+            //CAS
             if (ref.compareAndSet(null, channel)) {
                 channel.closeFuture().addListener(new ChannelFutureListener() {
                     @Override
