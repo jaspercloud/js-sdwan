@@ -1,18 +1,19 @@
 package io.jasercloud.sdwan.tun.linux;
 
 import io.jasercloud.sdwan.tun.CheckInvoke;
-import io.jasercloud.sdwan.tun.Ipv4Packet;
 import io.jasercloud.sdwan.tun.ProcessUtil;
 import io.jasercloud.sdwan.tun.TunDevice;
 import io.jaspercloud.sdwan.NetworkInterfaceInfo;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.UnpooledByteBufAllocator;
 import org.springframework.util.FileCopyUtils;
 
-import java.io.*;
-import java.util.UUID;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 
 public class LinuxTunDevice extends TunDevice {
 
@@ -152,23 +153,4 @@ public class LinuxTunDevice extends TunDevice {
         return !isActive();
     }
 
-    public static void main(String[] args) throws Exception {
-        LinuxTunDevice tunDevice = new LinuxTunDevice("eth0", "tun", "sdwan", UUID.randomUUID().toString());
-        tunDevice.open();
-        tunDevice.setIP("192.168.1.1", 24);
-        tunDevice.setMTU(1500);
-        UnpooledByteBufAllocator allocator = UnpooledByteBufAllocator.DEFAULT;
-        while (true) {
-            ByteBuf byteBuf = tunDevice.readPacket(allocator);
-            byteBuf.markReaderIndex();
-            byte version = (byte) (byteBuf.readUnsignedByte() >> 4);
-            byteBuf.resetReaderIndex();
-            if (4 == version) {
-                Ipv4Packet ipv4Packet = Ipv4Packet.decode(byteBuf);
-                System.out.println(String.format("%s -> %s", ipv4Packet.getSrcIP(), ipv4Packet.getDstIP()));
-                byteBuf.resetReaderIndex();
-                tunDevice.writePacket(allocator, byteBuf);
-            }
-        }
-    }
 }
