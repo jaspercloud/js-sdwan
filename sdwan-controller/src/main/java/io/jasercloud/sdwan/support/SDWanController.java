@@ -5,7 +5,11 @@ import io.jaspercloud.sdwan.NioEventLoopFactory;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.protobuf.ProtobufDecoder;
@@ -17,7 +21,7 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 
 @Slf4j
-public class SDWanController implements InitializingBean, DisposableBean, Runnable {
+public class SDWanController implements InitializingBean, DisposableBean {
 
     private SDWanControllerProperties properties;
     private ChannelHandler handler;
@@ -53,8 +57,6 @@ public class SDWanController implements InitializingBean, DisposableBean, Runnab
                 });
         channel = serverBootstrap.bind(properties.getPort()).syncUninterruptibly().channel();
         log.info("sdwan controller started: port={}", properties.getPort());
-        Thread thread = new Thread(this, "sdwan-controller");
-        thread.start();
     }
 
     @Override
@@ -63,15 +65,5 @@ public class SDWanController implements InitializingBean, DisposableBean, Runnab
             return;
         }
         channel.close();
-    }
-
-    @Override
-    public void run() {
-        try {
-            channel.closeFuture().sync();
-            log.info("sdwan controller stop: port={}", properties.getPort());
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-        }
     }
 }

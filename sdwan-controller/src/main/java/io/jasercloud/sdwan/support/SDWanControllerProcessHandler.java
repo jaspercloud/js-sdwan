@@ -106,7 +106,7 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
         SDWanProtos.SDArpReq nodeArpReq = SDWanProtos.SDArpReq.parseFrom(request.getData());
         String ip = nodeArpReq.getIp();
         Channel targetChannel = findNodeByIP(ip);
-        log.info("sdArp: ip={}, findNode={}", ip, null != targetChannel);
+        log.debug("sdArp: ip={}, findNode={}", ip, null != targetChannel);
         if (null == targetChannel) {
             SDWanProtos.SDArpResp arpResp = SDWanProtos.SDArpResp.newBuilder()
                     .setCode(1)
@@ -120,7 +120,7 @@ public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<S
         }
         NodeInfo nodeInfo = AttributeKeys.nodeInfo(targetChannel).get();
         String vip = nodeInfo.getVip();
-        log.info("sdArp: ip={}, vip={}", ip, vip);
+        log.debug("sdArp: ip={}, vip={}", ip, vip);
         SDWanProtos.SDArpResp.Builder sdArpBuilder = SDWanProtos.SDArpResp.newBuilder()
                 .setCode(0)
                 .setVip(vip)

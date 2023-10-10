@@ -43,7 +43,7 @@ public class SDArpManager {
             return ref;
         }).thenComposeAsync(ref -> {
             if (null == ref) {
-                log.info("sdArpQuery: {}", dstIP);
+                log.debug("sdArpQuery: {}", dstIP);
                 return sdWanNode.sdArp(dstIP, 3000)
                         .thenApply(sdArp -> {
                             sdArpCache.put(dstIP, new AtomicReference<>(sdArp));

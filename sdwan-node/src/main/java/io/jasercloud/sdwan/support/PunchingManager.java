@@ -53,7 +53,7 @@ public class PunchingManager implements InitializingBean {
                 try {
                     checkResult = stunClient.check(stunServer, 3000);
                 } catch (TimeoutException e) {
-                    log.info("checkStunServer timeout");
+                    log.error("checkStunServer timeout");
                 } catch (Exception e) {
                     log.error(e.getMessage(), e);
                 }
@@ -147,7 +147,7 @@ public class PunchingManager implements InitializingBean {
         return future.thenApply(address -> {
             Node computeNode = nodeMap.computeIfAbsent(nodeVIP, key -> new Node(address, System.currentTimeMillis()));
             computeNode.addAccessIP(ipPacket.getDstIP());
-            log.info("findPublicAddress: {} -> {}", nodeVIP, address);
+            log.debug("findPublicAddress: {} -> {}", nodeVIP, address);
             return address;
         });
     }
