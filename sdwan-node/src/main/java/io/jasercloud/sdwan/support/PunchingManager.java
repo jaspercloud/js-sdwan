@@ -146,7 +146,7 @@ public class PunchingManager implements InitializingBean {
                     if (null != throwable1) {
                         punching(localVIP, sdArp, publicAddress)
                                 .whenComplete((address2, throwable2) -> {
-                                    if (null != throwable1) {
+                                    if (null != throwable2) {
                                         future.completeExceptionally(throwable2);
                                         return;
                                     }
