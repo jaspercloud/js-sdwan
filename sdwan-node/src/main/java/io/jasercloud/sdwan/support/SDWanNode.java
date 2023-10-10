@@ -136,7 +136,7 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                     InetSocketAddress address = new InetSocketAddress(properties.getControllerHost(), properties.getControllerPort());
                     channel = bootstrap.connect(address).syncUninterruptibly().channel();
                 }
-                log.info("sdwan node started");
+                log.info("SDWanNode started");
                 channel.closeFuture().sync();
             } catch (Exception e) {
                 log.error(e.getMessage(), e);

@@ -99,6 +99,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                         .collect(Collectors.toList());
                 NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(regResp.getVip());
                 addRoutes(interfaceInfo, regResp.getVip(), routes);
+                log.info("TunEngine started");
                 //wait closed reconnect
                 sdWanNode.getChannel().closeFuture().sync();
             } catch (ProcessException e) {
