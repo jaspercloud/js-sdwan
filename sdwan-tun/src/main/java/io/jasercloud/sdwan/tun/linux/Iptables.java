@@ -4,6 +4,7 @@ import io.jasercloud.sdwan.tun.ProcessUtil;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
+import java.util.List;
 
 public final class Iptables {
 
@@ -17,9 +18,14 @@ public final class Iptables {
     }
 
     public static boolean queryFilterRule(String tunName, String ethName) throws IOException, InterruptedException {
-        String cmd = String.format("iptables -t filter -L -n -v | grep ACCEPT | grep %s | grep %s", tunName, ethName);
-        String out = ProcessUtil.query(cmd);
-        return StringUtils.isNotEmpty(out);
+        String cmd = "iptables -t filter -L FORWARD -n -v";
+        List<String> list = ProcessUtil.query(cmd);
+        for (String line : list) {
+            if (containsKeyword(line, tunName, ethName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static void deleteFilterRule(String tunName, String ethName) throws IOException, InterruptedException {
@@ -33,13 +39,27 @@ public final class Iptables {
     }
 
     public static boolean queryNatRule(String ethName) throws IOException, InterruptedException {
-        String cmd = String.format("iptables -t nat -L -n -v | grep MASQUERADE | grep %s", ethName);
-        String out = ProcessUtil.query(cmd);
-        return StringUtils.isNotEmpty(out);
+        String cmd = "iptables -t nat -L POSTROUTING -n -v";
+        List<String> list = ProcessUtil.query(cmd);
+        for (String line : list) {
+            if (containsKeyword(line, ethName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static void deleteNatRule(String ethName) throws IOException, InterruptedException {
         String cmd = String.format("iptables -t nat -D POSTROUTING -o %s -j MASQUERADE", ethName);
         int code = ProcessUtil.exec(cmd);
+    }
+
+    private static boolean containsKeyword(String line, String... keywords) {
+        for (String keyword : keywords) {
+            if (!StringUtils.contains(line, keyword)) {
+                return false;
+            }
+        }
+        return true;
     }
 }
