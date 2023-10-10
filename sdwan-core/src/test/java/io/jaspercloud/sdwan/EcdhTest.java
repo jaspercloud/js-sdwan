@@ -26,10 +26,10 @@ public class EcdhTest {
 
         // 选择ECDH曲线（例如，"secp256r1"是一种常用的曲线）
         ECParameterSpec ecSpec = ECNamedCurveTable.getParameterSpec("secp256r1");
-
-        // 生成Alice的密钥对
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("ECDH", "BC");
         keyPairGenerator.initialize(ecSpec);
+
+        // 生成Alice的密钥对
         KeyPair aliceKeyPair = keyPairGenerator.generateKeyPair();
 
         // 生成Bob的密钥对
@@ -37,21 +37,21 @@ public class EcdhTest {
 
         // Bob将Bob的公钥发送给Alice
         byte[] bobPublicKeyBytes = bobKeyPair.getPublic().getEncoded();
-        PublicKey bobPublicKey = KeyFactory.getInstance("ECDH", "BC").generatePublic(new X509EncodedKeySpec(bobPublicKeyBytes));
 
         // Alice将Alice的公钥发送给Bob
         byte[] alicePublicKeyBytes = aliceKeyPair.getPublic().getEncoded();
-        PublicKey alicePublicKey = KeyFactory.getInstance("ECDH", "BC").generatePublic(new X509EncodedKeySpec(alicePublicKeyBytes));
 
         // Bob接收到Alice的公钥并生成共享密钥
         KeyAgreement bobKeyAgreement = KeyAgreement.getInstance("ECDH", "BC");
         bobKeyAgreement.init(bobKeyPair.getPrivate());
+        PublicKey alicePublicKey = KeyFactory.getInstance("ECDH", "BC").generatePublic(new X509EncodedKeySpec(alicePublicKeyBytes));
         bobKeyAgreement.doPhase(alicePublicKey, true);
         byte[] bobSharedSecret = bobKeyAgreement.generateSecret();
 
         // Alice接收到Bob的公钥并生成共享密钥
         KeyAgreement aliceKeyAgreement = KeyAgreement.getInstance("ECDH", "BC");
         aliceKeyAgreement.init(aliceKeyPair.getPrivate());
+        PublicKey bobPublicKey = KeyFactory.getInstance("ECDH", "BC").generatePublic(new X509EncodedKeySpec(bobPublicKeyBytes));
         aliceKeyAgreement.doPhase(bobPublicKey, true);
         byte[] aliceSharedSecret = aliceKeyAgreement.generateSecret();
 
