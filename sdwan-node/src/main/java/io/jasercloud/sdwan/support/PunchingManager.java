@@ -3,6 +3,7 @@ package io.jasercloud.sdwan.support;
 import io.jasercloud.sdwan.*;
 import io.jasercloud.sdwan.tun.IpPacket;
 import io.jaspercloud.sdwan.AsyncTask;
+import io.jaspercloud.sdwan.CompletableFutures;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -140,22 +141,9 @@ public class PunchingManager implements InitializingBean {
         }
         InetSocketAddress internalAddress = new InetSocketAddress(sdArp.getInternalAddr().getIp(), sdArp.getInternalAddr().getPort());
         InetSocketAddress publicAddress = new InetSocketAddress(sdArp.getPublicAddr().getIp(), sdArp.getPublicAddr().getPort());
-        CompletableFuture<InetSocketAddress> future = new CompletableFuture<>();
-        punching(localVIP, sdArp, internalAddress)
-                .whenComplete((address1, throwable1) -> {
-                    if (null != throwable1) {
-                        punching(localVIP, sdArp, publicAddress)
-                                .whenComplete((address2, throwable2) -> {
-                                    if (null != throwable2) {
-                                        future.completeExceptionally(throwable2);
-                                        return;
-                                    }
-                                    future.complete(address2);
-                                });
-                        return;
-                    }
-                    future.complete(address1);
-                });
+        CompletableFuture<InetSocketAddress> internalFuture = punching(localVIP, sdArp, internalAddress);
+        CompletableFuture<InetSocketAddress> publicFuture = punching(localVIP, sdArp, publicAddress);
+        CompletableFuture<InetSocketAddress> future = CompletableFutures.order(internalFuture, publicFuture);
         return future.thenApply(address -> {
             Node computeNode = nodeMap.computeIfAbsent(nodeVIP, key -> new Node(address, System.currentTimeMillis()));
             computeNode.addAccessIP(ipPacket.getDstIP());
