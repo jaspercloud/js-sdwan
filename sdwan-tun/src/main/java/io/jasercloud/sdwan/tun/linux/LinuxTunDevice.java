@@ -9,18 +9,23 @@ import io.jaspercloud.sdwan.exception.ProcessException;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.UnpooledByteBufAllocator;
+import org.springframework.util.FileCopyUtils;
 
+import java.io.*;
 import java.util.UUID;
 
 public class LinuxTunDevice extends TunDevice {
+
+    private String ethName;
 
     private int fd;
     private int mtu = 65535;
     private Timeval timeval;
     private boolean closing = false;
 
-    public LinuxTunDevice(String name, String type, String guid) {
-        super(name, type, guid);
+    public LinuxTunDevice(String ethName, String tunName, String type, String guid) {
+        super(tunName, type, guid);
+        this.ethName = ethName;
     }
 
     @Override
@@ -33,7 +38,31 @@ public class LinuxTunDevice extends TunDevice {
         timeval.tv_sec = 5;
         Ifreq ifreq = new Ifreq(getName(), (short) (NativeLinuxApi.IFF_TUN | NativeLinuxApi.IFF_NO_PI));
         NativeLinuxApi.ioctl(fd, NativeLinuxApi.TUNSETIFF, ifreq);
+        enableIpForward();
+        addIptablesRules();
         setActive(true);
+    }
+
+    private void enableIpForward() {
+        File file = new File("/proc/sys/net/ipv4/ip_forward");
+        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), "utf-8"))) {
+            FileCopyUtils.copy("1", writer);
+        } catch (Exception e) {
+            throw new ProcessException("enableIpForward failed", e);
+        }
+    }
+
+    private void addIptablesRules() throws IOException, InterruptedException {
+        //filter
+        if (Iptables.queryFilterRule(getName(), ethName)) {
+            Iptables.deleteFilterRule(getName(), ethName);
+        }
+        Iptables.addFilterRule(getName(), ethName);
+        //nat
+        if (Iptables.queryNatRule(ethName)) {
+            Iptables.deleteNatRule(ethName);
+        }
+        Iptables.addNatRule(ethName);
     }
 
     @Override
@@ -107,13 +136,15 @@ public class LinuxTunDevice extends TunDevice {
     }
 
     @Override
-    public void close() {
+    public void close() throws Exception {
         if (closing) {
             return;
         }
         closing = true;
         int close = NativeLinuxApi.close(fd);
         CheckInvoke.check(close, 0);
+        Iptables.deleteFilterRule(getName(), ethName);
+        Iptables.deleteNatRule(ethName);
     }
 
     @Override
@@ -122,7 +153,7 @@ public class LinuxTunDevice extends TunDevice {
     }
 
     public static void main(String[] args) throws Exception {
-        LinuxTunDevice tunDevice = new LinuxTunDevice("tun", "sdwan", UUID.randomUUID().toString());
+        LinuxTunDevice tunDevice = new LinuxTunDevice("eth0", "tun", "sdwan", UUID.randomUUID().toString());
         tunDevice.open();
         tunDevice.setIP("192.168.1.1", 24);
         tunDevice.setMTU(1500);

@@ -4,11 +4,16 @@ import java.net.SocketAddress;
 
 public class TunAddress extends SocketAddress {
 
-    private String ifName;
+    private String tunName;
+    private String ethName;
     private String vip;
 
-    public String getIfName() {
-        return ifName;
+    public String getTunName() {
+        return tunName;
+    }
+
+    public String getEthName() {
+        return ethName;
     }
 
     public String getVip() {
@@ -19,7 +24,8 @@ public class TunAddress extends SocketAddress {
         this.vip = vip;
     }
 
-    public TunAddress(String ifName) {
-        this.ifName = ifName;
+    public TunAddress(String tunName, String ethName) {
+        this.tunName = tunName;
+        this.ethName = ethName;
     }
 }

@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class TunEngine implements InitializingBean, DisposableBean, Runnable {
 
-    public static final String TUN = "tun";
+    public static final String TUN = "sdwan";
 
     private SDWanNodeProperties properties;
     private SDWanNode sdWanNode;
@@ -115,7 +115,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
         }
     }
 
-    private TunChannel bootTun() {
+    private TunChannel bootTun() throws Exception {
         DefaultEventLoopGroup eventLoopGroup = new DefaultEventLoopGroup();
         Bootstrap bootstrap = new Bootstrap()
                 .group(eventLoopGroup)
@@ -151,7 +151,8 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                         });
                     }
                 });
-        ChannelFuture future = bootstrap.bind(new TunAddress(TUN));
+        NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(properties.getLocalIP());
+        ChannelFuture future = bootstrap.bind(new TunAddress(TUN, interfaceInfo.getName()));
         TunChannel tunChannel = (TunChannel) future.syncUninterruptibly().channel();
         return tunChannel;
     }

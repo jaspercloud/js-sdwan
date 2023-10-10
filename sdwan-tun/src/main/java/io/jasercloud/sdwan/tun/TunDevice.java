@@ -39,7 +39,7 @@ public abstract class TunDevice {
 
     public abstract void open() throws Exception;
 
-    public abstract void close();
+    public abstract void close() throws Exception;
 
     public abstract boolean isClosed();
 

@@ -78,14 +78,15 @@ public class TunChannel extends AbstractChannel {
     @Override
     protected void doBind(SocketAddress localAddress) throws Exception {
         tunAddress = (TunAddress) localAddress;
-        String ifName = tunAddress.getIfName();
-        String type = "sdwan";
+        String ethName = tunAddress.getEthName();
+        String tunName = tunAddress.getTunName();
+        String type = "jaspercloud";
         String guid = UUID.randomUUID().toString();
         if (PlatformDependent.isOsx()) {
         } else if (PlatformDependent.isWindows()) {
-            tunDevice = new WinTunDevice(ifName, type, guid);
+            tunDevice = new WinTunDevice(tunName, type, guid);
         } else {
-            tunDevice = new LinuxTunDevice(ifName, type, guid);
+            tunDevice = new LinuxTunDevice(ethName, tunName, type, guid);
         }
         tunDevice.open();
         Integer mtu = config().getOption(TunChannelConfig.MTU);
@@ -272,7 +273,7 @@ public class TunChannel extends AbstractChannel {
                         });
                     }
                 });
-        ChannelFuture future = bootstrap.bind(new TunAddress("tun"));
+        ChannelFuture future = bootstrap.bind(new TunAddress("tun", "eth0"));
         TunChannel channel = (TunChannel) future.syncUninterruptibly().channel();
         channel.setAddress("192.168.1.1", 24);
         CountDownLatch countDownLatch = new CountDownLatch(1);
