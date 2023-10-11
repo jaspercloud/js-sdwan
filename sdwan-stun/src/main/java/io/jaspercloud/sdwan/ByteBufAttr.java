@@ -15,7 +15,7 @@ public class ByteBufAttr extends Attr {
 
     @Override
     public ByteBuf toByteBuf() {
-        return byteBuf.retain();
+        return byteBuf;
     }
 
     @Override
