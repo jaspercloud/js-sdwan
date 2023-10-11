@@ -4,9 +4,16 @@ import io.jasercloud.sdwan.tun.linux.LinuxTunDevice;
 import io.jasercloud.sdwan.tun.windows.WinTunDevice;
 import io.jaspercloud.sdwan.NetworkInterfaceInfo;
 import io.jaspercloud.sdwan.NetworkInterfaceUtil;
-import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.*;
+import io.netty.channel.AbstractChannel;
+import io.netty.channel.ChannelConfig;
+import io.netty.channel.ChannelMetadata;
+import io.netty.channel.ChannelOutboundBuffer;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.ChannelPromise;
+import io.netty.channel.DefaultEventLoop;
+import io.netty.channel.EventLoop;
+import io.netty.channel.RecvByteBufAllocator;
 import io.netty.util.internal.PlatformDependent;
 
 import java.io.IOException;
@@ -14,7 +21,6 @@ import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
 
 public class TunChannel extends AbstractChannel {
@@ -252,32 +258,6 @@ public class TunChannel extends AbstractChannel {
                             final SocketAddress localAddress,
                             final ChannelPromise promise) {
         }
-    }
-
-    public static void main(String[] args) throws Exception {
-        Bootstrap bootstrap = new Bootstrap()
-                .group(new DefaultEventLoopGroup())
-                .channel(TunChannel.class)
-                .option(TunChannelConfig.MTU, 1500)
-                .handler(new ChannelInitializer<Channel>() {
-                    @Override
-                    protected void initChannel(final Channel ch) {
-                        ChannelPipeline pipeline = ch.pipeline();
-                        pipeline.addLast(new ChannelInboundHandlerAdapter() {
-                            @Override
-                            public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-                                ByteBuf byteBuf = (ByteBuf) msg;
-                                Ipv4Packet ipv4Packet = Ipv4Packet.decode(byteBuf);
-                                System.out.println();
-                            }
-                        });
-                    }
-                });
-        ChannelFuture future = bootstrap.bind(new TunAddress("tun", "eth0"));
-        TunChannel channel = (TunChannel) future.syncUninterruptibly().channel();
-        channel.setAddress("192.168.1.1", 24);
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        countDownLatch.await();
     }
 
 }

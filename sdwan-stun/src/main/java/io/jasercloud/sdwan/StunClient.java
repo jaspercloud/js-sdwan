@@ -4,7 +4,12 @@ import io.jaspercloud.sdwan.AsyncTask;
 import io.jaspercloud.sdwan.NioEventLoopFactory;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
@@ -97,10 +102,9 @@ public class StunClient implements InitializingBean {
         }
     }
 
-    public CompletableFuture<StunPacket> sendPunchingBind(InetSocketAddress address, String tranId, long timeout) {
-        CompletableFuture<StunPacket> future = AsyncTask.waitTask(tranId, timeout);
-        StunMessage message = new StunMessage(MessageType.BindRequest, tranId);
-        StunPacket request = new StunPacket(message, address);
+    public CompletableFuture<StunPacket> sendPunchingBind(StunPacket request, long timeout) {
+        StunMessage stunMessage = request.content();
+        CompletableFuture<StunPacket> future = AsyncTask.waitTask(stunMessage.getTranId(), timeout);
         channel.writeAndFlush(request);
         return future;
     }

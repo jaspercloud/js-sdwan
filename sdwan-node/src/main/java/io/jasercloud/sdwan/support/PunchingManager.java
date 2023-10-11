@@ -1,19 +1,37 @@
 package io.jasercloud.sdwan.support;
 
-import io.jasercloud.sdwan.*;
+import io.jasercloud.sdwan.AddressAttr;
+import io.jasercloud.sdwan.AttrType;
+import io.jasercloud.sdwan.CheckResult;
+import io.jasercloud.sdwan.MessageType;
+import io.jasercloud.sdwan.ProtoFamily;
+import io.jasercloud.sdwan.StringAttr;
+import io.jasercloud.sdwan.StunClient;
+import io.jasercloud.sdwan.StunMessage;
+import io.jasercloud.sdwan.StunPacket;
+import io.jasercloud.sdwan.StunRule;
+import io.jasercloud.sdwan.support.transporter.Transporter;
 import io.jasercloud.sdwan.tun.IpPacket;
+import io.jasercloud.sdwan.tun.Ipv4Packet;
 import io.jaspercloud.sdwan.AsyncTask;
+import io.jaspercloud.sdwan.ByteBufUtil;
 import io.jaspercloud.sdwan.CompletableFutures;
+import io.jaspercloud.sdwan.Ecdh;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
+import io.jaspercloud.sdwan.exception.ProcessException;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.bouncycastle.util.encoders.Hex;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 
+import javax.crypto.SecretKey;
 import java.net.InetSocketAddress;
+import java.security.KeyPair;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -22,7 +40,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeoutException;
 
 @Slf4j
-public class PunchingManager implements InitializingBean {
+public class PunchingManager implements InitializingBean, Transporter.Filter {
 
     @Autowired
     private ApplicationEventPublisher publisher;
@@ -33,6 +51,7 @@ public class PunchingManager implements InitializingBean {
 
     private Map<String, Node> nodeMap = new ConcurrentHashMap<>();
 
+    private KeyPair ecdhKeyPair;
     private CheckResult checkResult;
 
     public CheckResult getCheckResult() {
@@ -47,13 +66,14 @@ public class PunchingManager implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
+        ecdhKeyPair = Ecdh.generateKeyPair();
         checkResult = stunClient.check(stunServer, 3000);
         Thread stunCheckThread = new Thread(() -> {
             while (true) {
                 try {
                     checkResult = stunClient.check(stunServer, 3000);
                 } catch (TimeoutException e) {
-                    log.info("checkStunServer timeout");
+                    log.error("checkStunServer timeout");
                 } catch (Exception e) {
                     log.error(e.getMessage(), e);
                 }
@@ -93,38 +113,64 @@ public class PunchingManager implements InitializingBean {
         }, "node-heart");
         nodeHeartThread.setDaemon(true);
         nodeHeartThread.start();
-        stunClient.getChannel().pipeline().addLast(new StunChannelInboundHandler(MessageType.BindRequest) {
-
-            @Override
-            protected void channelRead0(ChannelHandlerContext ctx, StunPacket packet) throws Exception {
-                Channel channel = ctx.channel();
-                InetSocketAddress sender = packet.sender();
-                StunMessage request = packet.content();
-                StunMessage response = new StunMessage(MessageType.BindResponse);
-                response.setTranId(request.getTranId());
-                AddressAttr addressAttr = new AddressAttr(ProtoFamily.IPv4, sender.getHostString(), sender.getPort());
-                response.getAttrs().put(AttrType.MappedAddress, addressAttr);
-                StunPacket resp = new StunPacket(response, sender);
-                channel.writeAndFlush(resp);
-                AsyncTask.completeTask(request.getTranId(), packet);
-            }
-        });
         sdWanNode.addDataHandler(new SDWanDataHandler<SDWanProtos.Punching>() {
 
+            //发送bindReq请求
             @Override
-            public void onData(SDWanProtos.Punching request) {
+            public void onData(ChannelHandlerContext ctx, SDWanProtos.Punching request) throws Exception {
                 String vip = request.getSrcVIP();
                 SDWanProtos.SocketAddress srcAddr = request.getSrcAddr();
-                InetSocketAddress target = new InetSocketAddress(srcAddr.getIp(), srcAddr.getPort());
-                stunClient.sendPunchingBind(target, request.getTranId(), 3000)
+                InetSocketAddress address = new InetSocketAddress(srcAddr.getIp(), srcAddr.getPort());
+                String tranId = request.getTranId();
+                StunMessage message = new StunMessage(MessageType.BindRequest, tranId);
+                message.getAttrs().put(AttrType.EncryptKey, new StringAttr(Hex.toHexString(ecdhKeyPair.getPublic().getEncoded())));
+                message.getAttrs().put(AttrType.VIP, new StringAttr(vip));
+                StunPacket stunPacket = new StunPacket(message, address);
+                stunClient.sendPunchingBind(stunPacket, 3000)
                         .whenComplete((packet, throwable) -> {
                             if (null != throwable) {
                                 log.error("punchingBindTimout: {}", vip);
                                 return;
                             }
-                            InetSocketAddress addr = packet.sender();
-                            nodeMap.put(vip, new Node(addr, System.currentTimeMillis()));
+                            //saveNode
+                            try {
+                                StunMessage response = packet.content();
+                                StringAttr encryptKeyAttr = (StringAttr) response.getAttrs().get(AttrType.EncryptKey);
+                                String publicKey = encryptKeyAttr.getData();
+                                SecretKey secretKey = Ecdh.generateAESKey(ecdhKeyPair.getPrivate(), Hex.decode(publicKey));
+                                InetSocketAddress addr = packet.sender();
+                                nodeMap.computeIfAbsent(vip, key -> new Node(addr, secretKey, System.currentTimeMillis()));
+                            } catch (Exception e) {
+                                log.error(e.getMessage(), e);
+                            } finally {
+                                packet.release();
+                            }
                         });
+            }
+        });
+        stunClient.getChannel().pipeline().addLast(new StunChannelInboundHandler(MessageType.BindRequest) {
+
+            //响应bingResp请求
+            @Override
+            protected void channelRead0(ChannelHandlerContext ctx, StunPacket packet) throws Exception {
+                Channel channel = ctx.channel();
+                InetSocketAddress addr = packet.sender();
+                StunMessage request = packet.content();
+                StunMessage response = new StunMessage(MessageType.BindResponse);
+                response.setTranId(request.getTranId());
+                AddressAttr addressAttr = new AddressAttr(ProtoFamily.IPv4, addr.getHostString(), addr.getPort());
+                response.getAttrs().put(AttrType.MappedAddress, addressAttr);
+                response.getAttrs().put(AttrType.EncryptKey, new StringAttr(Hex.toHexString(ecdhKeyPair.getPublic().getEncoded())));
+                StunPacket resp = new StunPacket(response, addr);
+                channel.writeAndFlush(resp);
+                AsyncTask.completeTask(request.getTranId(), packet);
+                //saveNode
+                StringAttr encryptKeyAttr = (StringAttr) request.getAttrs().get(AttrType.EncryptKey);
+                String publicKey = encryptKeyAttr.getData();
+                StringAttr vipAttr = (StringAttr) request.getAttrs().get(AttrType.VIP);
+                String vip = vipAttr.getData();
+                SecretKey secretKey = Ecdh.generateAESKey(ecdhKeyPair.getPrivate(), Hex.decode(publicKey));
+                nodeMap.computeIfAbsent(vip, key -> new Node(addr, secretKey, System.currentTimeMillis()));
             }
         });
     }
@@ -145,9 +191,9 @@ public class PunchingManager implements InitializingBean {
         CompletableFuture<InetSocketAddress> publicFuture = punching(localVIP, sdArp, publicAddress);
         CompletableFuture<InetSocketAddress> future = CompletableFutures.order(internalFuture, publicFuture);
         return future.thenApply(address -> {
-            Node computeNode = nodeMap.computeIfAbsent(nodeVIP, key -> new Node(address, System.currentTimeMillis()));
+            Node computeNode = nodeMap.get(nodeVIP);
             computeNode.addAccessIP(ipPacket.getDstIP());
-            log.info("findPublicAddress: {} -> {}", nodeVIP, address);
+            log.debug("findPublicAddress: {} -> {}", nodeVIP, address);
             return address;
         });
     }
@@ -173,27 +219,58 @@ public class PunchingManager implements InitializingBean {
             // TODO: 2023/10/8
         } else if (StunRule.AddressDependent.equals(stunFiltering)) {
             // TODO: 2023/10/8
+        } else {
+            throw new UnsupportedOperationException();
         }
         return null;
+    }
+
+    @Override
+    public ByteBuf encode(InetSocketAddress address, ByteBuf byteBuf) {
+        try {
+            Ipv4Packet packet = Ipv4Packet.decodeMark(byteBuf);
+            Node node = nodeMap.get(packet.getDstIP());
+            if (null == node) {
+                throw new ProcessException("not found node");
+            }
+            byte[] bytes = Ecdh.encryptAES(ByteBufUtil.toBytes(byteBuf), node.getSecretKey());
+            return ByteBufUtil.toByteBuf(bytes);
+        } catch (Exception e) {
+            throw new ProcessException(e.getMessage(), e);
+        } finally {
+            byteBuf.release();
+        }
+    }
+
+    @Override
+    public ByteBuf decode(InetSocketAddress address, ByteBuf byteBuf) {
+        try {
+            Ipv4Packet packet = Ipv4Packet.decodeMark(byteBuf);
+            Node node = nodeMap.get(packet.getSrcIP());
+            byte[] bytes = Ecdh.decryptAES(ByteBufUtil.toBytes(byteBuf), node.getSecretKey());
+            return ByteBufUtil.toByteBuf(bytes);
+        } catch (Exception e) {
+            throw new ProcessException(e.getMessage(), e);
+        } finally {
+            byteBuf.release();
+        }
     }
 
     @Data
     public static class Node {
 
         private InetSocketAddress address;
+        private SecretKey secretKey;
         private Set<String> accessIPList = new ConcurrentSkipListSet<>();
         private long lastHeart;
-
-        public Set<String> getAccessIPList() {
-            return accessIPList;
-        }
 
         public void addAccessIP(String ip) {
             accessIPList.add(ip);
         }
 
-        public Node(InetSocketAddress address, long lastHeart) {
+        public Node(InetSocketAddress address, SecretKey secretKey, long lastHeart) {
             this.address = address;
+            this.secretKey = secretKey;
             this.lastHeart = lastHeart;
         }
     }

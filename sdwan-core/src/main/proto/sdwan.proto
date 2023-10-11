@@ -6,6 +6,8 @@ enum MessageCode {
   Success = 0;
   NodeTypeError = 1;
   NotEnough = 2;
+  VipBound = 3;
+  NotFoundSDArp = 4;
 }
 
 enum MsgTypeCode {

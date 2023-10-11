@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-public class DataAttr extends Attr {
+public class ByteBufAttr extends Attr {
 
     private ByteBuf byteBuf;
 
