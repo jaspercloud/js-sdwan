@@ -9,7 +9,16 @@ import javax.crypto.KeyAgreement;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import java.security.*;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Security;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 
@@ -65,27 +74,15 @@ public final class Ecdh {
 
     // 使用AES加密数据
     public static byte[] encryptAES(byte[] data, SecretKey aesKey) throws Exception {
-        long s = System.currentTimeMillis();
-        try {
-            Cipher cipher = Cipher.getInstance("AES", "BC");
-            cipher.init(Cipher.ENCRYPT_MODE, aesKey);
-            return cipher.doFinal(data);
-        } finally {
-            long e = System.currentTimeMillis();
-            System.out.println("Ecdh:encryptAES:" + (e - s));
-        }
+        Cipher cipher = Cipher.getInstance("AES", "BC");
+        cipher.init(Cipher.ENCRYPT_MODE, aesKey);
+        return cipher.doFinal(data);
     }
 
     // 使用AES解密数据
     public static byte[] decryptAES(byte[] data, SecretKey aesKey) throws Exception {
-        long s = System.currentTimeMillis();
-        try {
-            Cipher cipher = Cipher.getInstance("AES", "BC");
-            cipher.init(Cipher.DECRYPT_MODE, aesKey);
-            return cipher.doFinal(data);
-        } finally {
-            long e = System.currentTimeMillis();
-            System.out.println("Ecdh:decryptAES:" + (e - s));
-        }
+        Cipher cipher = Cipher.getInstance("AES", "BC");
+        cipher.init(Cipher.DECRYPT_MODE, aesKey);
+        return cipher.doFinal(data);
     }
 }

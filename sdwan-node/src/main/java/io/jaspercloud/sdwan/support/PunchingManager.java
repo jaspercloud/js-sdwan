@@ -124,7 +124,7 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
                 String tranId = request.getTranId();
                 StunMessage message = new StunMessage(MessageType.BindRequest, tranId);
                 message.getAttrs().put(AttrType.EncryptKey, new StringAttr(Hex.toHexString(ecdhKeyPair.getPublic().getEncoded())));
-                message.getAttrs().put(AttrType.VIP, new StringAttr(vip));
+                message.getAttrs().put(AttrType.VIP, new StringAttr(request.getDstVIP()));
                 StunPacket stunPacket = new StunPacket(message, address);
                 stunClient.sendPunchingBind(stunPacket, 3000)
                         .whenComplete((packet, throwable) -> {
@@ -156,6 +156,15 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
                 Channel channel = ctx.channel();
                 InetSocketAddress addr = packet.sender();
                 StunMessage request = packet.content();
+                //saveNode
+                StringAttr encryptKeyAttr = (StringAttr) request.getAttrs().get(AttrType.EncryptKey);
+                String publicKey = encryptKeyAttr.getData();
+                SecretKey secretKey = Ecdh.generateAESKey(ecdhKeyPair.getPrivate(), Hex.decode(publicKey));
+                StringAttr vipAttr = (StringAttr) request.getAttrs().get(AttrType.VIP);
+                String vip = vipAttr.getData();
+                Node computeNode = new Node(addr, secretKey, System.currentTimeMillis());
+                nodeMap.computeIfAbsent(vip, key -> computeNode);
+                //resp
                 StunMessage response = new StunMessage(MessageType.BindResponse);
                 response.setTranId(request.getTranId());
                 AddressAttr addressAttr = new AddressAttr(ProtoFamily.IPv4, addr.getHostString(), addr.getPort());
@@ -163,14 +172,8 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
                 response.getAttrs().put(AttrType.EncryptKey, new StringAttr(Hex.toHexString(ecdhKeyPair.getPublic().getEncoded())));
                 StunPacket resp = new StunPacket(response, addr);
                 channel.writeAndFlush(resp);
+                //completeTask
                 AsyncTask.completeTask(request.getTranId(), packet);
-                //saveNode
-                StringAttr encryptKeyAttr = (StringAttr) request.getAttrs().get(AttrType.EncryptKey);
-                String publicKey = encryptKeyAttr.getData();
-                StringAttr vipAttr = (StringAttr) request.getAttrs().get(AttrType.VIP);
-                String vip = vipAttr.getData();
-                SecretKey secretKey = Ecdh.generateAESKey(ecdhKeyPair.getPrivate(), Hex.decode(publicKey));
-                nodeMap.computeIfAbsent(vip, key -> new Node(addr, secretKey, System.currentTimeMillis()));
             }
         });
     }
@@ -192,15 +195,9 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
         CompletableFuture<StunPacket> future = CompletableFutures.order(internalFuture, publicFuture);
         return future.thenApply(resp -> {
             try {
-                StunMessage stunMessage = resp.content();
                 InetSocketAddress addr = resp.sender();
-                //saveNode
-                StringAttr encryptKeyAttr = (StringAttr) stunMessage.getAttrs().get(AttrType.EncryptKey);
-                String publicKey = encryptKeyAttr.getData();
-                SecretKey secretKey = Ecdh.generateAESKey(ecdhKeyPair.getPrivate(), Hex.decode(publicKey));
-                Node computeNode = new Node(addr, secretKey, System.currentTimeMillis());
-                nodeMap.computeIfAbsent(nodeVIP, key -> computeNode);
-                computeNode.addAccessIP(ipPacket.getDstIP());
+                Node queryNode = nodeMap.get(nodeVIP);
+                queryNode.addAccessIP(ipPacket.getDstIP());
                 log.debug("findPublicAddress: {} -> {}", nodeVIP, addr);
                 return addr;
             } catch (Exception e) {
@@ -223,12 +220,12 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
             message.getAttrs().put(AttrType.VIP, new StringAttr(localVIP));
             StunPacket request = new StunPacket(message, socketAddress);
             CompletableFuture<StunPacket> future = stunClient.sendBind(request, 3000);
-            return future;
+            return processNodeCache(dstVIP, future);
         } else if (StunRule.EndpointIndependent.equals(self.getFiltering())) {
             String tranId = StunMessage.genTranId();
             CompletableFuture<StunPacket> future = AsyncTask.waitTask(tranId, 3000);
             sdWanNode.forwardPunching(localVIP, dstVIP, address.getHostString(), address.getPort(), tranId);
-            return future;
+            return processNodeCache(dstVIP, future);
         } else if (StunRule.EndpointIndependent.equals(stunFiltering)) {
             //A -> B 发送bindReq请求
             StunMessage message = new StunMessage(MessageType.BindRequest);
@@ -236,16 +233,15 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
             message.getAttrs().put(AttrType.VIP, new StringAttr(localVIP));
             StunPacket request = new StunPacket(message, socketAddress);
             CompletableFuture<StunPacket> future = stunClient.sendBind(request, 3000);
-            return future;
+            return processNodeCache(dstVIP, future);
         } else if (StunRule.AddressDependent.equals(self.getFiltering())) {
             // TODO: 2023/10/11 test
             //A -> B 发送bindReq请求
             StunMessage message = new StunMessage(MessageType.BindRequest);
             message.getAttrs().put(AttrType.EncryptKey, new StringAttr(Hex.toHexString(ecdhKeyPair.getPublic().getEncoded())));
-            message.getAttrs().put(AttrType.VIP, new StringAttr(localVIP));
             StunPacket request = new StunPacket(message, socketAddress);
             CompletableFuture<StunPacket> future = stunClient.sendBind(request, 3000);
-            return future;
+            return processNodeCache(dstVIP, future);
         } else if (StunRule.AddressDependent.equals(stunFiltering)) {
             // TODO: 2023/10/11 test
             //A -> B 发送bindReq请求
@@ -254,10 +250,28 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
             message.getAttrs().put(AttrType.VIP, new StringAttr(localVIP));
             StunPacket request = new StunPacket(message, socketAddress);
             CompletableFuture<StunPacket> future = stunClient.sendBind(request, 3000);
-            return future;
+            return processNodeCache(dstVIP, future);
         } else {
             throw new UnsupportedOperationException();
         }
+    }
+
+    private CompletableFuture<StunPacket> processNodeCache(String vip, CompletableFuture<StunPacket> future) {
+        return future.thenApply(packet -> {
+            try {
+                StunMessage stunMessage = packet.content();
+                InetSocketAddress addr = packet.sender();
+                //saveNode
+                StringAttr encryptKeyAttr = (StringAttr) stunMessage.getAttrs().get(AttrType.EncryptKey);
+                String publicKey = encryptKeyAttr.getData();
+                SecretKey secretKey = Ecdh.generateAESKey(ecdhKeyPair.getPrivate(), Hex.decode(publicKey));
+                Node computeNode = new Node(addr, secretKey, System.currentTimeMillis());
+                nodeMap.computeIfAbsent(vip, key -> computeNode);
+                return packet;
+            } catch (Exception e) {
+                throw new ProcessException(e.getMessage(), e);
+            }
+        });
     }
 
     @Override
