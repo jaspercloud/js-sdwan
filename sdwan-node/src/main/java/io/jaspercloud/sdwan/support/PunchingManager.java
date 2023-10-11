@@ -1,6 +1,19 @@
 package io.jaspercloud.sdwan.support;
 
-import io.jaspercloud.sdwan.*;
+import io.jaspercloud.sdwan.AddressAttr;
+import io.jaspercloud.sdwan.AsyncTask;
+import io.jaspercloud.sdwan.AttrType;
+import io.jaspercloud.sdwan.ByteBufUtil;
+import io.jaspercloud.sdwan.CheckResult;
+import io.jaspercloud.sdwan.CompletableFutures;
+import io.jaspercloud.sdwan.Ecdh;
+import io.jaspercloud.sdwan.MessageType;
+import io.jaspercloud.sdwan.ProtoFamily;
+import io.jaspercloud.sdwan.StringAttr;
+import io.jaspercloud.sdwan.StunClient;
+import io.jaspercloud.sdwan.StunMessage;
+import io.jaspercloud.sdwan.StunPacket;
+import io.jaspercloud.sdwan.StunRule;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.support.transporter.Transporter;
@@ -225,13 +238,26 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
             CompletableFuture<StunPacket> future = stunClient.sendBind(request, 3000);
             return future;
         } else if (StunRule.AddressDependent.equals(self.getFiltering())) {
-            // TODO: 2023/10/8
+            // TODO: 2023/10/11 test
+            //A -> B 发送bindReq请求
+            StunMessage message = new StunMessage(MessageType.BindRequest);
+            message.getAttrs().put(AttrType.EncryptKey, new StringAttr(Hex.toHexString(ecdhKeyPair.getPublic().getEncoded())));
+            message.getAttrs().put(AttrType.VIP, new StringAttr(localVIP));
+            StunPacket request = new StunPacket(message, socketAddress);
+            CompletableFuture<StunPacket> future = stunClient.sendBind(request, 3000);
+            return future;
         } else if (StunRule.AddressDependent.equals(stunFiltering)) {
-            // TODO: 2023/10/8
+            // TODO: 2023/10/11 test
+            //A -> B 发送bindReq请求
+            StunMessage message = new StunMessage(MessageType.BindRequest);
+            message.getAttrs().put(AttrType.EncryptKey, new StringAttr(Hex.toHexString(ecdhKeyPair.getPublic().getEncoded())));
+            message.getAttrs().put(AttrType.VIP, new StringAttr(localVIP));
+            StunPacket request = new StunPacket(message, socketAddress);
+            CompletableFuture<StunPacket> future = stunClient.sendBind(request, 3000);
+            return future;
         } else {
             throw new UnsupportedOperationException();
         }
-        return null;
     }
 
     @Override
