@@ -98,7 +98,7 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
                                         publisher.publishEvent(new NodeOfflineEvent(this, accessIP));
                                     }
                                     nodeMap.remove(vip);
-                                    log.error("punchingTimout: {}", node.getAddress());
+                                    log.error("punchingHeartTimout: {}", node.getAddress());
                                     return;
                                 }
                                 node.setLastHeart(System.currentTimeMillis());
