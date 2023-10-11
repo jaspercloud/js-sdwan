@@ -76,7 +76,7 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                         pipeline.addLast(new ProtobufDecoder(SDWanProtos.Message.getDefaultInstance()));
                         pipeline.addLast(new ProtobufVarint32LengthFieldPrepender());
                         pipeline.addLast(new ProtobufEncoder());
-                        pipeline.addLast(new SimpleChannelInboundHandler<SDWanProtos.Message>() {
+                        pipeline.addLast("SDWanNode:message", new SimpleChannelInboundHandler<SDWanProtos.Message>() {
 
                             private ScheduledFuture<?> heartScheduledFuture;
 
@@ -114,7 +114,7 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                                 }
                             }
                         });
-                        pipeline.addLast(new ChannelInboundHandlerAdapter() {
+                        pipeline.addLast("SDWanNode:receive", new ChannelInboundHandlerAdapter() {
                             @Override
                             public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
                                 for (SDWanDataHandler handler : handlerList) {

@@ -31,7 +31,7 @@ public class StunTransporter implements Transporter {
 
     @Override
     public void bind(TunChannel tunChannel) {
-        stunClient.getChannel().pipeline().addLast("Transporter:eadStun", new StunChannelInboundHandler(MessageType.Transfer) {
+        stunClient.getChannel().pipeline().addLast("Transporter:readStun", new StunChannelInboundHandler(MessageType.Transfer) {
 
             @Override
             protected void channelRead0(ChannelHandlerContext ctx, StunPacket stunPacket) throws Exception {
