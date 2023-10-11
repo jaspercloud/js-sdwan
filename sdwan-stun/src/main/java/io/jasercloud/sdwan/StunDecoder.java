@@ -39,7 +39,7 @@ public class StunDecoder extends MessageToMessageDecoder<DatagramPacket> {
                 Attr attr = new AddressAttr(ProtoFamily.valueOf(family), ip, port);
                 message.getAttrs().put(AttrType.valueOf(t), attr);
             } else if (AttrType.Data.equals(AttrType.valueOf(t))) {
-                Attr attr = new DataAttr(v.retain());
+                Attr attr = new ByteBufAttr(v.retain());
                 message.getAttrs().put(AttrType.valueOf(t), attr);
             }
         }

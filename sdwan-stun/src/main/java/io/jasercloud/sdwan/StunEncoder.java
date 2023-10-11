@@ -43,8 +43,8 @@ public class StunEncoder extends MessageToMessageEncoder<StunPacket> {
 
     private void processData(Channel channel, Map.Entry<AttrType, Attr> entry, ByteBuf attrsByteBuf) {
         AttrType key = entry.getKey();
-        DataAttr dataAttr = (DataAttr) entry.getValue();
-        ByteBuf byteBuf = dataAttr.getByteBuf();
+        ByteBufAttr byteBufAttr = (ByteBufAttr) entry.getValue();
+        ByteBuf byteBuf = byteBufAttr.getByteBuf();
         ByteBuf attrByteBuf = channel.alloc().buffer();
         try {
             attrByteBuf.writeShort(key.getCode());

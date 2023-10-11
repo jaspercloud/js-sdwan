@@ -7,7 +7,9 @@ public enum AttrType {
     ResponseOrigin(0x802b),
     OtherAddress(0x802c),
     XorMappedAddress(0x0020),
-    Data(0x0004);
+    EncryptKey(0x8001),
+    VIP(0x8002),
+    Data(0x8003);
 
     private int code;
 

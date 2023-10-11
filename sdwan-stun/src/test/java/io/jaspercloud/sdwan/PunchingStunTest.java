@@ -1,11 +1,11 @@
 package io.jaspercloud.sdwan;
 
+import io.jasercloud.sdwan.MessageType;
 import io.jasercloud.sdwan.StunClient;
 import io.jasercloud.sdwan.StunMessage;
 import io.jasercloud.sdwan.StunPacket;
 
 import java.net.InetSocketAddress;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
 public class PunchingStunTest {
@@ -18,7 +18,9 @@ public class PunchingStunTest {
         StunClient stunClient2 = new StunClient(address2);
         stunClient2.afterPropertiesSet();
         String tranId = StunMessage.genTranId();
-        StunPacket stunPacket = stunClient2.sendPunchingBind(address1, tranId, 3000).get();
+        StunMessage message = new StunMessage(MessageType.BindRequest, tranId);
+        StunPacket packet = new StunPacket(message, address1);
+        StunPacket stunPacket = stunClient2.sendPunchingBind(packet, 3000).get();
         CountDownLatch countDownLatch = new CountDownLatch(1);
         countDownLatch.await();
     }

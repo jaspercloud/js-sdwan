@@ -1,5 +1,6 @@
 package io.jasercloud.sdwan.support;
 
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.internal.TypeParameterMatcher;
 
 public abstract class SDWanDataHandler<I> {
@@ -10,12 +11,12 @@ public abstract class SDWanDataHandler<I> {
         matcher = TypeParameterMatcher.find(this, SDWanDataHandler.class, "I");
     }
 
-    public void receive(Object msg) {
+    public void receive(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (!matcher.match(msg)) {
             return;
         }
-        onData((I) msg);
+        onData(ctx, (I) msg);
     }
 
-    public abstract void onData(I msg);
+    public abstract void onData(ChannelHandlerContext ctx, I msg) throws Exception;
 }
