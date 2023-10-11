@@ -41,9 +41,9 @@ public class StunClient implements InitializingBean {
                     @Override
                     protected void initChannel(Channel ch) throws Exception {
                         ChannelPipeline pipeline = ch.pipeline();
-                        pipeline.addLast(new StunEncoder());
-                        pipeline.addLast(new StunDecoder());
-                        pipeline.addLast(new SimpleChannelInboundHandler<StunPacket>() {
+                        pipeline.addLast("StunClient:stunEncoder", new StunEncoder());
+                        pipeline.addLast("StunClient:stunDecoder", new StunDecoder());
+                        pipeline.addLast("StunClient:stunProcess", new SimpleChannelInboundHandler<StunPacket>() {
                             @Override
                             protected void channelRead0(ChannelHandlerContext ctx, StunPacket packet) throws Exception {
                                 Channel channel = ctx.channel();

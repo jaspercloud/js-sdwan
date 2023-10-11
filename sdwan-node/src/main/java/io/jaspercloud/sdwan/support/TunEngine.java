@@ -133,7 +133,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                     @Override
                     protected void initChannel(final Channel ch) {
                         ChannelPipeline pipeline = ch.pipeline();
-                        pipeline.addLast("readTun", new SimpleChannelInboundHandler<ByteBuf>() {
+                        pipeline.addLast("TunEngine:readTun", new SimpleChannelInboundHandler<ByteBuf>() {
                             @Override
                             protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
                                 TunAddress tunAddress = (TunAddress) ctx.channel().localAddress();

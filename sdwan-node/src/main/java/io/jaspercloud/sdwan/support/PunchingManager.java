@@ -148,9 +148,9 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
                         });
             }
         });
-        stunClient.getChannel().pipeline().addLast(new StunChannelInboundHandler(MessageType.BindRequest) {
+        stunClient.getChannel().pipeline().addLast("bindResp", new StunChannelInboundHandler(MessageType.BindRequest) {
 
-            //响应bingResp请求
+            //响应bindResp请求
             @Override
             protected void channelRead0(ChannelHandlerContext ctx, StunPacket packet) throws Exception {
                 Channel channel = ctx.channel();
