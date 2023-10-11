@@ -278,6 +278,8 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
             return ByteBufUtil.toByteBuf(bytes);
         } catch (Exception e) {
             throw new ProcessException(e.getMessage(), e);
+        } finally {
+            byteBuf.release();
         }
     }
 
@@ -293,6 +295,8 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
             return ByteBufUtil.toByteBuf(bytes);
         } catch (Exception e) {
             throw new ProcessException(e.getMessage(), e);
+        } finally {
+            byteBuf.release();
         }
     }
 
