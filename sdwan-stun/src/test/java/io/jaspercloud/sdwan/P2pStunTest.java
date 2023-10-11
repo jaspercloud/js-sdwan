@@ -1,8 +1,5 @@
 package io.jaspercloud.sdwan;
 
-import io.jasercloud.sdwan.StunClient;
-import io.jasercloud.sdwan.StunPacket;
-
 import java.net.InetSocketAddress;
 import java.util.concurrent.CountDownLatch;
 
