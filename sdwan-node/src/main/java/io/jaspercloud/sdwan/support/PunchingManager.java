@@ -271,7 +271,7 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
         Node node = nodeMap.values().stream().filter(e -> Objects.equals(e.getAddress(), address))
                 .findAny().orElse(null);
         if (null == node) {
-            throw new ProcessException();
+            throw new ProcessException("not found node");
         }
         try {
             byte[] bytes = Ecdh.encryptAES(ByteBufUtil.toBytes(byteBuf), node.getSecretKey());
@@ -286,7 +286,7 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
         Node node = nodeMap.values().stream().filter(e -> Objects.equals(e.getAddress(), address))
                 .findAny().orElse(null);
         if (null == node) {
-            throw new ProcessException();
+            throw new ProcessException("not found node");
         }
         try {
             byte[] bytes = Ecdh.decryptAES(ByteBufUtil.toBytes(byteBuf), node.getSecretKey());
