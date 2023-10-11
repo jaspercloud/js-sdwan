@@ -3,8 +3,6 @@ package io.jaspercloud.sdwan;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
-import io.jasercloud.sdwan.CheckResult;
-import io.jasercloud.sdwan.StunClient;
 import org.slf4j.impl.StaticLoggerBinder;
 
 import java.net.InetSocketAddress;

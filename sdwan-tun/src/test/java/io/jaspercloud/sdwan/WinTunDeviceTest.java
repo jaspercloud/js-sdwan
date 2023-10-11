@@ -1,7 +1,7 @@
 package io.jaspercloud.sdwan;
 
-import io.jasercloud.sdwan.tun.Ipv4Packet;
-import io.jasercloud.sdwan.tun.windows.WinTunDevice;
+import io.jaspercloud.sdwan.tun.Ipv4Packet;
+import io.jaspercloud.sdwan.tun.windows.WinTunDevice;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.UnpooledByteBufAllocator;
 
