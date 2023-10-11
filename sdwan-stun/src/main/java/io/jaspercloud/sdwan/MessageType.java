@@ -4,7 +4,8 @@ public enum MessageType {
 
     BindRequest(0x0001),
     BindResponse(0x0101),
-    Transfer(0x4);
+    Transfer(0x4),
+    Heart(0x5);
     private int code;
 
     public int getCode() {

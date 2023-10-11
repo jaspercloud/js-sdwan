@@ -91,7 +91,7 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
                 for (Map.Entry<String, Node> entry : nodeMap.entrySet()) {
                     String vip = entry.getKey();
                     Node node = entry.getValue();
-                    stunClient.sendBind(node.getAddress(), 3000)
+                    stunClient.sendHeart(node.getAddress(), 3000)
                             .whenComplete((packet, throwable) -> {
                                 if (null != throwable) {
                                     for (String accessIP : node.getAccessIPList()) {
