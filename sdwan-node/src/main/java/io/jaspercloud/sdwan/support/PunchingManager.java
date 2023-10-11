@@ -1,24 +1,10 @@
 package io.jaspercloud.sdwan.support;
 
-import io.jaspercloud.sdwan.AddressAttr;
-import io.jaspercloud.sdwan.AsyncTask;
-import io.jaspercloud.sdwan.AttrType;
-import io.jaspercloud.sdwan.ByteBufUtil;
-import io.jaspercloud.sdwan.CheckResult;
-import io.jaspercloud.sdwan.CompletableFutures;
-import io.jaspercloud.sdwan.Ecdh;
-import io.jaspercloud.sdwan.MessageType;
-import io.jaspercloud.sdwan.ProtoFamily;
-import io.jaspercloud.sdwan.StringAttr;
-import io.jaspercloud.sdwan.StunClient;
-import io.jaspercloud.sdwan.StunMessage;
-import io.jaspercloud.sdwan.StunPacket;
-import io.jaspercloud.sdwan.StunRule;
+import io.jaspercloud.sdwan.*;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.support.transporter.Transporter;
 import io.jaspercloud.sdwan.tun.IpPacket;
-import io.jaspercloud.sdwan.tun.Ipv4Packet;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -33,6 +19,7 @@ import javax.crypto.SecretKey;
 import java.net.InetSocketAddress;
 import java.security.KeyPair;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -187,18 +174,29 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
         }
         InetSocketAddress internalAddress = new InetSocketAddress(sdArp.getInternalAddr().getIp(), sdArp.getInternalAddr().getPort());
         InetSocketAddress publicAddress = new InetSocketAddress(sdArp.getPublicAddr().getIp(), sdArp.getPublicAddr().getPort());
-        CompletableFuture<InetSocketAddress> internalFuture = punching(localVIP, sdArp, internalAddress);
-        CompletableFuture<InetSocketAddress> publicFuture = punching(localVIP, sdArp, publicAddress);
-        CompletableFuture<InetSocketAddress> future = CompletableFutures.order(internalFuture, publicFuture);
-        return future.thenApply(address -> {
-            Node computeNode = nodeMap.get(nodeVIP);
-            computeNode.addAccessIP(ipPacket.getDstIP());
-            log.debug("findPublicAddress: {} -> {}", nodeVIP, address);
-            return address;
+        CompletableFuture<StunPacket> internalFuture = punching(localVIP, sdArp, internalAddress);
+        CompletableFuture<StunPacket> publicFuture = punching(localVIP, sdArp, publicAddress);
+        CompletableFuture<StunPacket> future = CompletableFutures.order(internalFuture, publicFuture);
+        return future.thenApply(resp -> {
+            try {
+                StunMessage stunMessage = resp.content();
+                InetSocketAddress addr = resp.sender();
+                //saveNode
+                StringAttr encryptKeyAttr = (StringAttr) stunMessage.getAttrs().get(AttrType.EncryptKey);
+                String publicKey = encryptKeyAttr.getData();
+                SecretKey secretKey = Ecdh.generateAESKey(ecdhKeyPair.getPrivate(), Hex.decode(publicKey));
+                Node computeNode = new Node(addr, secretKey, System.currentTimeMillis());
+                nodeMap.computeIfAbsent(nodeVIP, key -> computeNode);
+                computeNode.addAccessIP(ipPacket.getDstIP());
+                log.debug("findPublicAddress: {} -> {}", nodeVIP, addr);
+                return addr;
+            } catch (Exception e) {
+                throw new ProcessException(e.getMessage(), e);
+            }
         });
     }
 
-    private CompletableFuture<InetSocketAddress> punching(String localVIP, SDWanProtos.SDArpResp sdArp, InetSocketAddress socketAddress) {
+    private CompletableFuture<StunPacket> punching(String localVIP, SDWanProtos.SDArpResp sdArp, InetSocketAddress socketAddress) {
         String dstVIP = sdArp.getVip();
         String stunMapping = sdArp.getStunMapping();
         String stunFiltering = sdArp.getStunFiltering();
@@ -206,12 +204,18 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
         InetSocketAddress address = self.getMappingAddress();
         if (StunRule.EndpointIndependent.equals(self.getFiltering())
                 && StunRule.EndpointIndependent.equals(stunFiltering)) {
-            return CompletableFuture.completedFuture(socketAddress);
+            //A -> B 发送bindReq请求
+            StunMessage message = new StunMessage(MessageType.BindRequest);
+            message.getAttrs().put(AttrType.EncryptKey, new StringAttr(Hex.toHexString(ecdhKeyPair.getPublic().getEncoded())));
+            message.getAttrs().put(AttrType.VIP, new StringAttr(localVIP));
+            StunPacket request = new StunPacket(message, socketAddress);
+            CompletableFuture<StunPacket> future = stunClient.sendBind(request, 3000);
+            return future;
         } else if (StunRule.EndpointIndependent.equals(self.getFiltering())) {
             String tranId = StunMessage.genTranId();
             CompletableFuture<StunPacket> future = AsyncTask.waitTask(tranId, 3000);
             sdWanNode.forwardPunching(localVIP, dstVIP, address.getHostString(), address.getPort(), tranId);
-            return future.thenApply(e -> e.sender());
+            return future;
         } else if (StunRule.EndpointIndependent.equals(stunFiltering)) {
             //A -> B 发送bindReq请求
             StunMessage message = new StunMessage(MessageType.BindRequest);
@@ -219,20 +223,7 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
             message.getAttrs().put(AttrType.VIP, new StringAttr(localVIP));
             StunPacket request = new StunPacket(message, socketAddress);
             CompletableFuture<StunPacket> future = stunClient.sendBind(request, 3000);
-            return future.thenApply(resp -> {
-                try {
-                    StunMessage stunMessage = resp.content();
-                    InetSocketAddress addr = resp.sender();
-                    //saveNode
-                    StringAttr encryptKeyAttr = (StringAttr) stunMessage.getAttrs().get(AttrType.EncryptKey);
-                    String publicKey = encryptKeyAttr.getData();
-                    SecretKey secretKey = Ecdh.generateAESKey(ecdhKeyPair.getPrivate(), Hex.decode(publicKey));
-                    nodeMap.computeIfAbsent(dstVIP, key -> new Node(addr, secretKey, System.currentTimeMillis()));
-                    return addr;
-                } catch (Exception e) {
-                    throw new ProcessException(e.getMessage(), e);
-                }
-            });
+            return future;
         } else if (StunRule.AddressDependent.equals(self.getFiltering())) {
             // TODO: 2023/10/8
         } else if (StunRule.AddressDependent.equals(stunFiltering)) {
@@ -245,12 +236,12 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
 
     @Override
     public ByteBuf encode(InetSocketAddress address, ByteBuf byteBuf) {
+        Node node = nodeMap.values().stream().filter(e -> Objects.equals(e.getAddress(), address))
+                .findAny().orElse(null);
+        if (null == node) {
+            throw new ProcessException();
+        }
         try {
-            Ipv4Packet packet = Ipv4Packet.decodeMark(byteBuf);
-            Node node = nodeMap.get(packet.getDstIP());
-            if (null == node) {
-                throw new ProcessException("not found node");
-            }
             byte[] bytes = Ecdh.encryptAES(ByteBufUtil.toBytes(byteBuf), node.getSecretKey());
             return ByteBufUtil.toByteBuf(bytes);
         } catch (Exception e) {
@@ -260,9 +251,12 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
 
     @Override
     public ByteBuf decode(InetSocketAddress address, ByteBuf byteBuf) {
+        Node node = nodeMap.values().stream().filter(e -> Objects.equals(e.getAddress(), address))
+                .findAny().orElse(null);
+        if (null == node) {
+            throw new ProcessException();
+        }
         try {
-            Ipv4Packet packet = Ipv4Packet.decodeMark(byteBuf);
-            Node node = nodeMap.get(packet.getSrcIP());
             byte[] bytes = Ecdh.decryptAES(ByteBufUtil.toBytes(byteBuf), node.getSecretKey());
             return ByteBufUtil.toByteBuf(bytes);
         } catch (Exception e) {
