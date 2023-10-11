@@ -1,19 +1,6 @@
 package io.jaspercloud.sdwan.support;
 
-import io.jaspercloud.sdwan.AddressAttr;
-import io.jaspercloud.sdwan.AsyncTask;
-import io.jaspercloud.sdwan.AttrType;
-import io.jaspercloud.sdwan.ByteBufUtil;
-import io.jaspercloud.sdwan.CheckResult;
-import io.jaspercloud.sdwan.CompletableFutures;
-import io.jaspercloud.sdwan.Ecdh;
-import io.jaspercloud.sdwan.MessageType;
-import io.jaspercloud.sdwan.ProtoFamily;
-import io.jaspercloud.sdwan.StringAttr;
-import io.jaspercloud.sdwan.StunClient;
-import io.jaspercloud.sdwan.StunMessage;
-import io.jaspercloud.sdwan.StunPacket;
-import io.jaspercloud.sdwan.StunRule;
+import io.jaspercloud.sdwan.*;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.support.transporter.Transporter;
@@ -75,7 +62,12 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
                 } catch (TimeoutException e) {
                     log.error("checkStunServer timeout");
                 } catch (Exception e) {
-                    log.error(e.getMessage(), e);
+                    Throwable cause = e.getCause();
+                    if (cause instanceof TimeoutException) {
+                        log.error("checkStunServer timeout");
+                    } else {
+                        log.error(e.getMessage(), e);
+                    }
                 }
                 try {
                     Thread.sleep(5 * 1000);
