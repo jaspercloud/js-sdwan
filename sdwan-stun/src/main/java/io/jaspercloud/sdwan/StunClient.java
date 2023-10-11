@@ -107,6 +107,12 @@ public class StunClient implements InitializingBean {
         return future;
     }
 
+    public CompletableFuture<StunPacket> sendBind(StunPacket request, long timeout) {
+        CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), timeout);
+        channel.writeAndFlush(request);
+        return future;
+    }
+
     public CompletableFuture<StunPacket> sendBind(InetSocketAddress address, long timeout) {
         StunMessage message = new StunMessage(MessageType.BindRequest);
         StunPacket request = new StunPacket(message, address);

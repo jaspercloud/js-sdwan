@@ -1,8 +1,12 @@
 package io.jaspercloud.sdwan.support;
 
 import io.jaspercloud.sdwan.AddressAttr;
+import io.jaspercloud.sdwan.AsyncTask;
 import io.jaspercloud.sdwan.AttrType;
+import io.jaspercloud.sdwan.ByteBufUtil;
 import io.jaspercloud.sdwan.CheckResult;
+import io.jaspercloud.sdwan.CompletableFutures;
+import io.jaspercloud.sdwan.Ecdh;
 import io.jaspercloud.sdwan.MessageType;
 import io.jaspercloud.sdwan.ProtoFamily;
 import io.jaspercloud.sdwan.StringAttr;
@@ -10,15 +14,11 @@ import io.jaspercloud.sdwan.StunClient;
 import io.jaspercloud.sdwan.StunMessage;
 import io.jaspercloud.sdwan.StunPacket;
 import io.jaspercloud.sdwan.StunRule;
+import io.jaspercloud.sdwan.core.proto.SDWanProtos;
+import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.support.transporter.Transporter;
 import io.jaspercloud.sdwan.tun.IpPacket;
 import io.jaspercloud.sdwan.tun.Ipv4Packet;
-import io.jaspercloud.sdwan.AsyncTask;
-import io.jaspercloud.sdwan.ByteBufUtil;
-import io.jaspercloud.sdwan.CompletableFutures;
-import io.jaspercloud.sdwan.Ecdh;
-import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.exception.ProcessException;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -115,7 +115,7 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
         nodeHeartThread.start();
         sdWanNode.addDataHandler(new SDWanDataHandler<SDWanProtos.Punching>() {
 
-            //发送bindReq请求
+            //B->A forward bindReq请求
             @Override
             public void onData(ChannelHandlerContext ctx, SDWanProtos.Punching request) throws Exception {
                 String vip = request.getSrcVIP();
@@ -213,7 +213,12 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
             sdWanNode.forwardPunching(localVIP, dstVIP, address.getHostString(), address.getPort(), tranId);
             return future.thenApply(e -> e.sender());
         } else if (StunRule.EndpointIndependent.equals(stunFiltering)) {
-            CompletableFuture<StunPacket> future = stunClient.sendBind(socketAddress, 3000);
+            //A -> B 发送bindReq请求
+            StunMessage message = new StunMessage(MessageType.BindRequest);
+            message.getAttrs().put(AttrType.EncryptKey, new StringAttr(Hex.toHexString(ecdhKeyPair.getPublic().getEncoded())));
+            message.getAttrs().put(AttrType.VIP, new StringAttr(localVIP));
+            StunPacket request = new StunPacket(message, socketAddress);
+            CompletableFuture<StunPacket> future = stunClient.sendBind(request, 3000);
             return future.thenApply(e -> e.sender());
         } else if (StunRule.AddressDependent.equals(self.getFiltering())) {
             // TODO: 2023/10/8
