@@ -14,6 +14,11 @@ public class ByteBufAttr extends Attr {
     private ByteBuf byteBuf;
 
     @Override
+    public ByteBuf toByteBuf() {
+        return byteBuf.retain();
+    }
+
+    @Override
     public ReferenceCounted retain(int increment) {
         return byteBuf.retain(increment);
     }

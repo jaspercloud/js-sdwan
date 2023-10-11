@@ -11,6 +11,10 @@ public class ByteBufUtil {
         return DEFAULT.buffer(1500);
     }
 
+    public static ByteBuf create() {
+        return DEFAULT.buffer();
+    }
+
     public static ByteBuf toByteBuf(byte[] bytes) {
         ByteBuf buffer = DEFAULT.buffer(bytes.length);
         buffer.writeBytes(bytes);
