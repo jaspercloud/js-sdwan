@@ -49,7 +49,10 @@ public class StunClient implements InitializingBean {
                                 Channel channel = ctx.channel();
                                 InetSocketAddress sender = packet.sender();
                                 StunMessage request = packet.content();
-                                if (MessageType.BindResponse.equals(request.getMessageType())) {
+                                if (MessageType.Heart.equals(request.getMessageType())) {
+                                    StunPacket response = new StunPacket(request, sender);
+                                    ctx.writeAndFlush(response);
+                                } else if (MessageType.BindResponse.equals(request.getMessageType())) {
                                     AsyncTask.completeTask(request.getTranId(), packet);
                                 } else {
                                     ctx.fireChannelRead(packet.retain());
@@ -115,6 +118,14 @@ public class StunClient implements InitializingBean {
 
     public CompletableFuture<StunPacket> sendBind(InetSocketAddress address, long timeout) {
         StunMessage message = new StunMessage(MessageType.BindRequest);
+        StunPacket request = new StunPacket(message, address);
+        CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), timeout);
+        channel.writeAndFlush(request);
+        return future;
+    }
+
+    public CompletableFuture<StunPacket> sendHeart(InetSocketAddress address, long timeout) {
+        StunMessage message = new StunMessage(MessageType.Heart);
         StunPacket request = new StunPacket(message, address);
         CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), timeout);
         channel.writeAndFlush(request);
