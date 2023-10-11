@@ -219,7 +219,20 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
             message.getAttrs().put(AttrType.VIP, new StringAttr(localVIP));
             StunPacket request = new StunPacket(message, socketAddress);
             CompletableFuture<StunPacket> future = stunClient.sendBind(request, 3000);
-            return future.thenApply(e -> e.sender());
+            return future.thenApply(resp -> {
+                try {
+                    StunMessage stunMessage = resp.content();
+                    InetSocketAddress addr = resp.sender();
+                    //saveNode
+                    StringAttr encryptKeyAttr = (StringAttr) stunMessage.getAttrs().get(AttrType.EncryptKey);
+                    String publicKey = encryptKeyAttr.getData();
+                    SecretKey secretKey = Ecdh.generateAESKey(ecdhKeyPair.getPrivate(), Hex.decode(publicKey));
+                    nodeMap.computeIfAbsent(dstVIP, key -> new Node(addr, secretKey, System.currentTimeMillis()));
+                    return addr;
+                } catch (Exception e) {
+                    throw new ProcessException(e.getMessage(), e);
+                }
+            });
         } else if (StunRule.AddressDependent.equals(self.getFiltering())) {
             // TODO: 2023/10/8
         } else if (StunRule.AddressDependent.equals(stunFiltering)) {
@@ -242,8 +255,6 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
             return ByteBufUtil.toByteBuf(bytes);
         } catch (Exception e) {
             throw new ProcessException(e.getMessage(), e);
-        } finally {
-            byteBuf.release();
         }
     }
 
@@ -256,8 +267,6 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
             return ByteBufUtil.toByteBuf(bytes);
         } catch (Exception e) {
             throw new ProcessException(e.getMessage(), e);
-        } finally {
-            byteBuf.release();
         }
     }
 
