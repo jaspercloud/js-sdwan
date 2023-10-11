@@ -11,6 +11,7 @@ import java.util.List;
 public class StunDecoder extends MessageToMessageDecoder<DatagramPacket> {
 
     private List<AttrType> AddrTypeList = Arrays.asList(AttrType.MappedAddress, AttrType.OtherAddress, AttrType.ResponseOrigin);
+    private List<AttrType> StringTypeList = Arrays.asList(AttrType.VIP, AttrType.EncryptKey);
 
     @Override
     protected void decode(ChannelHandlerContext ctx, DatagramPacket msg, List<Object> out) throws Exception {
@@ -36,6 +37,9 @@ public class StunDecoder extends MessageToMessageDecoder<DatagramPacket> {
                 v.readBytes(bytes);
                 String ip = IPUtil.bytes2ip(bytes);
                 Attr attr = new AddressAttr(ProtoFamily.valueOf(family), ip, port);
+                message.getAttrs().put(AttrType.valueOf(t), attr);
+            } else if (StringTypeList.contains(AttrType.valueOf(t))) {
+                Attr attr = new StringAttr(new String(ByteBufUtil.toBytes(v)));
                 message.getAttrs().put(AttrType.valueOf(t), attr);
             } else if (AttrType.Data.equals(AttrType.valueOf(t))) {
                 Attr attr = new ByteBufAttr(v.retain());

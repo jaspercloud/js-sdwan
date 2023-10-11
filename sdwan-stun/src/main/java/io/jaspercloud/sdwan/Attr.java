@@ -1,10 +1,13 @@
 package io.jaspercloud.sdwan;
 
+import io.netty.buffer.ByteBuf;
 import io.netty.util.ReferenceCounted;
 import lombok.Data;
 
 @Data
-public class Attr implements Referenced {
+public abstract class Attr implements Referenced {
+
+    public abstract ByteBuf toByteBuf();
 
     @Override
     public ReferenceCounted retain(int increment) {

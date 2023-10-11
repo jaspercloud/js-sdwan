@@ -1,5 +1,6 @@
 package io.jaspercloud.sdwan;
 
+import io.netty.buffer.ByteBuf;
 import lombok.Data;
 
 @Data
@@ -16,5 +17,15 @@ public class AddressAttr extends Attr {
         this.family = family;
         this.ip = ip;
         this.port = port;
+    }
+
+    @Override
+    public ByteBuf toByteBuf() {
+        ByteBuf attrByteBuf = ByteBufUtil.create();
+        attrByteBuf.writeByte(0);
+        attrByteBuf.writeByte(getFamily().getCode());
+        attrByteBuf.writeShort(getPort());
+        attrByteBuf.writeBytes(IPUtil.ip2bytes(getIp()));
+        return attrByteBuf;
     }
 }
