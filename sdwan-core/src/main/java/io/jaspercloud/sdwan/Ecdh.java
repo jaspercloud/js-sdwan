@@ -34,12 +34,18 @@ public final class Ecdh {
 
     //生成共享密钥
     private static byte[] generateSecret(PrivateKey privateKey, byte[] publicKeyBytes) throws NoSuchProviderException, NoSuchAlgorithmException, InvalidKeyException, InvalidKeySpecException {
-        KeyAgreement bobKeyAgreement = KeyAgreement.getInstance("ECDH", "BC");
-        bobKeyAgreement.init(privateKey);
-        PublicKey alicePublicKey = KeyFactory.getInstance("ECDH", "BC").generatePublic(new X509EncodedKeySpec(publicKeyBytes));
-        bobKeyAgreement.doPhase(alicePublicKey, true);
-        byte[] sharedSecret = bobKeyAgreement.generateSecret();
-        return sharedSecret;
+        long s = System.currentTimeMillis();
+        try {
+            KeyAgreement bobKeyAgreement = KeyAgreement.getInstance("ECDH", "BC");
+            bobKeyAgreement.init(privateKey);
+            PublicKey alicePublicKey = KeyFactory.getInstance("ECDH", "BC").generatePublic(new X509EncodedKeySpec(publicKeyBytes));
+            bobKeyAgreement.doPhase(alicePublicKey, true);
+            byte[] sharedSecret = bobKeyAgreement.generateSecret();
+            return sharedSecret;
+        } finally {
+            long e = System.currentTimeMillis();
+            System.out.println("Ecdh:generateSecret:" + (e - s));
+        }
     }
 
     // 生成AES密钥
