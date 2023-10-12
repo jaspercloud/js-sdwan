@@ -1,13 +1,9 @@
 package io.jaspercloud.sdwan.node.config;
 
-import io.jaspercloud.sdwan.stun.StunClient;
-import io.jaspercloud.sdwan.node.support.PunchingManager;
-import io.jaspercloud.sdwan.node.support.SDArpManager;
-import io.jaspercloud.sdwan.node.support.SDWanNode;
-import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
-import io.jaspercloud.sdwan.node.support.TunEngine;
+import io.jaspercloud.sdwan.node.support.*;
 import io.jaspercloud.sdwan.node.support.transporter.StunTransporter;
 import io.jaspercloud.sdwan.node.support.transporter.Transporter;
+import io.jaspercloud.sdwan.stun.StunClient;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -31,9 +27,12 @@ public class AppConfig {
     }
 
     @Bean
-    public PunchingManager punchingManager(SDWanNode sdWanNode, StunClient stunClient) {
-        InetSocketAddress target = new InetSocketAddress("stun.miwifi.com", 3478);
-        return new PunchingManager(sdWanNode, stunClient, target);
+    public PunchingManager punchingManager(SDWanNodeProperties properties,
+                                           SDWanNode sdWanNode,
+                                           StunClient stunClient) {
+        String[] split = properties.getStunServer().split("\\:");
+        InetSocketAddress stunServerAddr = new InetSocketAddress(split[0], Integer.parseInt(split[1]));
+        return new PunchingManager(sdWanNode, stunClient, stunServerAddr);
     }
 
     @Bean
@@ -42,7 +41,8 @@ public class AppConfig {
     }
 
     @Bean
-    public StunTransporter stunTransporter(StunClient stunClient, ObjectProvider<List<Transporter.Filter>> provider) {
+    public StunTransporter stunTransporter(StunClient stunClient,
+                                           ObjectProvider<List<Transporter.Filter>> provider) {
         return new StunTransporter(stunClient, provider.getIfAvailable());
     }
 

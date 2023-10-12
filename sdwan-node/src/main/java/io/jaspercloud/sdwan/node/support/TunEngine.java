@@ -39,6 +39,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
 
     private AtomicReference<List<SDWanProtos.Route>> routeCache = new AtomicReference<>();
 
+    private NetworkInterfaceInfo interfaceInfo;
     private TunChannel tunChannel;
 
     public TunChannel getTunChannel() {
@@ -59,6 +60,10 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
 
     @Override
     public void afterPropertiesSet() throws Exception {
+        interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(properties.getLocalIP());
+        if (null == interfaceInfo) {
+            throw new ProcessException("not found localIP");
+        }
         tunChannel = bootTun();
         transporter.bind(tunChannel);
         sdWanNode.addDataHandler(new SDWanDataHandler<SDWanProtos.RouteList>() {
@@ -66,7 +71,6 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
             public void onData(ChannelHandlerContext ctx, SDWanProtos.RouteList msg) throws Exception {
                 TunAddress tunAddress = (TunAddress) ctx.channel().localAddress();
                 String localVIP = tunAddress.getVip();
-                NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(localVIP);
                 List<SDWanProtos.Route> routeList = msg.getRouteList();
                 updateRoutes(interfaceInfo, localVIP, routeList);
             }
@@ -88,6 +92,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                 SDWanProtos.RegResp regResp;
                 try {
                     regResp = sdWanNode.regist(
+                            interfaceInfo,
                             checkResult.getLocalPort(),
                             checkResult.getMapping(),
                             checkResult.getFiltering(),
@@ -116,7 +121,6 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                         .stream()
                         .filter(e -> !StringUtils.equals(e.getNexthop(), regResp.getVip()))
                         .collect(Collectors.toList());
-                NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(regResp.getVip());
                 addRoutes(interfaceInfo, regResp.getVip(), routeList);
                 log.info("TunEngine started");
                 //wait closed reconnect
@@ -170,7 +174,6 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                         });
                     }
                 });
-        NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(properties.getLocalIP());
         ChannelFuture future = bootstrap.bind(new TunAddress(TUN, interfaceInfo.getName()));
         TunChannel tunChannel = (TunChannel) future.syncUninterruptibly().channel();
         return tunChannel;

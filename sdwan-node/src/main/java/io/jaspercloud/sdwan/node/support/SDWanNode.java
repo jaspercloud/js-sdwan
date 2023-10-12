@@ -1,6 +1,9 @@
 package io.jaspercloud.sdwan.node.support;
 
-import io.jaspercloud.sdwan.*;
+import io.jaspercloud.sdwan.AsyncTask;
+import io.jaspercloud.sdwan.LogHandler;
+import io.jaspercloud.sdwan.NetworkInterfaceInfo;
+import io.jaspercloud.sdwan.NioEventLoopFactory;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.netty.bootstrap.Bootstrap;
@@ -13,7 +16,6 @@ import io.netty.handler.codec.protobuf.ProtobufEncoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
 import io.netty.util.concurrent.ScheduledFuture;
-import io.netty.util.internal.PlatformDependent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
@@ -48,10 +50,6 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        if (PlatformDependent.isWindows()
-                && SDWanNodeProperties.NodeType.MESH.equals(properties.getNodeType())) {
-            throw new ExceptionInInitializerError("only support linux");
-        }
         bootstrap = new Bootstrap();
         bootstrap.group(NioEventLoopFactory.BossGroup)
                 .channel(NioSocketChannel.class)
@@ -189,20 +187,26 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
         return future;
     }
 
-    public SDWanProtos.RegResp regist(int localPort,
+    public SDWanProtos.RegResp regist(NetworkInterfaceInfo interfaceInfo,
+                                      int localPort,
                                       String mapping,
                                       String filtering,
                                       InetSocketAddress mappingAddress,
                                       int timeout) throws Exception {
-        NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(properties.getLocalIP());
         String hardwareAddress = interfaceInfo.getHardwareAddress();
         SDWanProtos.SocketAddress internalAddr = SDWanProtos.SocketAddress.newBuilder()
                 .setIp(interfaceInfo.getInterfaceAddress().getAddress().getHostAddress())
                 .setPort(localPort)
                 .build();
+        SDWanProtos.NodeTypeCode nodeTypeCode;
+        if ("linux".equalsIgnoreCase(System.getProperty("os.name"))) {
+            nodeTypeCode = SDWanProtos.NodeTypeCode.MeshType;
+        } else {
+            nodeTypeCode = SDWanProtos.NodeTypeCode.SimpleType;
+        }
         SDWanProtos.RegReq.Builder regReqBuilder = SDWanProtos.RegReq.newBuilder()
                 .setMacAddress(hardwareAddress)
-                .setNodeType(SDWanProtos.NodeTypeCode.forNumber(properties.getNodeType().getCode()))
+                .setNodeType(nodeTypeCode)
                 .setInternalAddr(internalAddr)
                 .setStunMapping(mapping)
                 .setStunFiltering(filtering);
