@@ -20,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 
+import java.net.SocketException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -72,7 +73,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                 TunAddress tunAddress = (TunAddress) tunChannel.localAddress();
                 String localVIP = tunAddress.getVip();
                 List<SDWanProtos.Route> routeList = msg.getRouteList();
-                updateRoutes(interfaceInfo, localVIP, routeList);
+                updateRoutes(localVIP, routeList);
             }
         });
         Thread thread = new Thread(this, "tun-device");
@@ -119,7 +120,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                 tunChannel.setAddress(regResp.getVip(), regResp.getMaskBits());
                 log.info("tunAddress: {}/{}", regResp.getVip(), regResp.getMaskBits());
                 //配置路由
-                addRoutes(interfaceInfo, regResp.getVip(), regResp.getRouteList().getRouteList());
+                addRoutes(regResp.getVip(), regResp.getRouteList().getRouteList());
                 log.info("TunEngine started");
                 //wait closed reconnect
                 sdWanNode.getChannel().closeFuture().sync();
@@ -177,7 +178,8 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
         return tunChannel;
     }
 
-    private void addRoutes(NetworkInterfaceInfo interfaceInfo, String vip, List<SDWanProtos.Route> routeList) {
+    private void addRoutes(String vip, List<SDWanProtos.Route> routeList) throws SocketException {
+        NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(vip);
         routeList = routeList.stream()
                 .filter(e -> !StringUtils.equals(e.getNexthop(), vip))
                 .collect(Collectors.toList());
@@ -192,7 +194,8 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
         routeCache.set(routeList);
     }
 
-    private void updateRoutes(NetworkInterfaceInfo interfaceInfo, String vip, List<SDWanProtos.Route> routeList) {
+    private void updateRoutes(String vip, List<SDWanProtos.Route> routeList) throws SocketException {
+        NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(vip);
         List<SDWanProtos.Route> currentList = routeCache.get();
         if (null != currentList) {
             currentList.forEach(route -> {
@@ -204,6 +207,6 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                 }
             });
         }
-        addRoutes(interfaceInfo, vip, routeList);
+        addRoutes(vip, routeList);
     }
 }
