@@ -115,6 +115,8 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                     throw new ProcessException("no more vip");
                 } else if (SDWanProtos.MessageCode.VipBound_VALUE == regResp.getCode()) {
                     throw new ProcessException("vip bound");
+                } else if (SDWanProtos.MessageCode.SysError_VALUE == regResp.getCode()) {
+                    throw new ProcessException("server error");
                 }
                 //配置地址
                 tunChannel.setAddress(regResp.getVip(), regResp.getMaskBits());
