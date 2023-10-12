@@ -1,19 +1,15 @@
 package io.jaspercloud.sdwan.tun.linux;
 
+import io.jaspercloud.sdwan.NetworkInterfaceInfo;
+import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.tun.CheckInvoke;
 import io.jaspercloud.sdwan.tun.ProcessUtil;
 import io.jaspercloud.sdwan.tun.TunDevice;
-import io.jaspercloud.sdwan.NetworkInterfaceInfo;
-import io.jaspercloud.sdwan.exception.ProcessException;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import org.springframework.util.FileCopyUtils;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.io.*;
 
 public class LinuxTunDevice extends TunDevice {
 
@@ -31,7 +27,6 @@ public class LinuxTunDevice extends TunDevice {
 
     @Override
     public void open() throws Exception {
-        checkRoot();
         fd = NativeLinuxApi.open("/dev/net/tun", NativeLinuxApi.O_RDWR);
         int flags = NativeLinuxApi.fcntl(fd, NativeLinuxApi.F_GETFL, 0);
         int noblock = NativeLinuxApi.fcntl(fd, NativeLinuxApi.F_SETFL, flags | NativeLinuxApi.O_NONBLOCK);
@@ -43,12 +38,6 @@ public class LinuxTunDevice extends TunDevice {
         enableIpForward();
         addIptablesRules();
         setActive(true);
-    }
-
-    private void checkRoot() {
-        if (0 != NativeLinuxApi.geteuid()) {
-            throw new ProcessException("请以管理员权限运行");
-        }
     }
 
     private void enableIpForward() {
