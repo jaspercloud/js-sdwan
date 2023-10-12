@@ -31,6 +31,7 @@ public class LinuxTunDevice extends TunDevice {
 
     @Override
     public void open() throws Exception {
+        checkRoot();
         fd = NativeLinuxApi.open("/dev/net/tun", NativeLinuxApi.O_RDWR);
         int flags = NativeLinuxApi.fcntl(fd, NativeLinuxApi.F_GETFL, 0);
         int noblock = NativeLinuxApi.fcntl(fd, NativeLinuxApi.F_SETFL, flags | NativeLinuxApi.O_NONBLOCK);
@@ -42,6 +43,12 @@ public class LinuxTunDevice extends TunDevice {
         enableIpForward();
         addIptablesRules();
         setActive(true);
+    }
+
+    private void checkRoot() {
+        if (0 != NativeLinuxApi.geteuid()) {
+            throw new ProcessException("请以管理员权限运行");
+        }
     }
 
     private void enableIpForward() {

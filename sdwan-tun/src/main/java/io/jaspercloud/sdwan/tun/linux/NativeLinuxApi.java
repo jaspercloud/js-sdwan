@@ -22,6 +22,8 @@ public class NativeLinuxApi {
 
     public static final NativeLong TUNSETIFF = new NativeLong(0x400454caL);
 
+    public static native int geteuid() throws LastErrorException;
+
     public static native int open(String path, int flags) throws LastErrorException;
 
     public static native int fcntl(int fd, int cmd, long arg) throws LastErrorException;
