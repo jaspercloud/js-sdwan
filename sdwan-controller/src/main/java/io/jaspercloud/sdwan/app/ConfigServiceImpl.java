@@ -163,4 +163,10 @@ public class ConfigServiceImpl implements ConfigService {
             nodeRepository.deleteById(id);
         });
     }
+
+    @Override
+    public List<Node> getNodeList() {
+        List<Node> nodeList = nodeRepository.queryList();
+        return nodeList;
+    }
 }
