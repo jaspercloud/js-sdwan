@@ -1,4 +1,4 @@
-package io.jaspercloud.sdwan.infra.support;
+package io.jaspercloud.sdwan.node.support;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.internal.TypeParameterMatcher;

@@ -1,4 +1,4 @@
-package io.jaspercloud.sdwan.infra.support;
+package io.jaspercloud.sdwan.node.support;
 
 
 import lombok.Data;

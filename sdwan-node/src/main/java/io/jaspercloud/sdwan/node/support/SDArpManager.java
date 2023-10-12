@@ -1,4 +1,4 @@
-package io.jaspercloud.sdwan.infra.support;
+package io.jaspercloud.sdwan.node.support;
 
 import io.jaspercloud.sdwan.tun.IpPacket;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
