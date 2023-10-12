@@ -65,6 +65,10 @@ public class TunChannel extends AbstractChannel {
         tunDevice.addRoute(interfaceInfo, route, ip);
     }
 
+    public void delRoute(NetworkInterfaceInfo interfaceInfo, String route, String ip) throws Exception {
+        tunDevice.delRoute(interfaceInfo, route, ip);
+    }
+
     private void waitAddress(String vip, int timeout) throws Exception {
         long s = System.currentTimeMillis();
         while (true) {

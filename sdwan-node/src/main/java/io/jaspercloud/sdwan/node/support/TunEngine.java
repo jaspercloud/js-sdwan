@@ -1,11 +1,11 @@
 package io.jaspercloud.sdwan.node.support;
 
-import io.jaspercloud.sdwan.stun.CheckResult;
 import io.jaspercloud.sdwan.NetworkInterfaceInfo;
 import io.jaspercloud.sdwan.NetworkInterfaceUtil;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.node.support.transporter.Transporter;
+import io.jaspercloud.sdwan.stun.CheckResult;
 import io.jaspercloud.sdwan.tun.Ipv4Packet;
 import io.jaspercloud.sdwan.tun.TunAddress;
 import io.jaspercloud.sdwan.tun.TunChannel;
@@ -23,6 +23,7 @@ import org.springframework.beans.factory.InitializingBean;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -35,6 +36,8 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
     private Transporter transporter;
     private PunchingManager punchingManager;
     private SDArpManager sdArpManager;
+
+    private AtomicReference<List<SDWanProtos.Route>> routeCache = new AtomicReference<>();
 
     private TunChannel tunChannel;
 
@@ -54,6 +57,16 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
     public void afterPropertiesSet() throws Exception {
         tunChannel = bootTun();
         transporter.bind(tunChannel);
+        sdWanNode.addDataHandler(new SDWanDataHandler<SDWanProtos.RouteList>() {
+            @Override
+            public void onData(ChannelHandlerContext ctx, SDWanProtos.RouteList msg) throws Exception {
+                TunAddress tunAddress = (TunAddress) ctx.channel().localAddress();
+                String localVIP = tunAddress.getVip();
+                NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(localVIP);
+                List<SDWanProtos.Route> routeList = msg.getRouteList();
+                updateRoutes(interfaceInfo, localVIP, routeList);
+            }
+        });
         Thread thread = new Thread(this, "tun-device");
         thread.start();
     }
@@ -168,5 +181,21 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                 log.error(e.getMessage(), e);
             }
         });
+        routeCache.set(routeList);
+    }
+
+    private void updateRoutes(NetworkInterfaceInfo interfaceInfo, String vip, List<SDWanProtos.Route> routeList) {
+        List<SDWanProtos.Route> currentList = routeCache.get();
+        if (null != currentList) {
+            currentList.forEach(route -> {
+                try {
+                    log.info("delRoute: {} -> {}", route.getDestination(), vip);
+                    tunChannel.delRoute(interfaceInfo, route.getDestination(), vip);
+                } catch (Exception e) {
+                    log.error(e.getMessage(), e);
+                }
+            });
+        }
+        addRoutes(interfaceInfo, vip, routeList);
     }
 }

@@ -133,6 +133,13 @@ public class LinuxTunDevice extends TunDevice {
     }
 
     @Override
+    public void delRoute(NetworkInterfaceInfo interfaceInfo, String route, String ip) throws Exception {
+        String cmd = String.format("ip route delete %s via %s", route, ip);
+        int code = ProcessUtil.exec(cmd);
+        CheckInvoke.check(code, 0, 2);
+    }
+
+    @Override
     public void close() throws Exception {
         if (closing) {
             return;

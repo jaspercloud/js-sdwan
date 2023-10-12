@@ -101,6 +101,13 @@ public class WinTunDevice extends TunDevice {
     }
 
     @Override
+    public void delRoute(NetworkInterfaceInfo interfaceInfo, String route, String ip) throws Exception {
+        String cmd = String.format("route delete %s %s", route, ip);
+        int code = ProcessUtil.exec(cmd);
+        CheckInvoke.check(code, 0);
+    }
+
+    @Override
     public void close() {
         if (closing) {
             return;

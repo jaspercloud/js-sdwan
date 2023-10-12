@@ -1,21 +1,11 @@
 package io.jaspercloud.sdwan.node.support;
 
-import io.jaspercloud.sdwan.AsyncTask;
-import io.jaspercloud.sdwan.LogHandler;
-import io.jaspercloud.sdwan.NetworkInterfaceInfo;
-import io.jaspercloud.sdwan.NetworkInterfaceUtil;
-import io.jaspercloud.sdwan.NioEventLoopFactory;
+import io.jaspercloud.sdwan.*;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.protobuf.ProtobufDecoder;
@@ -99,7 +89,7 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                                 switch (request.getType().getNumber()) {
                                     case SDWanProtos.MsgTypeCode.RefreshRouteList_VALUE: {
                                         SDWanProtos.RouteList routeList = SDWanProtos.RouteList.parseFrom(request.getData());
-                                        // TODO: 2023/10/9
+                                        ctx.fireChannelRead(routeList);
                                         break;
                                     }
                                     case SDWanProtos.MsgTypeCode.PunchingType_VALUE: {
