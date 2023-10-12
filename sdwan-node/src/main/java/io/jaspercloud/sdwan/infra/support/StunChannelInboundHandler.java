@@ -1,4 +1,4 @@
-package io.jaspercloud.sdwan.support;
+package io.jaspercloud.sdwan.infra.support;
 
 import io.jaspercloud.sdwan.MessageType;
 import io.jaspercloud.sdwan.StunMessage;

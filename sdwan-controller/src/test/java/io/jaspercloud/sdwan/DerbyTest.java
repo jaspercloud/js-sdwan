@@ -39,7 +39,7 @@ public class DerbyTest {
 
     private static List<String> loadSql(String sqlFile) throws Exception {
         List<String> sqlList = new ArrayList<>();
-        try (InputStream in = Thread.currentThread().getContextClassLoader().getResourceAsStream("META-INF/schema.sql")) {
+        try (InputStream in = Thread.currentThread().getContextClassLoader().getResourceAsStream(sqlFile)) {
             byte[] bytes = StreamUtils.copyToByteArray(in);
             String text = new String(bytes);
             String[] split = text.split(";");

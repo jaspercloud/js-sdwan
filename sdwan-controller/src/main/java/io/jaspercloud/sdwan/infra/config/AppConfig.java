@@ -1,7 +1,8 @@
 package io.jaspercloud.sdwan.infra.config;
 
-import io.jaspercloud.sdwan.app.SDWanControllerService;
 import io.jaspercloud.sdwan.app.NodeManager;
+import io.jaspercloud.sdwan.app.SDWanControllerService;
+import io.jaspercloud.sdwan.infra.support.DerbyDatabaseInit;
 import io.jaspercloud.sdwan.infra.support.SDWanControllerServer;
 import io.jaspercloud.sdwan.infra.support.SDWanProcessHandler;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -16,12 +17,13 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class AppConfig {
 
     @Bean
-    public DriverManagerDataSource dataSource(SDWanControllerProperties properties) {
+    public DriverManagerDataSource dataSource(SDWanControllerProperties properties) throws Exception {
         String driver = "org.apache.derby.jdbc.EmbeddedDriver";
         String jdbcUrl = String.format("jdbc:derby:%s;create=true", properties.getDbPath());
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
         dataSource.setDriverClassName(driver);
         dataSource.setUrl(jdbcUrl);
+        DerbyDatabaseInit.init(dataSource, properties.getDbPath(), "META-INF/schema.sql");
         return dataSource;
     }
 
