@@ -42,9 +42,11 @@ public class SDWanControllerService implements InitializingBean {
     @Resource
     private ConfigService configService;
 
+    @Resource
+    private NodeManager nodeManager;
+
     //key: ip, value: channel
     private Map<String, AtomicReference<Channel>> bindIPMap = new ConcurrentHashMap<>();
-    private NodeManager nodeManager;
     private Cidr ipPool;
 
     @Override
