@@ -90,15 +90,21 @@ public class SDWanControllerService implements InitializingBean {
             }
             nodeManager.addChannel(channel);
             String vip = node.getVip();
-            List<String> routes = node.getRouteList()
+            List<SDWanProtos.Route> routes = configService.getRouteList()
                     .stream()
-                    .map(e -> e.toString())
+                    .map(e -> SDWanProtos.Route.newBuilder()
+                            .setDestination(e.getDestination())
+                            .setNexthop(e.getNexthop())
+                            .build())
                     .collect(Collectors.toList());
+            SDWanProtos.RouteList routeList = SDWanProtos.RouteList.newBuilder()
+                    .addAllRoute(routes)
+                    .build();
             SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
                     .setCode(SDWanProtos.MessageCode.Success_VALUE)
                     .setVip(vip)
                     .setMaskBits(ipPool.getMaskBits())
-                    .addAllRoute(routes)
+                    .setRouteList(routeList)
                     .build();
             SDWanProtos.Message response = request.toBuilder()
                     .setType(SDWanProtos.MsgTypeCode.RegRespType)

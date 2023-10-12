@@ -1,28 +1,22 @@
 package io.jaspercloud.sdwan.support;
 
 import io.jaspercloud.sdwan.CheckResult;
+import io.jaspercloud.sdwan.NetworkInterfaceInfo;
+import io.jaspercloud.sdwan.NetworkInterfaceUtil;
+import io.jaspercloud.sdwan.core.proto.SDWanProtos;
+import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.support.transporter.Transporter;
 import io.jaspercloud.sdwan.tun.Ipv4Packet;
 import io.jaspercloud.sdwan.tun.TunAddress;
 import io.jaspercloud.sdwan.tun.TunChannel;
 import io.jaspercloud.sdwan.tun.TunChannelConfig;
-import io.jaspercloud.sdwan.NetworkInterfaceInfo;
-import io.jaspercloud.sdwan.NetworkInterfaceUtil;
-import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.exception.ProcessException;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.DefaultEventLoopGroup;
-import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.*;
 import io.netty.channel.socket.DatagramPacket;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 
@@ -101,11 +95,12 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                 tunChannel.setAddress(regResp.getVip(), regResp.getMaskBits());
                 log.info("tunAddress: {}/{}", regResp.getVip(), regResp.getMaskBits());
                 //配置路由
-                List<String> routes = regResp.getRouteList()
+                List<SDWanProtos.Route> routeList = regResp.getRouteList().getRouteList()
                         .stream()
+                        .filter(e -> !StringUtils.equals(e.getNexthop(), regResp.getVip()))
                         .collect(Collectors.toList());
                 NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(regResp.getVip());
-                addRoutes(interfaceInfo, regResp.getVip(), routes);
+                addRoutes(interfaceInfo, regResp.getVip(), routeList);
                 log.info("TunEngine started");
                 //wait closed reconnect
                 sdWanNode.getChannel().closeFuture().sync();
@@ -164,11 +159,11 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
         return tunChannel;
     }
 
-    private void addRoutes(NetworkInterfaceInfo interfaceInfo, String vip, List<String> routes) {
-        routes.forEach(route -> {
+    private void addRoutes(NetworkInterfaceInfo interfaceInfo, String vip, List<SDWanProtos.Route> routeList) {
+        routeList.forEach(route -> {
             try {
-                log.info("addRoute: {} -> {}", route, vip);
-                tunChannel.addRoute(interfaceInfo, route, vip);
+                log.info("addRoute: {} -> {}", route.getDestination(), vip);
+                tunChannel.addRoute(interfaceInfo, route.getDestination(), vip);
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
             }

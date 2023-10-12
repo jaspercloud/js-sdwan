@@ -1,13 +1,16 @@
 package io.jaspercloud.sdwan.app;
 
 import io.jaspercloud.sdwan.Cidr;
+import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.domian.Node;
 import io.jaspercloud.sdwan.domian.Route;
 import io.jaspercloud.sdwan.exception.CidrParseException;
 import io.jaspercloud.sdwan.exception.ProcessCodeException;
 import io.jaspercloud.sdwan.infra.NodeRepository;
 import io.jaspercloud.sdwan.infra.RouteRepository;
+import io.jaspercloud.sdwan.support.NodeManager;
 import io.jaspercloud.sdwan.support.SDWanControllerProperties;
+import io.netty.channel.Channel;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -26,6 +29,9 @@ public class ConfigService {
     private RouteRepository routeRepository;
 
     @Resource
+    private NodeManager nodeManager;
+
+    @Resource
     private SDWanControllerProperties properties;
 
     public void saveRoute(RouteDTO request) {
@@ -42,10 +48,14 @@ public class ConfigService {
         } catch (CidrParseException e) {
             throw new ProcessCodeException(ErrorCode.CidrError);
         }
+        //push
+        pushRouteRuleList();
     }
 
     public void deleteRoute(Long routeId) {
         routeRepository.deleteById(routeId);
+        //push
+        pushRouteRuleList();
     }
 
     public void updateRoute(RouteDTO routeDTO) {
@@ -63,6 +73,29 @@ public class ConfigService {
             route.setRemark(routeDTO.getRemark());
         }
         routeRepository.updateById(route);
+        //push
+        pushRouteRuleList();
+    }
+
+    private void pushRouteRuleList() {
+        List<SDWanProtos.Route> routes = getRouteList()
+                .stream()
+                .map(e -> SDWanProtos.Route.newBuilder()
+                        .setDestination(e.getDestination())
+                        .setNexthop(e.getNexthop())
+                        .build())
+                .collect(Collectors.toList());
+        SDWanProtos.RouteList routeList = SDWanProtos.RouteList.newBuilder()
+                .addAllRoute(routes)
+                .build();
+        SDWanProtos.Message response = SDWanProtos.Message.newBuilder()
+                .setType(SDWanProtos.MsgTypeCode.RefreshRouteList)
+                .setData(routeList.toByteString())
+                .build();
+        List<Channel> channelList = nodeManager.getChannelList();
+        for (Channel channel : channelList) {
+            channel.writeAndFlush(response);
+        }
     }
 
     public List<RouteDTO> getRouteList() {

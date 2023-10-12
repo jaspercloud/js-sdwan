@@ -50,7 +50,7 @@ message RegResp {
   required int32 code = 1;
   optional string vip = 2;
   optional int32 maskBits = 3;
-  repeated string route = 4;
+  optional RouteList routeList = 4;
 }
 
 message SDArpReq {
@@ -68,7 +68,12 @@ message SDArpResp {
 }
 
 message RouteList {
-  repeated string route = 1;
+  repeated Route route = 1;
+}
+
+message Route {
+  required string destination = 1;
+  required string nexthop = 2 ;
 }
 
 message Punching {
