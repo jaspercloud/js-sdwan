@@ -1,4 +1,4 @@
-package io.jaspercloud.sdwan.infra;
+package io.jaspercloud.sdwan.infra.repository;
 
 import io.jaspercloud.sdwan.domian.Node;
 import org.springframework.jdbc.core.JdbcTemplate;
