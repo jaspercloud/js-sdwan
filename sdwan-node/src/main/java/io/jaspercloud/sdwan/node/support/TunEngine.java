@@ -69,7 +69,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
         sdWanNode.addDataHandler(new SDWanDataHandler<SDWanProtos.RouteList>() {
             @Override
             public void onData(ChannelHandlerContext ctx, SDWanProtos.RouteList msg) throws Exception {
-                TunAddress tunAddress = (TunAddress) ctx.channel().localAddress();
+                TunAddress tunAddress = (TunAddress) tunChannel.localAddress();
                 String localVIP = tunAddress.getVip();
                 List<SDWanProtos.Route> routeList = msg.getRouteList();
                 updateRoutes(interfaceInfo, localVIP, routeList);
@@ -112,16 +112,14 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                     throw new ProcessException("meshNode must staticNode");
                 } else if (SDWanProtos.MessageCode.NodeTypeError_VALUE == regResp.getCode()) {
                     throw new ProcessException("no more vip");
+                } else if (SDWanProtos.MessageCode.VipBound_VALUE == regResp.getCode()) {
+                    throw new ProcessException("vip bound");
                 }
                 //配置地址
                 tunChannel.setAddress(regResp.getVip(), regResp.getMaskBits());
                 log.info("tunAddress: {}/{}", regResp.getVip(), regResp.getMaskBits());
                 //配置路由
-                List<SDWanProtos.Route> routeList = regResp.getRouteList().getRouteList()
-                        .stream()
-                        .filter(e -> !StringUtils.equals(e.getNexthop(), regResp.getVip()))
-                        .collect(Collectors.toList());
-                addRoutes(interfaceInfo, regResp.getVip(), routeList);
+                addRoutes(interfaceInfo, regResp.getVip(), regResp.getRouteList().getRouteList());
                 log.info("TunEngine started");
                 //wait closed reconnect
                 sdWanNode.getChannel().closeFuture().sync();
@@ -180,6 +178,9 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
     }
 
     private void addRoutes(NetworkInterfaceInfo interfaceInfo, String vip, List<SDWanProtos.Route> routeList) {
+        routeList = routeList.stream()
+                .filter(e -> !StringUtils.equals(e.getNexthop(), vip))
+                .collect(Collectors.toList());
         routeList.forEach(route -> {
             try {
                 log.info("addRoute: {} -> {}", route.getDestination(), vip);
