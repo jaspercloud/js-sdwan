@@ -4,11 +4,12 @@ import io.jaspercloud.sdwan.Cidr;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.domian.Node;
 import io.jaspercloud.sdwan.exception.ProcessCodeException;
+import io.jaspercloud.sdwan.infra.config.SDWanControllerProperties;
 import io.jaspercloud.sdwan.infra.repository.NodeRepository;
 import io.jaspercloud.sdwan.infra.repository.RouteRepository;
 import io.jaspercloud.sdwan.infra.support.AttributeKeys;
+import io.jaspercloud.sdwan.infra.support.IpType;
 import io.jaspercloud.sdwan.infra.support.NodeType;
-import io.jaspercloud.sdwan.infra.config.SDWanControllerProperties;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
@@ -60,11 +61,10 @@ public class SDWanControllerService implements InitializingBean {
             SDWanProtos.RegReq regReq = SDWanProtos.RegReq.parseFrom(request.getData());
             Node node = AttributeKeys.node(channel).get();
             if (null == node) {
-                String vip = bindVip(regReq, channel);
                 node = new Node();
+                bindVip(regReq, channel, node);
                 node.setNodeType(NodeType.valueOf(regReq.getNodeType().getNumber()));
                 node.setMacAddress(regReq.getMacAddress());
-                node.setVip(vip);
                 node.setInternalAddress(new InetSocketAddress(regReq.getInternalAddr().getIp(), regReq.getInternalAddr().getPort()));
                 node.setStunMapping(regReq.getStunMapping());
                 node.setStunFiltering(regReq.getStunFiltering());
@@ -72,7 +72,7 @@ public class SDWanControllerService implements InitializingBean {
                 if (SDWanProtos.NodeTypeCode.MeshType.equals(regReq.getNodeType())) {
                     List<RouteDTO> routeList = configService.getRouteList();
                     for (RouteDTO route : routeList) {
-                        if (StringUtils.equals(route.getNexthop(), vip)) {
+                        if (StringUtils.equals(route.getNexthop(), node.getVip())) {
                             continue;
                         }
                         node.getRouteList().add(Cidr.parseCidr(route.getDestination()));
@@ -119,6 +119,7 @@ public class SDWanControllerService implements InitializingBean {
                     .setData(regResp.toByteString())
                     .build();
             channel.writeAndFlush(response);
+            channel.close();
         } catch (Exception e) {
             SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
                     .setCode(SDWanProtos.MessageCode.SysError_VALUE)
@@ -128,6 +129,7 @@ public class SDWanControllerService implements InitializingBean {
                     .setData(regResp.toByteString())
                     .build();
             channel.writeAndFlush(response);
+            channel.close();
         }
     }
 
@@ -195,18 +197,21 @@ public class SDWanControllerService implements InitializingBean {
         return null;
     }
 
-    private String bindVip(SDWanProtos.RegReq regReq, Channel channel) {
+    private void bindVip(SDWanProtos.RegReq regReq, Channel channel, Node node) {
         String vip = bindStaticNode(regReq.getMacAddress(), channel);
+        IpType ipType = IpType.Static;
         if (null == vip) {
             if (SDWanProtos.NodeTypeCode.MeshType.equals(regReq.getNodeType())) {
                 throw new ProcessCodeException(SDWanProtos.MessageCode.NodeTypeError_VALUE);
             }
             vip = bindDynamicNode(channel);
+            ipType = IpType.Dynamic;
         }
         if (null == vip) {
             throw new ProcessCodeException(SDWanProtos.MessageCode.NotEnough_VALUE);
         }
-        return vip;
+        node.setVip(vip);
+        node.setIpType(ipType);
     }
 
     private String bindStaticNode(String macAddress, Channel channel) {
