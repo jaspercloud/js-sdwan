@@ -81,8 +81,9 @@ public class SDWanControllerService implements InitializingBean {
                     }
                 }
                 AttributeKeys.node(channel).set(node);
-                log.info("reg: nodeType={}, macAddr={}, vip={}, publicAddr={}, mapping={}, filtering={}",
+                log.info("reg: nodeType={}, ipType={}, macAddr={}, vip={}, publicAddr={}, mapping={}, filtering={}",
                         node.getNodeType(),
+                        node.getIpType(),
                         node.getMacAddress(),
                         node.getVip(),
                         node.getPublicAddress(),
