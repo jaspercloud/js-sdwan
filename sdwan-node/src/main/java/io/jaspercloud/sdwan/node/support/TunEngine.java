@@ -41,6 +41,10 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
 
     private TunChannel tunChannel;
 
+    public TunChannel getTunChannel() {
+        return tunChannel;
+    }
+
     public TunEngine(SDWanNodeProperties properties,
                      SDWanNode sdWanNode,
                      Transporter transporter,
