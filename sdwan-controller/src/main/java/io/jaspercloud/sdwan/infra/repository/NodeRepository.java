@@ -59,7 +59,7 @@ public class NodeRepository {
         StringBuilder builder = new StringBuilder("select * from static_node where id in ");
         builder.append("(");
         for (Long id : idList) {
-            builder.append(id).append(",");
+            builder.append("?").append(",");
         }
         builder.deleteCharAt(builder.length() - 1);
         builder.append(")");

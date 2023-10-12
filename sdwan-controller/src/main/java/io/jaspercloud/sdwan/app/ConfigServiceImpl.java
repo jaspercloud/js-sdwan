@@ -6,9 +6,9 @@ import io.jaspercloud.sdwan.domian.Node;
 import io.jaspercloud.sdwan.domian.Route;
 import io.jaspercloud.sdwan.exception.CidrParseException;
 import io.jaspercloud.sdwan.exception.ProcessCodeException;
+import io.jaspercloud.sdwan.infra.config.SDWanControllerProperties;
 import io.jaspercloud.sdwan.infra.repository.NodeRepository;
 import io.jaspercloud.sdwan.infra.repository.RouteRepository;
-import io.jaspercloud.sdwan.infra.config.SDWanControllerProperties;
 import io.netty.channel.Channel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -17,6 +17,7 @@ import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -101,6 +102,7 @@ public class ConfigServiceImpl implements ConfigService {
                 .addAllRoute(routes)
                 .build();
         SDWanProtos.Message response = SDWanProtos.Message.newBuilder()
+                .setReqId(UUID.randomUUID().toString())
                 .setType(SDWanProtos.MsgTypeCode.RefreshRouteList)
                 .setData(routeList.toByteString())
                 .build();
@@ -115,6 +117,7 @@ public class ConfigServiceImpl implements ConfigService {
         List<RouteDTO> routeDTOList = new ArrayList<>();
         List<Route> routes = routeRepository.queryList();
         List<Long> nodeIdList = routes.stream().map(e -> e.getMeshId())
+                .distinct()
                 .collect(Collectors.toList());
         Map<Long, Node> nodeMap = nodeRepository.queryByIdList(nodeIdList)
                 .stream().collect(Collectors.toMap(e -> e.getId(), e -> e));
