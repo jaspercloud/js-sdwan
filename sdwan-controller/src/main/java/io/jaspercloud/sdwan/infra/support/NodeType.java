@@ -1,4 +1,4 @@
-package io.jaspercloud.sdwan.support;
+package io.jaspercloud.sdwan.infra.support;
 
 public enum NodeType {
 

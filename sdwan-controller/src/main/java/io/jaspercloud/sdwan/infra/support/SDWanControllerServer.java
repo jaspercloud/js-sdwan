@@ -1,8 +1,9 @@
-package io.jaspercloud.sdwan.support;
+package io.jaspercloud.sdwan.infra.support;
 
 import io.jaspercloud.sdwan.LogHandler;
 import io.jaspercloud.sdwan.NioEventLoopFactory;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
+import io.jaspercloud.sdwan.infra.SDWanControllerProperties;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
@@ -21,13 +22,13 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 
 @Slf4j
-public class SDWanController implements InitializingBean, DisposableBean {
+public class SDWanControllerServer implements InitializingBean, DisposableBean {
 
     private SDWanControllerProperties properties;
     private ChannelHandler handler;
     private Channel channel;
 
-    public SDWanController(SDWanControllerProperties properties, ChannelHandler handler) {
+    public SDWanControllerServer(SDWanControllerProperties properties, ChannelHandler handler) {
         this.properties = properties;
         this.handler = handler;
     }

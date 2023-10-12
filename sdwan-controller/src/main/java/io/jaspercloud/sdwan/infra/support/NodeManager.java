@@ -1,4 +1,4 @@
-package io.jaspercloud.sdwan.support;
+package io.jaspercloud.sdwan.infra.support;
 
 import io.jaspercloud.sdwan.domian.Node;
 import io.netty.channel.Channel;

@@ -1,7 +1,7 @@
 package io.jaspercloud.sdwan.adapter;
 
 import io.jaspercloud.sdwan.domian.Node;
-import io.jaspercloud.sdwan.support.NodeManager;
+import io.jaspercloud.sdwan.infra.support.NodeManager;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;

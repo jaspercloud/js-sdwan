@@ -1,4 +1,4 @@
-package io.jaspercloud.sdwan.support;
+package io.jaspercloud.sdwan.infra.support;
 
 import io.jaspercloud.sdwan.app.SDWanControllerService;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
@@ -10,11 +10,11 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @ChannelHandler.Sharable
-public class SDWanControllerProcessHandler extends SimpleChannelInboundHandler<SDWanProtos.Message> {
+public class SDWanProcessHandler extends SimpleChannelInboundHandler<SDWanProtos.Message> {
 
     private SDWanControllerService controllerService;
 
-    public SDWanControllerProcessHandler(SDWanControllerService controllerService) {
+    public SDWanProcessHandler(SDWanControllerService controllerService) {
         this.controllerService = controllerService;
     }
 

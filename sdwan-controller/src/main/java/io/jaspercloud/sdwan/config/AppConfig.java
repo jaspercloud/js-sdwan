@@ -1,10 +1,10 @@
 package io.jaspercloud.sdwan.config;
 
 import io.jaspercloud.sdwan.app.SDWanControllerService;
-import io.jaspercloud.sdwan.support.NodeManager;
-import io.jaspercloud.sdwan.support.SDWanController;
-import io.jaspercloud.sdwan.support.SDWanControllerProcessHandler;
-import io.jaspercloud.sdwan.support.SDWanControllerProperties;
+import io.jaspercloud.sdwan.infra.support.NodeManager;
+import io.jaspercloud.sdwan.infra.support.SDWanControllerServer;
+import io.jaspercloud.sdwan.infra.support.SDWanProcessHandler;
+import io.jaspercloud.sdwan.infra.SDWanControllerProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -38,14 +38,14 @@ public class AppConfig {
     }
 
     @Bean
-    public SDWanControllerProcessHandler processHandler(SDWanControllerService controllerService) {
-        return new SDWanControllerProcessHandler(controllerService);
+    public SDWanProcessHandler processHandler(SDWanControllerService controllerService) {
+        return new SDWanProcessHandler(controllerService);
     }
 
     @Bean
-    public SDWanController sdWanController(SDWanControllerProperties properties,
-                                           SDWanControllerProcessHandler processHandler) {
-        SDWanController sdWanController = new SDWanController(properties, processHandler);
-        return sdWanController;
+    public SDWanControllerServer sdWanController(SDWanControllerProperties properties,
+                                                 SDWanProcessHandler processHandler) {
+        SDWanControllerServer sdWanControllerServer = new SDWanControllerServer(properties, processHandler);
+        return sdWanControllerServer;
     }
 }

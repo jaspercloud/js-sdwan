@@ -3,8 +3,8 @@ package io.jaspercloud.sdwan.domian;
 import io.jaspercloud.sdwan.Cidr;
 import io.jaspercloud.sdwan.app.ErrorCode;
 import io.jaspercloud.sdwan.exception.ProcessCodeException;
-import io.jaspercloud.sdwan.support.MacAddressUtil;
-import io.jaspercloud.sdwan.support.NodeType;
+import io.jaspercloud.sdwan.infra.support.MacAddressUtil;
+import io.jaspercloud.sdwan.infra.support.NodeType;
 import lombok.Data;
 import sun.net.util.IPAddressUtil;
 
