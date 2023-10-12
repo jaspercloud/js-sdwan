@@ -1,6 +1,7 @@
-package io.jaspercloud.sdwan.infra.support;
+package io.jaspercloud.sdwan.app;
 
 import io.jaspercloud.sdwan.domian.Node;
+import io.jaspercloud.sdwan.infra.support.AttributeKeys;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;

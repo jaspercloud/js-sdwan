@@ -7,7 +7,6 @@ import io.jaspercloud.sdwan.exception.ProcessCodeException;
 import io.jaspercloud.sdwan.infra.NodeRepository;
 import io.jaspercloud.sdwan.infra.RouteRepository;
 import io.jaspercloud.sdwan.infra.support.AttributeKeys;
-import io.jaspercloud.sdwan.infra.support.NodeManager;
 import io.jaspercloud.sdwan.infra.support.NodeType;
 import io.jaspercloud.sdwan.infra.SDWanControllerProperties;
 import io.netty.channel.Channel;

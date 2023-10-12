@@ -1,7 +1,7 @@
 package io.jaspercloud.sdwan.config;
 
 import io.jaspercloud.sdwan.app.SDWanControllerService;
-import io.jaspercloud.sdwan.infra.support.NodeManager;
+import io.jaspercloud.sdwan.app.NodeManager;
 import io.jaspercloud.sdwan.infra.support.SDWanControllerServer;
 import io.jaspercloud.sdwan.infra.support.SDWanProcessHandler;
 import io.jaspercloud.sdwan.infra.SDWanControllerProperties;
