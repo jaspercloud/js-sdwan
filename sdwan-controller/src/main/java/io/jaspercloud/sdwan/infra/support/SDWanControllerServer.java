@@ -3,7 +3,7 @@ package io.jaspercloud.sdwan.infra.support;
 import io.jaspercloud.sdwan.LogHandler;
 import io.jaspercloud.sdwan.NioEventLoopFactory;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.infra.SDWanControllerProperties;
+import io.jaspercloud.sdwan.infra.config.SDWanControllerProperties;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;

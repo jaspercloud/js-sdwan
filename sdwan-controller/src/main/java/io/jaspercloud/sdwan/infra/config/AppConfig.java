@@ -1,10 +1,9 @@
-package io.jaspercloud.sdwan.config;
+package io.jaspercloud.sdwan.infra.config;
 
 import io.jaspercloud.sdwan.app.SDWanControllerService;
 import io.jaspercloud.sdwan.app.NodeManager;
 import io.jaspercloud.sdwan.infra.support.SDWanControllerServer;
 import io.jaspercloud.sdwan.infra.support.SDWanProcessHandler;
-import io.jaspercloud.sdwan.infra.SDWanControllerProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

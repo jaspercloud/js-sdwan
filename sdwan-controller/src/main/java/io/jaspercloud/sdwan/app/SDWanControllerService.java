@@ -8,7 +8,7 @@ import io.jaspercloud.sdwan.infra.NodeRepository;
 import io.jaspercloud.sdwan.infra.RouteRepository;
 import io.jaspercloud.sdwan.infra.support.AttributeKeys;
 import io.jaspercloud.sdwan.infra.support.NodeType;
-import io.jaspercloud.sdwan.infra.SDWanControllerProperties;
+import io.jaspercloud.sdwan.infra.config.SDWanControllerProperties;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
