@@ -6,6 +6,7 @@ sdwan:
     cidr: 10.1.0.0/20
     # second
     sdArpTTL: 300
+    dbPath: ${user.dir}/derby.db
 #    staticNodes:
 #      - id: 192.222.0.66
 #        macAddress: fa:50:03:01:f8:00
