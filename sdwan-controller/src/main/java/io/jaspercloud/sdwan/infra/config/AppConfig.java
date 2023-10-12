@@ -3,6 +3,7 @@ package io.jaspercloud.sdwan.infra.config;
 import io.jaspercloud.sdwan.app.NodeManager;
 import io.jaspercloud.sdwan.app.SDWanControllerService;
 import io.jaspercloud.sdwan.infra.support.DerbyDatabaseInit;
+import io.jaspercloud.sdwan.infra.support.JdbcTemplatePlus;
 import io.jaspercloud.sdwan.infra.support.SDWanControllerServer;
 import io.jaspercloud.sdwan.infra.support.SDWanProcessHandler;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -11,6 +12,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.transaction.support.TransactionTemplate;
+
+import javax.sql.DataSource;
 
 @EnableConfigurationProperties(SDWanControllerProperties.class)
 @Configuration
@@ -25,6 +28,11 @@ public class AppConfig {
         dataSource.setUrl(jdbcUrl);
         DerbyDatabaseInit.init(dataSource, properties.getDbPath(), "META-INF/schema.sql");
         return dataSource;
+    }
+
+    @Bean
+    public JdbcTemplatePlus jdbcTemplate(DataSource dataSource) {
+        return new JdbcTemplatePlus(dataSource);
     }
 
     @Bean

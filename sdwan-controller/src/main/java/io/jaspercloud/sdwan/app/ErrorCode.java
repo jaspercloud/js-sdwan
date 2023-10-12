@@ -2,6 +2,8 @@ package io.jaspercloud.sdwan.app;
 
 public interface ErrorCode {
 
+    int SysError = 500;
+
     int NotFoundNode = 1001;
     int IpNotInCidr = 1002;
     int NodeVipExist = 1003;
