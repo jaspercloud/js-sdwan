@@ -1,5 +1,7 @@
-package io.jaspercloud.sdwan;
+package io.jaspercloud.sdwan.stun;
 
+import io.jaspercloud.sdwan.ByteBufUtil;
+import io.jaspercloud.sdwan.IPUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;

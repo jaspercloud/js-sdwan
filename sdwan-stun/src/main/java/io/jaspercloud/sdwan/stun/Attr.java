@@ -1,5 +1,6 @@
-package io.jaspercloud.sdwan;
+package io.jaspercloud.sdwan.stun;
 
+import io.jaspercloud.sdwan.Referenced;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.ReferenceCounted;
 import lombok.Data;

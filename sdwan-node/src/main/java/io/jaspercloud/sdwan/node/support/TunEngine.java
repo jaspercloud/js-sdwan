@@ -1,6 +1,6 @@
 package io.jaspercloud.sdwan.node.support;
 
-import io.jaspercloud.sdwan.CheckResult;
+import io.jaspercloud.sdwan.stun.CheckResult;
 import io.jaspercloud.sdwan.NetworkInterfaceInfo;
 import io.jaspercloud.sdwan.NetworkInterfaceUtil;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;

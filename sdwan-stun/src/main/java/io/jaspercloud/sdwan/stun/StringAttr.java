@@ -1,7 +1,7 @@
-package io.jaspercloud.sdwan;
+package io.jaspercloud.sdwan.stun;
 
+import io.jaspercloud.sdwan.ByteBufUtil;
 import io.netty.buffer.ByteBuf;
-import io.netty.util.ReferenceCounted;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -9,22 +9,23 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-public class ByteBufAttr extends Attr {
+public class StringAttr extends Attr {
 
-    private ByteBuf byteBuf;
+    private String data;
 
     @Override
     public ByteBuf toByteBuf() {
+        ByteBuf byteBuf = ByteBufUtil.toByteBuf(data.getBytes());
         return byteBuf;
     }
 
     @Override
-    public ReferenceCounted retain(int increment) {
-        return byteBuf.retain(increment);
+    public StringAttr retain(int increment) {
+        return this;
     }
 
     @Override
     public boolean release(int decrement) {
-        return byteBuf.release(decrement);
+        return false;
     }
 }

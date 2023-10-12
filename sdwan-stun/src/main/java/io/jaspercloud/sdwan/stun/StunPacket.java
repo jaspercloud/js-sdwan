@@ -1,4 +1,4 @@
-package io.jaspercloud.sdwan;
+package io.jaspercloud.sdwan.stun;
 
 import io.netty.channel.DefaultAddressedEnvelope;
 

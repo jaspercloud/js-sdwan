@@ -1,6 +1,6 @@
 package io.jaspercloud.sdwan.node.config;
 
-import io.jaspercloud.sdwan.StunClient;
+import io.jaspercloud.sdwan.stun.StunClient;
 import io.jaspercloud.sdwan.node.support.PunchingManager;
 import io.jaspercloud.sdwan.node.support.SDArpManager;
 import io.jaspercloud.sdwan.node.support.SDWanNode;

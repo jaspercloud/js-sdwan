@@ -1,5 +1,6 @@
-package io.jaspercloud.sdwan;
+package io.jaspercloud.sdwan.stun;
 
+import io.jaspercloud.sdwan.Referenced;
 import lombok.Data;
 
 import java.util.HashMap;

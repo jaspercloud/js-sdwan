@@ -1,8 +1,8 @@
 package io.jaspercloud.sdwan.node.support;
 
-import io.jaspercloud.sdwan.MessageType;
-import io.jaspercloud.sdwan.StunMessage;
-import io.jaspercloud.sdwan.StunPacket;
+import io.jaspercloud.sdwan.stun.MessageType;
+import io.jaspercloud.sdwan.stun.StunMessage;
+import io.jaspercloud.sdwan.stun.StunPacket;
 import io.netty.channel.SimpleChannelInboundHandler;
 
 public abstract class StunChannelInboundHandler extends SimpleChannelInboundHandler<StunPacket> {
