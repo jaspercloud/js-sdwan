@@ -7,6 +7,7 @@ import io.jaspercloud.sdwan.exception.ProcessCodeException;
 import io.jaspercloud.sdwan.infra.config.SDWanControllerProperties;
 import io.jaspercloud.sdwan.infra.repository.NodeRepository;
 import io.jaspercloud.sdwan.infra.repository.RouteRepository;
+import io.jaspercloud.sdwan.infra.repository.StaticNodeRepository;
 import io.jaspercloud.sdwan.infra.support.AttributeKeys;
 import io.jaspercloud.sdwan.infra.support.IpType;
 import io.jaspercloud.sdwan.infra.support.NodeType;
@@ -35,6 +36,9 @@ public class SDWanControllerService implements InitializingBean {
 
     @Resource
     private NodeRepository nodeRepository;
+
+    @Resource
+    private StaticNodeRepository staticNodeRepository;
 
     @Resource
     private RouteRepository routeRepository;
@@ -201,13 +205,21 @@ public class SDWanControllerService implements InitializingBean {
     }
 
     private void bindVip(SDWanProtos.RegReq regReq, Channel channel, Node node) {
+        Node queryNode = nodeRepository.queryByMacAddress(regReq.getMacAddress());
+        if (null != queryNode) {
+            bindChannel(node.getVip(), channel);
+            Node staticNode = staticNodeRepository.queryByMacAddress(regReq.getMacAddress());
+            if (null != staticNode) {
+                node.setIpType(IpType.Static);
+            } else {
+                node.setIpType(IpType.Dynamic);
+            }
+            return;
+        }
         String vip = bindStaticNode(regReq.getMacAddress(), channel);
         IpType ipType = IpType.Static;
         if (null == vip) {
-            if (SDWanProtos.NodeTypeCode.MeshType.equals(regReq.getNodeType())) {
-                throw new ProcessCodeException(SDWanProtos.MessageCode.NodeTypeError_VALUE);
-            }
-            vip = bindDynamicNode(channel);
+            vip = bindDynamicNode(regReq.getMacAddress(), channel);
             ipType = IpType.Dynamic;
         }
         if (null == vip) {
@@ -215,10 +227,25 @@ public class SDWanControllerService implements InitializingBean {
         }
         node.setVip(vip);
         node.setIpType(ipType);
+        nodeRepository.save(node);
+    }
+
+    private void bindChannel(String vip, Channel channel) {
+        AtomicReference<Channel> ref = bindIPMap.get(vip);
+        //CAS
+        if (!ref.compareAndSet(null, channel)) {
+            throw new ProcessCodeException(SDWanProtos.MessageCode.VipBound_VALUE);
+        }
+        channel.closeFuture().addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture future) throws Exception {
+                ref.set(null);
+            }
+        });
     }
 
     private String bindStaticNode(String macAddress, Channel channel) {
-        Node node = nodeRepository.queryByMacAddress(macAddress);
+        Node node = staticNodeRepository.queryByMacAddress(macAddress);
         if (null != node) {
             AtomicReference<Channel> ref = bindIPMap.get(node.getVip());
             //CAS
@@ -236,8 +263,8 @@ public class SDWanControllerService implements InitializingBean {
         return null;
     }
 
-    private String bindDynamicNode(Channel channel) {
-        List<Node> staticNodeList = nodeRepository.queryList();
+    private String bindDynamicNode(String macAddress, Channel channel) {
+        List<Node> staticNodeList = staticNodeRepository.queryList();
         List<String> staticIPList = staticNodeList.stream().map(e -> e.getVip())
                 .collect(Collectors.toList());
         for (Map.Entry<String, AtomicReference<Channel>> entry : bindIPMap.entrySet()) {

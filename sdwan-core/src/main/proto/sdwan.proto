@@ -5,10 +5,9 @@ option java_outer_classname = "SDWanProtos";
 enum MessageCode {
   Success = 0;
   SysError = 1;
-  NodeTypeError = 2;
-  NotEnough = 3;
-  VipBound = 4;
-  NotFoundSDArp = 5;
+  NotEnough = 2;
+  VipBound = 3;
+  NotFoundSDArp = 4;
 }
 
 enum MsgTypeCode {

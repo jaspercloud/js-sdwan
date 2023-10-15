@@ -1,10 +1,9 @@
 package io.jaspercloud.sdwan.adapter;
 
+import io.jaspercloud.sdwan.app.ConfigService;
+import io.jaspercloud.sdwan.app.NodeDTO;
 import io.jaspercloud.sdwan.domian.Node;
-import io.jaspercloud.sdwan.app.NodeManager;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.util.List;
@@ -14,12 +13,23 @@ import java.util.List;
 public class NodeController {
 
     @Resource
-    private NodeManager nodeManager;
+    private ConfigService configService;
+
+    @PostMapping("/save")
+    public Result save(@RequestBody NodeDTO request) {
+        configService.saveNode(request);
+        return Result.OK;
+    }
+
+    @DeleteMapping("/{id}")
+    public Result delete(@PathVariable("id") Long id) {
+        configService.deleteNode(id);
+        return Result.OK;
+    }
 
     @GetMapping("/list")
     public Result list() {
-        List<Node> nodeList = nodeManager.getNodeList();
+        List<NodeDTO> nodeList = configService.getNodeList();
         return new Result(0, "ok", nodeList);
     }
-
 }

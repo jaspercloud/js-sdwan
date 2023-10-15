@@ -9,6 +9,7 @@ import io.jaspercloud.sdwan.exception.ProcessCodeException;
 import io.jaspercloud.sdwan.infra.config.SDWanControllerProperties;
 import io.jaspercloud.sdwan.infra.repository.NodeRepository;
 import io.jaspercloud.sdwan.infra.repository.RouteRepository;
+import io.jaspercloud.sdwan.infra.repository.StaticNodeRepository;
 import io.netty.channel.Channel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -27,6 +28,9 @@ public class ConfigServiceImpl implements ConfigService {
     private SDWanControllerProperties properties;
 
     @Resource
+    private StaticNodeRepository staticNodeRepository;
+
+    @Resource
     private NodeRepository nodeRepository;
 
     @Resource
@@ -41,7 +45,7 @@ public class ConfigServiceImpl implements ConfigService {
     @Override
     public void saveRoute(RouteDTO request) {
         transactionTemplate.executeWithoutResult(status -> {
-            Node node = nodeRepository.queryById(request.getMeshId());
+            Node node = staticNodeRepository.queryById(request.getMeshId());
             if (null == node) {
                 throw new ProcessCodeException(ErrorCode.NotFoundNode);
             }
@@ -119,7 +123,7 @@ public class ConfigServiceImpl implements ConfigService {
         List<Long> nodeIdList = routes.stream().map(e -> e.getMeshId())
                 .distinct()
                 .collect(Collectors.toList());
-        Map<Long, Node> nodeMap = nodeRepository.queryByIdList(nodeIdList)
+        Map<Long, Node> nodeMap = staticNodeRepository.queryByIdList(nodeIdList)
                 .stream().collect(Collectors.toMap(e -> e.getId(), e -> e));
         for (Route route : routes) {
             RouteDTO routeDTO = new RouteDTO();
@@ -140,11 +144,11 @@ public class ConfigServiceImpl implements ConfigService {
             if (!contains) {
                 throw new ProcessCodeException(ErrorCode.IpNotInCidr);
             }
-            Node queryVip = nodeRepository.queryByVip(request.getVip());
+            Node queryVip = staticNodeRepository.queryByVip(request.getVip());
             if (null != queryVip) {
                 throw new ProcessCodeException(ErrorCode.NodeVipExist);
             }
-            Node queryMac = nodeRepository.queryByMacAddress(request.getMacAddress());
+            Node queryMac = staticNodeRepository.queryByMacAddress(request.getMacAddress());
             if (null != queryMac) {
                 throw new ProcessCodeException(ErrorCode.NodeMacExist);
             }
@@ -152,7 +156,7 @@ public class ConfigServiceImpl implements ConfigService {
             node.setVip(request.getVip());
             node.setMacAddress(request.getMacAddress());
             node.setRemark(request.getRemark());
-            nodeRepository.save(node);
+            staticNodeRepository.save(node);
         });
     }
 
@@ -163,13 +167,23 @@ public class ConfigServiceImpl implements ConfigService {
             if (count > 0) {
                 throw new ProcessCodeException(ErrorCode.MeshUsed);
             }
-            nodeRepository.deleteById(id);
+            staticNodeRepository.deleteById(id);
         });
     }
 
     @Override
-    public List<Node> getNodeList() {
+    public List<NodeDTO> getNodeList() {
+        Map<String, Node> onlineMap = nodeManager.getNodeList()
+                .stream().collect(Collectors.toMap(e -> e.getVip(), e -> e));
         List<Node> nodeList = nodeRepository.queryList();
-        return nodeList;
+        List<NodeDTO> resultList = nodeList.stream().map(e -> {
+            NodeDTO nodeDTO = new NodeDTO();
+            nodeDTO.setId(e.getId());
+            nodeDTO.setVip(e.getVip());
+            nodeDTO.setMacAddress(e.getMacAddress());
+            nodeDTO.setOnline(null != onlineMap.get(e.getVip()));
+            return nodeDTO;
+        }).collect(Collectors.toList());
+        return resultList;
     }
 }

@@ -11,7 +11,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 @Component
-public class NodeRepository {
+public class StaticNodeRepository {
 
     @Resource
     private JdbcTemplate jdbcTemplate;
@@ -29,25 +29,25 @@ public class NodeRepository {
     };
 
     public int save(Node node) {
-        String sql = "insert into node (vip, mac_address, remark) values (?,?,?)";
+        String sql = "insert into static_node (vip, mac_address, remark) values (?,?,?)";
         int result = jdbcTemplate.update(sql, node.getVip(), node.getMacAddress(), node.getRemark());
         return result;
     }
 
     public int deleteById(Long id) {
-        String sql = "delete from node where id=?";
+        String sql = "delete from static_node where id=?";
         int result = jdbcTemplate.update(sql, id);
         return result;
     }
 
     public List<Node> queryList() {
-        String sql = "select * from node";
+        String sql = "select * from static_node";
         List<Node> nodeList = jdbcTemplate.query(sql, ROW_MAPPER);
         return nodeList;
     }
 
     public Node queryById(Long id) {
-        String sql = "select * from node where id=?";
+        String sql = "select * from static_node where id=?";
         Node node = jdbcTemplate.queryForObject(sql, ROW_MAPPER, new Object[]{id});
         return node;
     }
@@ -56,7 +56,7 @@ public class NodeRepository {
         if (idList.isEmpty()) {
             throw new IllegalArgumentException("idList empty");
         }
-        StringBuilder builder = new StringBuilder("select * from node where id in ");
+        StringBuilder builder = new StringBuilder("select * from static_node where id in ");
         builder.append("(");
         for (Long id : idList) {
             builder.append("?").append(",");
@@ -69,13 +69,13 @@ public class NodeRepository {
     }
 
     public Node queryByVip(String vip) {
-        String sql = "select * from node where vip=?";
+        String sql = "select * from static_node where vip=?";
         Node node = jdbcTemplate.queryForObject(sql, ROW_MAPPER, new Object[]{vip});
         return node;
     }
 
     public Node queryByMacAddress(String macAddress) {
-        String sql = "select * from node where mac_address=?";
+        String sql = "select * from static_node where mac_address=?";
         Node node = jdbcTemplate.queryForObject(sql, ROW_MAPPER, new Object[]{macAddress});
         return node;
     }

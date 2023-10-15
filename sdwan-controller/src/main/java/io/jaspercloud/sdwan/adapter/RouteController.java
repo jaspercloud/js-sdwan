@@ -8,8 +8,8 @@ import javax.annotation.Resource;
 import java.util.List;
 
 @RestController
-@RequestMapping("/routeConfig")
-public class RouteConfigController {
+@RequestMapping("/route")
+public class RouteController {
 
     @Resource
     private ConfigService configService;

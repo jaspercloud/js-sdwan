@@ -1,7 +1,5 @@
 package io.jaspercloud.sdwan.app;
 
-import io.jaspercloud.sdwan.domian.Node;
-
 import java.util.List;
 
 public interface ConfigService {
@@ -18,5 +16,5 @@ public interface ConfigService {
 
     void deleteNode(Long id);
 
-    List<Node> getNodeList();
+    List<NodeDTO> getNodeList();
 }
