@@ -226,6 +226,7 @@ public class SDWanControllerService implements InitializingBean {
             throw new ProcessCodeException(SDWanProtos.MessageCode.NotEnough_VALUE);
         }
         node.setVip(vip);
+        node.setMacAddress(regReq.getMacAddress());
         node.setIpType(ipType);
         nodeRepository.save(node);
     }
