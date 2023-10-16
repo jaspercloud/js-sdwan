@@ -138,29 +138,6 @@ public class ConfigServiceImpl implements ConfigService {
     }
 
     @Override
-    public void saveNode(NodeDTO request) {
-        transactionTemplate.executeWithoutResult(status -> {
-            boolean contains = Cidr.contains(properties.getCidr(), request.getVip());
-            if (!contains) {
-                throw new ProcessCodeException(ErrorCode.IpNotInCidr);
-            }
-            Node queryVip = nodeRepository.queryByVip(request.getVip());
-            if (null != queryVip) {
-                throw new ProcessCodeException(ErrorCode.NodeVipExist);
-            }
-            Node queryMac = nodeRepository.queryByMacAddress(request.getMacAddress());
-            if (null != queryMac) {
-                throw new ProcessCodeException(ErrorCode.NodeMacExist);
-            }
-            Node node = new Node();
-            node.setVip(request.getVip());
-            node.setMacAddress(request.getMacAddress());
-            node.setRemark(request.getRemark());
-            nodeRepository.save(node);
-        });
-    }
-
-    @Override
     public void deleteNode(Long id) {
         transactionTemplate.executeWithoutResult(status -> {
             long count = routeRepository.countByMeshId(id);

@@ -12,8 +12,6 @@ public interface ConfigService {
 
     List<RouteDTO> getRouteList();
 
-    void saveNode(NodeDTO request);
-
     void deleteNode(Long id);
 
     List<NodeDTO> getNodeList();
