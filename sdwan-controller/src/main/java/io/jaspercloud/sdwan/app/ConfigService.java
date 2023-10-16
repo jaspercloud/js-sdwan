@@ -15,4 +15,6 @@ public interface ConfigService {
     void deleteNode(Long id);
 
     List<NodeDTO> getNodeList();
+
+    List<NodeDTO> getMeshNodeList();
 }

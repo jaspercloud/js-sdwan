@@ -25,4 +25,10 @@ public class NodeController {
         List<NodeDTO> nodeList = configService.getNodeList();
         return new Result(0, "ok", nodeList);
     }
+
+    @GetMapping("/meshList")
+    public Result meshList() {
+        List<NodeDTO> nodeList = configService.getMeshNodeList();
+        return new Result(0, "ok", nodeList);
+    }
 }

@@ -158,9 +158,24 @@ public class ConfigServiceImpl implements ConfigService {
         List<NodeDTO> resultList = nodeList.stream().map(e -> {
             NodeDTO nodeDTO = new NodeDTO();
             nodeDTO.setId(e.getId());
+            nodeDTO.setNodeType(e.getNodeType());
             nodeDTO.setVip(e.getVip());
             nodeDTO.setMacAddress(e.getMacAddress());
             nodeDTO.setOnline(null != onlineMap.get(e.getVip()));
+            return nodeDTO;
+        }).collect(Collectors.toList());
+        return resultList;
+    }
+
+    @Override
+    public List<NodeDTO> getMeshNodeList() {
+        List<Node> nodeList = nodeRepository.getMeshNodeList();
+        List<NodeDTO> resultList = nodeList.stream().map(e -> {
+            NodeDTO nodeDTO = new NodeDTO();
+            nodeDTO.setId(e.getId());
+            nodeDTO.setNodeType(e.getNodeType());
+            nodeDTO.setVip(e.getVip());
+            nodeDTO.setMacAddress(e.getMacAddress());
             return nodeDTO;
         }).collect(Collectors.toList());
         return resultList;

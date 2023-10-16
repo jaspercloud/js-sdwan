@@ -81,4 +81,10 @@ public class NodeRepository {
         Node node = jdbcTemplate.queryForObject(sql, ROW_MAPPER, new Object[]{macAddress});
         return node;
     }
+
+    public List<Node> getMeshNodeList() {
+        String sql = "select * from node where node_type=?";
+        List<Node> nodeList = jdbcTemplate.query(sql, ROW_MAPPER, new Object[]{NodeType.Mesh.getCode()});
+        return nodeList;
+    }
 }
