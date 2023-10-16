@@ -3,7 +3,6 @@ package io.jaspercloud.sdwan.domian;
 import io.jaspercloud.sdwan.Cidr;
 import io.jaspercloud.sdwan.app.ErrorCode;
 import io.jaspercloud.sdwan.exception.ProcessCodeException;
-import io.jaspercloud.sdwan.infra.support.IpType;
 import io.jaspercloud.sdwan.infra.support.MacAddressUtil;
 import io.jaspercloud.sdwan.infra.support.NodeType;
 import lombok.Data;
@@ -17,12 +16,11 @@ import java.util.List;
 public class Node {
 
     private Long id;
+    private NodeType nodeType;
     private String vip;
     private String macAddress;
     private String remark;
 
-    private NodeType nodeType;
-    private IpType ipType;
     private String stunMapping;
     private String stunFiltering;
     private InetSocketAddress internalAddress;

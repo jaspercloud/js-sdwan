@@ -8,6 +8,7 @@ public interface ErrorCode {
     int IpNotInCidr = 1002;
     int NodeVipExist = 1003;
     int NodeMacExist = 1004;
+    int NodeIsNotMesh = 1005;
 
     int NotFoundRoute = 2001;
     int CidrError = 2002;

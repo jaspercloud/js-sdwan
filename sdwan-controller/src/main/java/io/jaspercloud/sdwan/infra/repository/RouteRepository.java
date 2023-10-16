@@ -65,7 +65,7 @@ public class RouteRepository {
 
     public long countByMeshId(Long meshId) {
         String sql = "select count(mesh_id) from static_route where mesh_id=?";
-        long count = jdbcTemplate.queryForObject(sql, Long.class);
+        long count = jdbcTemplate.queryForObject(sql, Long.class, new Object[]{meshId});
         return count;
     }
 }

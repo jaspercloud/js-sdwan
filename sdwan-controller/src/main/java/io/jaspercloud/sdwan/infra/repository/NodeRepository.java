@@ -1,6 +1,7 @@
 package io.jaspercloud.sdwan.infra.repository;
 
 import io.jaspercloud.sdwan.domian.Node;
+import io.jaspercloud.sdwan.infra.support.NodeType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
@@ -21,6 +22,7 @@ public class NodeRepository {
         public Node mapRow(ResultSet rs, int rowNum) throws SQLException {
             Node node = new Node();
             node.setId(rs.getLong("id"));
+            node.setNodeType(NodeType.valueOf(rs.getInt("vip")));
             node.setVip(rs.getString("vip"));
             node.setMacAddress(rs.getString("mac_address"));
             node.setRemark(rs.getString("remark"));
@@ -29,8 +31,8 @@ public class NodeRepository {
     };
 
     public int save(Node node) {
-        String sql = "insert into node (vip, mac_address, remark) values (?,?,?)";
-        int result = jdbcTemplate.update(sql, node.getVip(), node.getMacAddress(), node.getRemark());
+        String sql = "insert into node (node_type, vip, mac_address, remark) values (?,?,?,?)";
+        int result = jdbcTemplate.update(sql, node.getNodeType().getCode(), node.getVip(), node.getMacAddress(), node.getRemark());
         return result;
     }
 
