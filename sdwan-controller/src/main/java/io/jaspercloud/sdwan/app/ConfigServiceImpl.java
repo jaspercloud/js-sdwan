@@ -141,6 +141,10 @@ public class ConfigServiceImpl implements ConfigService {
 
     @Override
     public void deleteNode(Long id) {
+        Node node = nodeRepository.queryById(id);
+        if (null == node) {
+            return;
+        }
         transactionTemplate.executeWithoutResult(status -> {
             long count = routeRepository.countByMeshId(id);
             if (count > 0) {
@@ -148,6 +152,7 @@ public class ConfigServiceImpl implements ConfigService {
             }
             nodeRepository.deleteById(id);
         });
+        nodeManager.deleteChannel(node.getVip());
     }
 
     @Override

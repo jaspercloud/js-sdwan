@@ -28,13 +28,21 @@ public class NodeManager {
         return Collections.unmodifiableList(nodeList);
     }
 
-    public void addChannel(Channel channel) {
+    public void addChannel(String vip, Channel channel) {
         channel.closeFuture().addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture future) throws Exception {
-                channelMap.remove(channel.id().asLongText());
+                channelMap.remove(vip);
             }
         });
-        channelMap.put(channel.id().asLongText(), channel);
+        channelMap.put(vip, channel);
+    }
+
+    public void deleteChannel(String vip) {
+        Channel channel = channelMap.get(vip);
+        if (null == channel) {
+            return;
+        }
+        channel.close();
     }
 }

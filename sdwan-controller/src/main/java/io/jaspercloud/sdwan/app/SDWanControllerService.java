@@ -88,8 +88,8 @@ public class SDWanControllerService implements InitializingBean {
                         node.getStunMapping(),
                         node.getStunFiltering());
             }
-            nodeManager.addChannel(channel);
             String vip = node.getVip();
+            nodeManager.addChannel(vip, channel);
             List<SDWanProtos.Route> routes = configService.getRouteList()
                     .stream()
                     .map(e -> SDWanProtos.Route.newBuilder()
