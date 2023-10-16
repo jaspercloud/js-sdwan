@@ -1,6 +1,5 @@
 package io.jaspercloud.sdwan.app;
 
-import io.jaspercloud.sdwan.Cidr;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.domian.Node;
 import io.jaspercloud.sdwan.domian.Route;
@@ -123,6 +122,9 @@ public class ConfigServiceImpl implements ConfigService {
         List<Long> nodeIdList = routes.stream().map(e -> e.getMeshId())
                 .distinct()
                 .collect(Collectors.toList());
+        if (nodeIdList.isEmpty()) {
+            return routeDTOList;
+        }
         Map<Long, Node> nodeMap = nodeRepository.queryByIdList(nodeIdList)
                 .stream().collect(Collectors.toMap(e -> e.getId(), e -> e));
         for (Route route : routes) {

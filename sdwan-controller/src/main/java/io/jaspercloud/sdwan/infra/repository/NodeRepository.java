@@ -22,7 +22,7 @@ public class NodeRepository {
         public Node mapRow(ResultSet rs, int rowNum) throws SQLException {
             Node node = new Node();
             node.setId(rs.getLong("id"));
-            node.setNodeType(NodeType.valueOf(rs.getInt("vip")));
+            node.setNodeType(NodeType.valueOf(rs.getInt("node_type")));
             node.setVip(rs.getString("vip"));
             node.setMacAddress(rs.getString("mac_address"));
             node.setRemark(rs.getString("remark"));

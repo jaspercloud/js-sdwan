@@ -201,7 +201,8 @@ public class SDWanControllerService implements InitializingBean {
     private void bindVip(SDWanProtos.RegReq regReq, Channel channel, Node node) {
         Node queryNode = nodeRepository.queryByMacAddress(regReq.getMacAddress());
         if (null != queryNode) {
-            applyChannel(node.getVip(), channel);
+            applyChannel(queryNode.getVip(), channel);
+            node.setVip(queryNode.getVip());
             return;
         }
         String vip = applyVIP(channel);
