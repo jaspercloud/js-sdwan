@@ -11,6 +11,7 @@ import io.jaspercloud.sdwan.infra.repository.NodeRepository;
 import io.jaspercloud.sdwan.infra.repository.RouteRepository;
 import io.jaspercloud.sdwan.infra.support.NodeType;
 import io.netty.channel.Channel;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -149,9 +150,14 @@ public class ConfigServiceImpl implements ConfigService {
         if (!Cidr.contains(properties.getCidr(), request.getVip())) {
             throw new ProcessCodeException(ErrorCode.VipNotInCidr);
         }
+        String curVIP = node.getVip();
+        String newVIP = request.getVip();
         node.setVip(request.getVip());
         node.setRemark(request.getRemark());
         nodeRepository.updateById(node);
+        if (!StringUtils.equals(curVIP, newVIP)) {
+            nodeManager.deleteChannel(curVIP);
+        }
     }
 
     @Override
