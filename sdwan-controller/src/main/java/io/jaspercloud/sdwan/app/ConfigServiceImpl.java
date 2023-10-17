@@ -140,6 +140,16 @@ public class ConfigServiceImpl implements ConfigService {
     }
 
     @Override
+    public void updateNode(NodeDTO request) {
+        Node node = nodeRepository.queryById(request.getId());
+        if (null == node) {
+            return;
+        }
+        node.setRemark(request.getRemark());
+        nodeRepository.updateById(node);
+    }
+
+    @Override
     public void deleteNode(Long id) {
         Node node = nodeRepository.queryById(id);
         if (null == node) {

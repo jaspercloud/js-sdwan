@@ -20,6 +20,12 @@ public class NodeController {
         return Result.OK;
     }
 
+    @PutMapping
+    public Result update(@RequestBody NodeDTO request) {
+        configService.updateNode(request);
+        return Result.OK;
+    }
+
     @GetMapping("/list")
     public Result list() {
         List<NodeDTO> nodeList = configService.getNodeList();

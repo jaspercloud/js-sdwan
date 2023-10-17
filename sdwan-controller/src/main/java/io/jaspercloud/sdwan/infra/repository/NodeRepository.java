@@ -36,6 +36,12 @@ public class NodeRepository {
         return result;
     }
 
+    public int updateById(Node node) {
+        String sql = "update node set vip=?, remark=? where id=?";
+        int result = jdbcTemplate.update(sql, new Object[]{node.getVip(), node.getRemark(), node.getId()});
+        return result;
+    }
+
     public int deleteById(Long id) {
         String sql = "delete from node where id=?";
         int result = jdbcTemplate.update(sql, id);
