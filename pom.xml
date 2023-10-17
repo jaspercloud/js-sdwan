@@ -18,7 +18,6 @@
         <module>sdwan-stun</module>
         <module>sdwan-controller</module>
         <module>sdwan-node</module>
-<!--        <module>sdwan-demo</module>-->
     </modules>
 
     <build>
