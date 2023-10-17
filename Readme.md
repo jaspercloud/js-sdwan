@@ -27,6 +27,8 @@ netThunder集成了强大的集中化管理工具，使您能够轻松管理和�
 无论您的网络规模如何增长，我们的产品都能够轻松适应变化。您可以根据需要扩展您的网络，无需担心性能下降。
 
 ### 原理:
+![tun](doc/img/tun.png)
+![principle](doc/img/principle.png)
 SD-WAN（Software-Defined Wide Area Network）中使用的TUN设备是一种虚拟网络设备，它允许将数据包从一个物理网络接口路由到另一个网络接口，通常用于创建安全的隧道，实现加密、隔离和路由功能。以下是SD-WAN中使用的TUN设备的工作原理：
 
 虚拟TUN设备创建： SD-WAN控制器或设备会在操作系统内核中创建一个虚拟的TUN/TAP（Tunnel）设备。TUN代表网络层（Layer 3）设备，而TAP代表数据链路层（Layer 2）设备。
