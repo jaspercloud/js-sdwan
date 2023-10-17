@@ -1,5 +1,6 @@
 package io.jaspercloud.sdwan.app;
 
+import io.jaspercloud.sdwan.Cidr;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.domian.Node;
 import io.jaspercloud.sdwan.domian.Route;
@@ -145,6 +146,10 @@ public class ConfigServiceImpl implements ConfigService {
         if (null == node) {
             return;
         }
+        if (!Cidr.contains(properties.getCidr(), request.getVip())) {
+            throw new ProcessCodeException(ErrorCode.VipNotInCidr);
+        }
+        node.setVip(request.getVip());
         node.setRemark(request.getRemark());
         nodeRepository.updateById(node);
     }

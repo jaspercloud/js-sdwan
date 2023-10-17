@@ -6,6 +6,7 @@ public interface ErrorCode {
 
     int NotFoundNode = 1001;
     int NodeIsNotMesh = 1002;
+    int VipNotInCidr = 1003;
 
     int NotFoundRoute = 2001;
     int CidrError = 2002;
