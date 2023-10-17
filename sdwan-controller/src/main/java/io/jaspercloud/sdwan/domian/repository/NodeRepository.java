@@ -1,4 +1,4 @@
-package io.jaspercloud.sdwan.infra.repository;
+package io.jaspercloud.sdwan.domian.repository;
 
 import io.jaspercloud.sdwan.domian.Node;
 import io.jaspercloud.sdwan.infra.support.NodeType;
