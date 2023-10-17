@@ -176,6 +176,7 @@ public class ConfigServiceImpl implements ConfigService {
             nodeDTO.setNodeType(e.getNodeType());
             nodeDTO.setVip(e.getVip());
             nodeDTO.setMacAddress(e.getMacAddress());
+            nodeDTO.setRemark(e.getRemark());
             nodeDTO.setOnline(null != onlineMap.get(e.getVip()));
             return nodeDTO;
         }).collect(Collectors.toList());
@@ -191,6 +192,7 @@ public class ConfigServiceImpl implements ConfigService {
             nodeDTO.setNodeType(e.getNodeType());
             nodeDTO.setVip(e.getVip());
             nodeDTO.setMacAddress(e.getMacAddress());
+            nodeDTO.setRemark(e.getRemark());
             return nodeDTO;
         }).collect(Collectors.toList());
         return resultList;
