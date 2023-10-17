@@ -109,9 +109,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                     }
                     throw e;
                 }
-                if (SDWanProtos.MessageCode.NodeTypeError_VALUE == regResp.getCode()) {
-                    throw new ProcessException("meshNode must staticNode");
-                } else if (SDWanProtos.MessageCode.NodeTypeError_VALUE == regResp.getCode()) {
+                if (SDWanProtos.MessageCode.NotEnough_VALUE == regResp.getCode()) {
                     throw new ProcessException("no more vip");
                 } else if (SDWanProtos.MessageCode.VipBound_VALUE == regResp.getCode()) {
                     throw new ProcessException("vip bound");
