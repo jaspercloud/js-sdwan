@@ -8,7 +8,7 @@ import javax.annotation.Resource;
 import java.util.List;
 
 @RestController
-@RequestMapping("/route")
+@RequestMapping("/api/route")
 public class RouteController {
 
     @Resource
