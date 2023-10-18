@@ -69,6 +69,7 @@ public class RelayServer implements InitializingBean {
                                     StringAttr vipAttr = (StringAttr) request.getAttrs().get(AttrType.VIP);
                                     String vip = vipAttr.getData();
                                     Node node = channelMap.computeIfAbsent(vip, key -> new Node(sender, System.currentTimeMillis()));
+                                    node.setAddress(sender);
                                     node.setLastTime(System.currentTimeMillis());
                                     //resp
                                     StunMessage responseMessage = new StunMessage(MessageType.BindRelayResponse, request.getTranId());
