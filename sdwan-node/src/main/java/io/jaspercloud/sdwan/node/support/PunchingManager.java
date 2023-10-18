@@ -255,7 +255,7 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
             try {
                 //Symmetric对称网络，Relay
                 StunMessage stunMessage = new StunMessage(MessageType.BindResponse);
-                StunPacket packet = new StunPacket(stunMessage, properties.getRelayServer());
+                StunPacket packet = new StunPacket(stunMessage, properties.getRelayServer(), properties.getRelayServer());
                 Node computeNode = new Node(properties.getRelayServer(), relayClient.getSecretKey(), System.currentTimeMillis());
                 nodeMap.computeIfAbsent(dstVIP, key -> computeNode);
                 return CompletableFuture.completedFuture(packet);
