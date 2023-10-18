@@ -62,6 +62,10 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
     @Override
     public void afterPropertiesSet() throws Exception {
         ecdhKeyPair = Ecdh.generateKeyPair();
+        relayClient.onUpdateSecretKey(secretKey -> {
+            Node computeNode = new Node(properties.getRelayServer(), relayClient.getSecretKey(), System.currentTimeMillis());
+            nodeMap.computeIfAbsent(properties.getRelayServer().getHostString(), key -> computeNode);
+        });
         checkResult = stunClient.check(properties.getStunServer(), 3000);
         Thread stunCheckThread = new Thread(() -> {
             while (true) {
@@ -253,9 +257,9 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
             return processNodeCache(dstVIP, future);
         } else {
             try {
-                //Symmetric对称网络，Relay
+                //Symmetric对称网络，使用Relay
                 StunMessage stunMessage = new StunMessage(MessageType.BindResponse);
-                StunPacket packet = new StunPacket(stunMessage, properties.getRelayServer(), properties.getRelayServer());
+                StunPacket packet = new StunPacket(stunMessage, null, properties.getRelayServer());
                 Node computeNode = new Node(properties.getRelayServer(), relayClient.getSecretKey(), System.currentTimeMillis());
                 nodeMap.computeIfAbsent(dstVIP, key -> computeNode);
                 return CompletableFuture.completedFuture(packet);

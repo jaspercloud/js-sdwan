@@ -10,6 +10,7 @@ import org.springframework.beans.factory.InitializingBean;
 
 import javax.crypto.SecretKey;
 import java.security.KeyPair;
+import java.util.function.Consumer;
 
 @Slf4j
 public class RelayClient implements InitializingBean {
@@ -20,6 +21,7 @@ public class RelayClient implements InitializingBean {
     private KeyPair ecdhKeyPair;
     private String publicKey;
     private SecretKey secretKey;
+    private Consumer<SecretKey> consumer;
 
     public SecretKey getSecretKey() {
         return secretKey;
@@ -27,6 +29,11 @@ public class RelayClient implements InitializingBean {
 
     public void setLocalVIP(String localVIP) {
         this.localVIP = localVIP;
+    }
+
+    public void onUpdateSecretKey(Consumer<SecretKey> consumer) {
+        this.consumer = consumer;
+        consumer.accept(secretKey);
     }
 
     public RelayClient(SDWanNodeProperties properties, StunClient stunClient) {
@@ -46,6 +53,9 @@ public class RelayClient implements InitializingBean {
                         if (!StringUtils.equals(encryptKeyAttr.getData(), publicKey)) {
                             publicKey = encryptKeyAttr.getData();
                             secretKey = Ecdh.generateAESKey(ecdhKeyPair.getPrivate(), Hex.decode(publicKey));
+                            if (null != consumer) {
+                                consumer.accept(secretKey);
+                            }
                         }
                     } catch (Exception e) {
                         log.error(e.getMessage(), e);
