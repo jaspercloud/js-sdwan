@@ -6,6 +6,7 @@ import io.jaspercloud.sdwan.NetworkInterfaceInfo;
 import io.jaspercloud.sdwan.NioEventLoopFactory;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
+import io.jaspercloud.sdwan.stun.CheckResult;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
@@ -112,7 +113,7 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                         });
                     }
                 });
-        InetSocketAddress address = new InetSocketAddress(properties.getControllerHost(), properties.getControllerPort());
+        InetSocketAddress address = properties.getControllerServer();
         channel = bootstrap.connect(address).syncUninterruptibly().channel();
         Thread thread = new Thread(this, "sdwan-node");
         thread.start();
@@ -131,7 +132,7 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
         while (true) {
             try {
                 if (null == channel || !channel.isActive()) {
-                    InetSocketAddress address = new InetSocketAddress(properties.getControllerHost(), properties.getControllerPort());
+                    InetSocketAddress address = properties.getControllerServer();
                     channel = bootstrap.connect(address).syncUninterruptibly().channel();
                 }
                 log.info("SDWanNode started");
@@ -188,15 +189,12 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
     }
 
     public SDWanProtos.RegResp regist(NetworkInterfaceInfo interfaceInfo,
-                                      int localPort,
-                                      String mapping,
-                                      String filtering,
-                                      InetSocketAddress mappingAddress,
+                                      CheckResult checkResult,
                                       int timeout) throws Exception {
         String hardwareAddress = interfaceInfo.getHardwareAddress();
         SDWanProtos.SocketAddress internalAddr = SDWanProtos.SocketAddress.newBuilder()
                 .setIp(interfaceInfo.getInterfaceAddress().getAddress().getHostAddress())
-                .setPort(localPort)
+                .setPort(checkResult.getLocalPort())
                 .build();
         SDWanProtos.NodeTypeCode nodeTypeCode;
         if ("linux".equalsIgnoreCase(System.getProperty("os.name"))) {
@@ -208,9 +206,10 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                 .setMacAddress(hardwareAddress)
                 .setNodeType(nodeTypeCode)
                 .setInternalAddr(internalAddr)
-                .setStunMapping(mapping)
-                .setStunFiltering(filtering);
-        if (null != mappingAddress) {
+                .setStunMapping(checkResult.getMapping())
+                .setStunFiltering(checkResult.getFiltering());
+        if (null != checkResult.getMappingAddress()) {
+            InetSocketAddress mappingAddress = checkResult.getMappingAddress();
             SDWanProtos.SocketAddress publicAddr = SDWanProtos.SocketAddress.newBuilder()
                     .setIp(mappingAddress.getHostString())
                     .setPort(mappingAddress.getPort())

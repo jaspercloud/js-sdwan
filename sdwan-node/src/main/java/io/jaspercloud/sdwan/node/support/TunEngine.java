@@ -5,7 +5,7 @@ import io.jaspercloud.sdwan.NetworkInterfaceUtil;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.node.support.transporter.Transporter;
-import io.jaspercloud.sdwan.stun.CheckResult;
+import io.jaspercloud.sdwan.stun.*;
 import io.jaspercloud.sdwan.tun.Ipv4Packet;
 import io.jaspercloud.sdwan.tun.TunAddress;
 import io.jaspercloud.sdwan.tun.TunChannel;
@@ -14,7 +14,6 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
-import io.netty.channel.socket.DatagramPacket;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.DisposableBean;
@@ -36,6 +35,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
     private SDWanNode sdWanNode;
     private Transporter transporter;
     private PunchingManager punchingManager;
+    private RelayClient relayClient;
     private SDArpManager sdArpManager;
 
     private AtomicReference<List<SDWanProtos.Route>> routeCache = new AtomicReference<>();
@@ -51,11 +51,13 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                      SDWanNode sdWanNode,
                      Transporter transporter,
                      PunchingManager punchingManager,
+                     RelayClient relayClient,
                      SDArpManager sdArpManager) {
         this.properties = properties;
         this.sdWanNode = sdWanNode;
         this.transporter = transporter;
         this.punchingManager = punchingManager;
+        this.relayClient = relayClient;
         this.sdArpManager = sdArpManager;
     }
 
@@ -92,14 +94,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                 CheckResult checkResult = punchingManager.getCheckResult();
                 SDWanProtos.RegResp regResp;
                 try {
-                    regResp = sdWanNode.regist(
-                            interfaceInfo,
-                            checkResult.getLocalPort(),
-                            checkResult.getMapping(),
-                            checkResult.getFiltering(),
-                            checkResult.getMappingAddress(),
-                            5000
-                    );
+                    regResp = sdWanNode.regist(interfaceInfo, checkResult, 5000);
                 } catch (TimeoutException e) {
                     throw new ProcessException("sdWANNode.regist timeout");
                 } catch (ExecutionException e) {
@@ -116,6 +111,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                 } else if (SDWanProtos.MessageCode.SysError_VALUE == regResp.getCode()) {
                     throw new ProcessException("server error");
                 }
+                relayClient.setLocalVIP(regResp.getVip());
                 //配置地址
                 tunChannel.setAddress(regResp.getVip(), regResp.getMaskBits());
                 log.info("tunAddress: {}/{}", regResp.getVip(), regResp.getMaskBits());
@@ -151,24 +147,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                         pipeline.addLast("TunEngine:readTun", new SimpleChannelInboundHandler<ByteBuf>() {
                             @Override
                             protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
-                                TunAddress tunAddress = (TunAddress) ctx.channel().localAddress();
-                                String localVIP = tunAddress.getVip();
-                                Ipv4Packet ipv4Packet = Ipv4Packet.decodeMark(msg);
-                                ByteBuf byteBuf = msg.retain();
-                                sdArpManager.sdArp(sdWanNode, localVIP, ipv4Packet)
-                                        .whenComplete((address, throwable) -> {
-                                            if (null != throwable) {
-                                                log.error("sdArpTimeout: {}", ipv4Packet.getDstIP());
-                                                byteBuf.release();
-                                                return;
-                                            }
-                                            if (null == address) {
-                                                byteBuf.release();
-                                                return;
-                                            }
-                                            DatagramPacket packet = new DatagramPacket(byteBuf, address);
-                                            ctx.fireChannelRead(packet);
-                                        });
+                                processReadTun(ctx, msg);
                             }
                         });
                     }
@@ -176,6 +155,43 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
         ChannelFuture future = bootstrap.bind(new TunAddress(TUN, interfaceInfo.getName()));
         TunChannel tunChannel = (TunChannel) future.syncUninterruptibly().channel();
         return tunChannel;
+    }
+
+    private void processReadTun(ChannelHandlerContext ctx, ByteBuf msg) {
+        TunAddress tunAddress = (TunAddress) ctx.channel().localAddress();
+        String localVIP = tunAddress.getVip();
+        Ipv4Packet ipv4Packet = Ipv4Packet.decodeMark(msg);
+        ByteBuf byteBuf = msg.retain();
+        sdArpManager.sdArp(sdWanNode, ipv4Packet)
+                .whenComplete((sdArpResp, sdArpThrowable) -> {
+                    if (null != sdArpThrowable) {
+                        log.error("sdArpTimeout: {}", ipv4Packet.getDstIP());
+                        byteBuf.release();
+                        return;
+                    }
+                    if (null == sdArpResp) {
+                        byteBuf.release();
+                        return;
+                    }
+                    punchingManager.getPublicAddress(localVIP, ipv4Packet, sdArpResp)
+                            .whenComplete(((address, addressThrowable) -> {
+                                if (null != addressThrowable) {
+                                    if (addressThrowable instanceof UnsupportedOperationException) {
+                                        //对称网络
+                                        StunPacket relayPacket = relayClient.createRelayPacket(localVIP, byteBuf);
+                                        ctx.fireChannelRead(relayPacket);
+                                        return;
+                                    }
+                                    log.error("getPublicAddressTimeout: {}", ipv4Packet.getDstIP());
+                                    byteBuf.release();
+                                    return;
+                                }
+                                StunMessage message = new StunMessage(MessageType.Transfer);
+                                message.getAttrs().put(AttrType.Data, new ByteBufAttr(byteBuf));
+                                StunPacket request = new StunPacket(message, address);
+                                ctx.fireChannelRead(request);
+                            }));
+                });
     }
 
     private void addRoutes(String vip, List<SDWanProtos.Route> routeList) throws SocketException {

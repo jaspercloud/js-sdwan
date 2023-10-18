@@ -52,7 +52,7 @@ public class StunClient implements InitializingBean {
                                     AsyncTask.completeTask(request.getTranId(), packet);
                                 } else if (MessageType.BindResponse.equals(request.getMessageType())) {
                                     AsyncTask.completeTask(request.getTranId(), packet);
-                                } else if (MessageType.AllocateResponse.equals(request.getMessageType())) {
+                                } else if (MessageType.BindRelayResponse.equals(request.getMessageType())) {
                                     AsyncTask.completeTask(request.getTranId(), packet);
                                 } else {
                                     ctx.fireChannelRead(packet.retain());
@@ -124,17 +124,9 @@ public class StunClient implements InitializingBean {
         return future;
     }
 
-    public CompletableFuture<StunPacket> sendAllocate(InetSocketAddress address, long timeout) {
-        StunMessage message = new StunMessage(MessageType.AllocateRequest);
-        StunPacket request = new StunPacket(message, address);
-        CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), timeout);
-        channel.writeAndFlush(request);
-        return future;
-    }
-
-    public CompletableFuture<StunPacket> sendAllocateRefresh(InetSocketAddress address, String channelId, long timeout) {
-        StunMessage message = new StunMessage(MessageType.AllocateRefreshRequest);
-        message.getAttrs().put(AttrType.ChannelId, new StringAttr(channelId));
+    public CompletableFuture<StunPacket> sendBindRelay(InetSocketAddress address, String vip, long timeout) {
+        StunMessage message = new StunMessage(MessageType.BindRelayRequest);
+        message.getAttrs().put(AttrType.VIP, new StringAttr(vip));
         StunPacket request = new StunPacket(message, address);
         CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), timeout);
         channel.writeAndFlush(request);
@@ -166,9 +158,5 @@ public class StunClient implements InitializingBean {
         } catch (Exception e) {
             return null;
         }
-    }
-
-    public void sendTurnData(StunPacket packet) {
-        channel.writeAndFlush(packet);
     }
 }

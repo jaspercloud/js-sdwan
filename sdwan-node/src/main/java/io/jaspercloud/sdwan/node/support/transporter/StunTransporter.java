@@ -1,18 +1,12 @@
 package io.jaspercloud.sdwan.node.support.transporter;
 
-import io.jaspercloud.sdwan.stun.AttrType;
-import io.jaspercloud.sdwan.stun.ByteBufAttr;
-import io.jaspercloud.sdwan.stun.MessageType;
-import io.jaspercloud.sdwan.stun.StunClient;
-import io.jaspercloud.sdwan.stun.StunMessage;
-import io.jaspercloud.sdwan.stun.StunPacket;
 import io.jaspercloud.sdwan.node.support.StunChannelInboundHandler;
+import io.jaspercloud.sdwan.stun.*;
 import io.jaspercloud.sdwan.tun.Ipv4Packet;
 import io.jaspercloud.sdwan.tun.TunChannel;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.channel.socket.DatagramPacket;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
@@ -47,22 +41,22 @@ public class StunTransporter implements Transporter {
                 tunChannel.writeAndFlush(byteBuf);
             }
         });
-        tunChannel.pipeline().addLast("Transporter:readTun", new SimpleChannelInboundHandler<DatagramPacket>() {
+        tunChannel.pipeline().addLast("Transporter:readTun", new SimpleChannelInboundHandler<StunPacket>() {
 
             @Override
-            protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket packet) throws Exception {
+            protected void channelRead0(ChannelHandlerContext ctx, StunPacket packet) throws Exception {
                 InetSocketAddress address = packet.recipient();
-                ByteBuf byteBuf = packet.content().retain();
+                StunMessage stunMessage = packet.content();
+                ByteBufAttr dataAttr = (ByteBufAttr) stunMessage.getAttrs().get(AttrType.Data);
+                ByteBuf byteBuf = dataAttr.getByteBuf();
                 Ipv4Packet ipv4Packet = Ipv4Packet.decodeMark(byteBuf);
                 log.debug("output: {} -> {} -> {}",
                         ipv4Packet.getSrcIP(), ipv4Packet.getDstIP(), address.getHostString());
                 for (Filter filter : filterList) {
                     byteBuf = filter.encode(address, byteBuf);
                 }
-                StunMessage message = new StunMessage(MessageType.Transfer);
-                message.getAttrs().put(AttrType.Data, new ByteBufAttr(byteBuf));
-                StunPacket request = new StunPacket(message, address);
-                stunClient.getChannel().writeAndFlush(request.retain());
+                stunMessage.getAttrs().put(AttrType.Data, new ByteBufAttr(byteBuf));
+                stunClient.getChannel().writeAndFlush(packet.retain());
             }
         });
     }

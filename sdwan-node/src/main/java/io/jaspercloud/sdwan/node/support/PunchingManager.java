@@ -1,6 +1,9 @@
 package io.jaspercloud.sdwan.node.support;
 
-import io.jaspercloud.sdwan.*;
+import io.jaspercloud.sdwan.AsyncTask;
+import io.jaspercloud.sdwan.ByteBufUtil;
+import io.jaspercloud.sdwan.CompletableFutures;
+import io.jaspercloud.sdwan.Ecdh;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.node.support.transporter.Transporter;
@@ -33,10 +36,9 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
     @Autowired
     private ApplicationEventPublisher publisher;
 
+    private SDWanNodeProperties properties;
     private SDWanNode sdWanNode;
     private StunClient stunClient;
-    private InetSocketAddress stunServer;
-
     private Map<String, Node> nodeMap = new ConcurrentHashMap<>();
 
     private KeyPair ecdhKeyPair;
@@ -46,20 +48,20 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
         return checkResult;
     }
 
-    public PunchingManager(SDWanNode sdWanNode, StunClient stunClient, InetSocketAddress stunServer) {
+    public PunchingManager(SDWanNodeProperties properties, SDWanNode sdWanNode, StunClient stunClient) {
         this.sdWanNode = sdWanNode;
         this.stunClient = stunClient;
-        this.stunServer = stunServer;
+        this.properties = properties;
     }
 
     @Override
     public void afterPropertiesSet() throws Exception {
         ecdhKeyPair = Ecdh.generateKeyPair();
-        checkResult = stunClient.check(stunServer, 3000);
+        checkResult = stunClient.check(properties.getStunServer(), 3000);
         Thread stunCheckThread = new Thread(() -> {
             while (true) {
                 try {
-                    checkResult = stunClient.check(stunServer, 3000);
+                    checkResult = stunClient.check(properties.getStunServer(), 3000);
                 } catch (TimeoutException e) {
                     log.error("checkStunServer timeout");
                 } catch (Exception e) {
@@ -245,7 +247,7 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
             CompletableFuture<StunPacket> future = stunClient.sendBind(request, 3000);
             return processNodeCache(dstVIP, future);
         } else {
-            //Symmetric对称网络，TURN
+            //Symmetric对称网络，Relay
             throw new UnsupportedOperationException();
         }
     }

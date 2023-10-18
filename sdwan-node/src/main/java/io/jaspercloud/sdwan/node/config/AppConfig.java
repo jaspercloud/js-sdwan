@@ -22,6 +22,11 @@ public class AppConfig {
     }
 
     @Bean
+    public RelayClient relayClient(SDWanNodeProperties properties, StunClient stunClient) {
+        return new RelayClient(properties, stunClient);
+    }
+
+    @Bean
     public SDWanNode sdWanNode(SDWanNodeProperties properties) {
         return new SDWanNode(properties);
     }
@@ -30,14 +35,12 @@ public class AppConfig {
     public PunchingManager punchingManager(SDWanNodeProperties properties,
                                            SDWanNode sdWanNode,
                                            StunClient stunClient) {
-        String[] split = properties.getStunServer().split("\\:");
-        InetSocketAddress stunServerAddr = new InetSocketAddress(split[0], Integer.parseInt(split[1]));
-        return new PunchingManager(sdWanNode, stunClient, stunServerAddr);
+        return new PunchingManager(properties, sdWanNode, stunClient);
     }
 
     @Bean
-    public SDArpManager sdArpManager(PunchingManager punchingManager) {
-        return new SDArpManager(punchingManager);
+    public SDArpManager sdArpManager() {
+        return new SDArpManager();
     }
 
     @Bean
@@ -51,7 +54,8 @@ public class AppConfig {
                                SDWanNode sdWanNode,
                                Transporter transporter,
                                PunchingManager punchingManager,
+                               RelayClient relayClient,
                                SDArpManager sdArpManager) {
-        return new TunEngine(properties, sdWanNode, transporter, punchingManager, sdArpManager);
+        return new TunEngine(properties, sdWanNode, transporter, punchingManager, relayClient, sdArpManager);
     }
 }

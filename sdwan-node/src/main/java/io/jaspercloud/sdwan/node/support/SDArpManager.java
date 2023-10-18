@@ -1,7 +1,7 @@
 package io.jaspercloud.sdwan.node.support;
 
-import io.jaspercloud.sdwan.tun.IpPacket;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
+import io.jaspercloud.sdwan.tun.IpPacket;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
 import io.netty.util.Timer;
@@ -10,7 +10,6 @@ import io.netty.util.concurrent.DefaultThreadFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 
-import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,18 +24,12 @@ public class SDArpManager {
             20, TimeUnit.MILLISECONDS);
     private Map<String, AtomicReference<SDWanProtos.SDArpResp>> sdArpCache = new ConcurrentHashMap<>();
 
-    private PunchingManager punchingManager;
-
-    public SDArpManager(PunchingManager punchingManager) {
-        this.punchingManager = punchingManager;
-    }
-
     @EventListener(NodeOfflineEvent.class)
     public void onNodeOfflineEvent(NodeOfflineEvent event) {
         sdArpCache.remove(event.getIp());
     }
 
-    public CompletableFuture<InetSocketAddress> sdArp(SDWanNode sdWanNode, String localVIP, IpPacket packet) {
+    public CompletableFuture<SDWanProtos.SDArpResp> sdArp(SDWanNode sdWanNode, IpPacket packet) {
         String dstIP = packet.getDstIP();
         return CompletableFuture.supplyAsync(() -> {
             AtomicReference<SDWanProtos.SDArpResp> ref = sdArpCache.get(dstIP);
@@ -57,12 +50,11 @@ public class SDArpManager {
                         });
             }
             return CompletableFuture.completedFuture(ref.get());
-        }).thenComposeAsync(sdArp -> {
+        }).thenApply(sdArp -> {
             if (SDWanProtos.MessageCode.Success_VALUE != sdArp.getCode()) {
-                return CompletableFuture.completedFuture(null);
+                return null;
             }
-            CompletableFuture<InetSocketAddress> future = punchingManager.getPublicAddress(localVIP, packet, sdArp);
-            return future;
+            return sdArp;
         });
     }
 }

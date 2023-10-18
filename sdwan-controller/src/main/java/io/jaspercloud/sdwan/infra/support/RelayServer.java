@@ -1,6 +1,5 @@
 package io.jaspercloud.sdwan.infra.support;
 
-import io.jaspercloud.sdwan.AsyncTask;
 import io.jaspercloud.sdwan.NioEventLoopFactory;
 import io.jaspercloud.sdwan.infra.config.SDWanRelayProperties;
 import io.jaspercloud.sdwan.stun.*;
@@ -17,7 +16,6 @@ import org.springframework.beans.factory.InitializingBean;
 import java.net.InetSocketAddress;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
@@ -67,39 +65,22 @@ public class RelayServer implements InitializingBean {
                             protected void channelRead0(ChannelHandlerContext ctx, StunPacket packet) throws Exception {
                                 InetSocketAddress sender = packet.sender();
                                 StunMessage request = packet.content();
-                                if (MessageType.Heart.equals(request.getMessageType())) {
-                                    StunPacket response = new StunPacket(request, sender);
-                                    ctx.writeAndFlush(response);
-                                    AsyncTask.completeTask(request.getTranId(), packet);
-                                } else if (MessageType.AllocateRequest.equals(request.getMessageType())) {
-                                    StunMessage responseMessage = new StunMessage(MessageType.AllocateResponse, request.getTranId());
-                                    String channelId = UUID.randomUUID().toString();
-                                    responseMessage.getAttrs().put(AttrType.ChannelId, new StringAttr(channelId));
-                                    channelMap.put(channelId, new Node(sender, System.currentTimeMillis()));
-                                    StunPacket response = new StunPacket(responseMessage, sender);
-                                    ctx.writeAndFlush(response);
-                                } else if (MessageType.AllocateRefreshRequest.equals(request.getMessageType())) {
-                                    StringAttr channelIdAttr = (StringAttr) request.getAttrs().get(AttrType.ChannelId);
-                                    String channelId = channelIdAttr.getData();
-                                    Node node = channelMap.get(channelId);
-                                    if (null == node) {
-                                        StunMessage responseMessage = new StunMessage(MessageType.AllocateRefreshResponse, request.getTranId());
-                                        responseMessage.getAttrs().put(AttrType.LiveTime, new LongAttr(-1L));
-                                        StunPacket response = new StunPacket(responseMessage, sender);
-                                        ctx.writeAndFlush(response);
-                                        return;
-                                    }
+                                if (MessageType.BindRelayRequest.equals(request.getMessageType())) {
+                                    StringAttr vipAttr = (StringAttr) request.getAttrs().get(AttrType.VIP);
+                                    String vip = vipAttr.getData();
+                                    Node node = channelMap.computeIfAbsent(vip, key -> new Node(sender, System.currentTimeMillis()));
                                     node.setLastTime(System.currentTimeMillis());
-                                    StunMessage responseMessage = new StunMessage(MessageType.AllocateRefreshResponse, request.getTranId());
-                                    responseMessage.getAttrs().put(AttrType.LiveTime, new LongAttr(properties.getTimeout()));
+                                    //resp
+                                    StunMessage responseMessage = new StunMessage(MessageType.BindRelayResponse, request.getTranId());
                                     StunPacket response = new StunPacket(responseMessage, sender);
                                     ctx.writeAndFlush(response);
                                 } else if (MessageType.Transfer.equals(request.getMessageType())) {
-                                    StringAttr channelIdAttr = (StringAttr) request.getAttrs().get(AttrType.ChannelId);
-                                    Node node = channelMap.get(channelIdAttr.getData());
+                                    StringAttr vipAttr = (StringAttr) request.getAttrs().get(AttrType.VIP);
+                                    Node node = channelMap.get(vipAttr.getData());
                                     if (null == node) {
                                         return;
                                     }
+                                    //resp
                                     StunPacket response = new StunPacket(request.retain(), node.getAddress());
                                     ctx.writeAndFlush(response);
                                 } else {
