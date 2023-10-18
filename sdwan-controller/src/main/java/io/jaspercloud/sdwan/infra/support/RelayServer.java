@@ -78,7 +78,7 @@ public class RelayServer implements InitializingBean {
                                     channelMap.put(channelId, new Node(sender, System.currentTimeMillis()));
                                     StunPacket response = new StunPacket(responseMessage, sender);
                                     ctx.writeAndFlush(response);
-                                } else if (MessageType.AllocateRefresh.equals(request.getMessageType())) {
+                                } else if (MessageType.AllocateRefreshRequest.equals(request.getMessageType())) {
                                     StringAttr channelIdAttr = (StringAttr) request.getAttrs().get(AttrType.ChannelId);
                                     String channelId = channelIdAttr.getData();
                                     Node node = channelMap.get(channelId);
@@ -86,6 +86,10 @@ public class RelayServer implements InitializingBean {
                                         return;
                                     }
                                     node.setLastTime(System.currentTimeMillis());
+                                    StunMessage responseMessage = new StunMessage(MessageType.AllocateRefreshResponse, request.getTranId());
+                                    responseMessage.getAttrs().put(AttrType.LiveTime, new LongAttr(properties.getTimeout()));
+                                    StunPacket response = new StunPacket(responseMessage, sender);
+                                    ctx.writeAndFlush(response);
                                 } else if (MessageType.Transfer.equals(request.getMessageType())) {
                                     StringAttr channelIdAttr = (StringAttr) request.getAttrs().get(AttrType.ChannelId);
                                     Node node = channelMap.get(channelIdAttr.getData());

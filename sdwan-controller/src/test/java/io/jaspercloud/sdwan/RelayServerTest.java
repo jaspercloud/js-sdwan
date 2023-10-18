@@ -22,10 +22,17 @@ public class RelayServerTest {
         stunClient1.getChannel().pipeline().addLast(new SimpleChannelInboundHandler<StunPacket>() {
             @Override
             protected void channelRead0(ChannelHandlerContext ctx, StunPacket msg) throws Exception {
-                ByteBufAttr byteBufAttr = (ByteBufAttr) msg.content().getAttrs().get(AttrType.Data);
-                byte[] bytes = ByteBufUtil.toBytes(byteBufAttr.getByteBuf());
-                String text = new String(bytes);
-                System.out.println(text);
+                StunMessage stunMessage = msg.content();
+                LongAttr liveTimeAttr = (LongAttr) stunMessage.getAttrs().get(AttrType.LiveTime);
+                if (null != liveTimeAttr) {
+                    System.out.println("liveTime:" + liveTimeAttr.getData());
+                }
+                ByteBufAttr byteBufAttr = (ByteBufAttr) stunMessage.getAttrs().get(AttrType.Data);
+                if (null != byteBufAttr) {
+                    byte[] bytes = ByteBufUtil.toBytes(byteBufAttr.getByteBuf());
+                    String text = new String(bytes);
+                    System.out.println(text);
+                }
             }
         });
         StunPacket stunPacket1 = stunClient1.sendAllocate(new InetSocketAddress("127.0.0.1", 888), 3000).get();
@@ -33,7 +40,7 @@ public class RelayServerTest {
         String channelId = channelIdAttr.getData();
         new Thread(() -> {
             while (true) {
-                stunClient1.sendAllocateRefresh(new InetSocketAddress("127.0.0.1", 888), channelId);
+                stunClient1.sendAllocateRefresh(new InetSocketAddress("127.0.0.1", 888), channelId, 3000);
                 try {
                     Thread.sleep(3000);
                 } catch (InterruptedException e) {

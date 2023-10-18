@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 @Data
 public class StringAttr extends Attr {
 
+    public static final Decode Decode = new Decode();
+
     private String data;
 
     @Override
@@ -27,5 +29,15 @@ public class StringAttr extends Attr {
     @Override
     public boolean release(int decrement) {
         return false;
+    }
+
+    private static class Decode implements AttrDecode {
+
+        @Override
+        public Attr decode(ByteBuf byteBuf) {
+            byte[] bytes = ByteBufUtil.toBytes(byteBuf);
+            String text = new String(bytes);
+            return new StringAttr(text);
+        }
     }
 }

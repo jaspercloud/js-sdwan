@@ -132,11 +132,13 @@ public class StunClient implements InitializingBean {
         return future;
     }
 
-    public void sendAllocateRefresh(InetSocketAddress address, String channelId) {
-        StunMessage message = new StunMessage(MessageType.AllocateRefresh);
+    public CompletableFuture<StunPacket> sendAllocateRefresh(InetSocketAddress address, String channelId, long timeout) {
+        StunMessage message = new StunMessage(MessageType.AllocateRefreshRequest);
         message.getAttrs().put(AttrType.ChannelId, new StringAttr(channelId));
         StunPacket request = new StunPacket(message, address);
+        CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), timeout);
         channel.writeAndFlush(request);
+        return future;
     }
 
     public CompletableFuture<StunPacket> sendHeart(InetSocketAddress address, long timeout) {

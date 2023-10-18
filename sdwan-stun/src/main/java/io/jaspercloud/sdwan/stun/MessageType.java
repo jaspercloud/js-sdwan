@@ -8,7 +8,8 @@ public enum MessageType {
     Heart(0x0302),
     AllocateRequest(0x0303),
     AllocateResponse(0x0304),
-    AllocateRefresh(0x0305);
+    AllocateRefreshRequest(0x0305),
+    AllocateRefreshResponse(0x0306);
     private int code;
 
     public int getCode() {

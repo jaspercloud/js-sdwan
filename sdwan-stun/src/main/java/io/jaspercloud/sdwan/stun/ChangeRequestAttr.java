@@ -7,6 +7,8 @@ import lombok.Data;
 @Data
 public class ChangeRequestAttr extends Attr {
 
+    public static final Decode Decode = new Decode();
+
     private Boolean changeIP;
     private Boolean changePort;
 
@@ -30,5 +32,16 @@ public class ChangeRequestAttr extends Attr {
         }
         attrByteBuf.writeInt(flag);
         return attrByteBuf;
+    }
+
+    private static class Decode implements AttrDecode {
+
+        @Override
+        public Attr decode(ByteBuf byteBuf) {
+            int flag = byteBuf.readInt();
+            boolean changeIP = ((flag & 0b100) >> 2) == 1;
+            boolean changePort = ((flag & 0b10) >> 1) == 1;
+            return new ChangeRequestAttr(changeIP, changePort);
+        }
     }
 }
