@@ -39,14 +39,15 @@ public class RelayClient implements InitializingBean {
                     log.error(e.getMessage(), e);
                 }
             }
-        });
+        }, "relay-client-heart");
         thread.setDaemon(true);
         thread.start();
     }
 
-    public StunPacket createRelayPacket(String vip, ByteBuf byteBuf) {
+    public StunPacket createRelayPacket(String localVIP, String dstVIP, ByteBuf byteBuf) {
         StunMessage message = new StunMessage(MessageType.Transfer);
-        message.getAttrs().put(AttrType.VIP, new StringAttr(vip));
+        message.getAttrs().put(AttrType.SrcVIP, new StringAttr(localVIP));
+        message.getAttrs().put(AttrType.DstVIP, new StringAttr(dstVIP));
         message.getAttrs().put(AttrType.Data, new ByteBufAttr(byteBuf));
         StunPacket packet = new StunPacket(message, properties.getRelayServer());
         return packet;

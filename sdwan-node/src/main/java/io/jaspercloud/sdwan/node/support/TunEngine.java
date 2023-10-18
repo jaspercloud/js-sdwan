@@ -176,20 +176,20 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                     punchingManager.getPublicAddress(localVIP, ipv4Packet, sdArpResp)
                             .whenComplete(((address, addressThrowable) -> {
                                 if (null != addressThrowable) {
-                                    if (addressThrowable.getCause() instanceof UnsupportedOperationException) {
-                                        //对称网络
-                                        StunPacket relayPacket = relayClient.createRelayPacket(sdArpResp.getVip(), byteBuf);
-                                        ctx.fireChannelRead(relayPacket);
-                                        return;
-                                    }
                                     log.error("getPublicAddressTimeout: {}", ipv4Packet.getDstIP());
                                     byteBuf.release();
                                     return;
                                 }
-                                StunMessage message = new StunMessage(MessageType.Transfer);
-                                message.getAttrs().put(AttrType.Data, new ByteBufAttr(byteBuf));
-                                StunPacket request = new StunPacket(message, address);
-                                ctx.fireChannelRead(request);
+                                if (properties.getRelayServer().equals(address)) {
+                                    //对称网络
+                                    StunPacket relayPacket = relayClient.createRelayPacket(localVIP, sdArpResp.getVip(), byteBuf);
+                                    ctx.fireChannelRead(relayPacket);
+                                } else {
+                                    StunMessage message = new StunMessage(MessageType.Transfer);
+                                    message.getAttrs().put(AttrType.Data, new ByteBufAttr(byteBuf));
+                                    StunPacket request = new StunPacket(message, address);
+                                    ctx.fireChannelRead(request);
+                                }
                             }));
                 });
     }

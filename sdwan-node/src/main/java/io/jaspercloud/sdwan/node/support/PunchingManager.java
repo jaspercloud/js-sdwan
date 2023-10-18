@@ -151,14 +151,6 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
                 Channel channel = ctx.channel();
                 InetSocketAddress addr = packet.sender();
                 StunMessage request = packet.content();
-                //saveNode
-                StringAttr encryptKeyAttr = (StringAttr) request.getAttrs().get(AttrType.EncryptKey);
-                String publicKey = encryptKeyAttr.getData();
-                SecretKey secretKey = Ecdh.generateAESKey(ecdhKeyPair.getPrivate(), Hex.decode(publicKey));
-                StringAttr vipAttr = (StringAttr) request.getAttrs().get(AttrType.VIP);
-                String vip = vipAttr.getData();
-                Node computeNode = new Node(addr, secretKey, System.currentTimeMillis());
-                nodeMap.computeIfAbsent(vip, key -> computeNode);
                 //resp
                 StunMessage response = new StunMessage(MessageType.BindResponse);
                 response.setTranId(request.getTranId());
@@ -167,6 +159,14 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
                 response.getAttrs().put(AttrType.EncryptKey, new StringAttr(Hex.toHexString(ecdhKeyPair.getPublic().getEncoded())));
                 StunPacket resp = new StunPacket(response, addr);
                 channel.writeAndFlush(resp);
+                //saveNode
+                StringAttr encryptKeyAttr = (StringAttr) request.getAttrs().get(AttrType.EncryptKey);
+                String publicKey = encryptKeyAttr.getData();
+                SecretKey secretKey = Ecdh.generateAESKey(ecdhKeyPair.getPrivate(), Hex.decode(publicKey));
+                StringAttr vipAttr = (StringAttr) request.getAttrs().get(AttrType.VIP);
+                String vip = vipAttr.getData();
+                Node computeNode = new Node(addr, secretKey, System.currentTimeMillis());
+                nodeMap.computeIfAbsent(vip, key -> computeNode);
                 //completeTask
                 AsyncTask.completeTask(request.getTranId(), packet);
             }
@@ -248,8 +248,24 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
             return processNodeCache(dstVIP, future);
         } else {
             //Symmetric对称网络，Relay
-            return CompletableFuture.supplyAsync(() -> {
-                throw new UnsupportedOperationException();
+            StunMessage message = new StunMessage(MessageType.BindRequest);
+            message.getAttrs().put(AttrType.EncryptKey, new StringAttr(Hex.toHexString(ecdhKeyPair.getPublic().getEncoded())));
+            message.getAttrs().put(AttrType.VIP, new StringAttr(localVIP));
+            StunPacket request = new StunPacket(message, properties.getRelayServer());
+            CompletableFuture<StunPacket> future = stunClient.sendBind(request, 3000);
+            return future.thenApply(packet -> {
+                try {
+                    StunMessage stunMessage = packet.content();
+                    //saveNode
+                    StringAttr encryptKeyAttr = (StringAttr) stunMessage.getAttrs().get(AttrType.EncryptKey);
+                    String publicKey = encryptKeyAttr.getData();
+                    SecretKey secretKey = Ecdh.generateAESKey(ecdhKeyPair.getPrivate(), Hex.decode(publicKey));
+                    Node computeNode = new Node(properties.getRelayServer(), secretKey, System.currentTimeMillis());
+                    nodeMap.computeIfAbsent(dstVIP, key -> computeNode);
+                    return packet;
+                } catch (Exception e) {
+                    throw new ProcessException(e.getMessage(), e);
+                }
             });
         }
     }
@@ -277,7 +293,7 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
         Node node = nodeMap.values().stream().filter(e -> Objects.equals(e.getAddress(), address))
                 .findAny().orElse(null);
         if (null == node) {
-            return byteBuf;
+            throw new ProcessException("not found node");
         }
         try {
             byte[] bytes = Ecdh.encryptAES(ByteBufUtil.toBytes(byteBuf), node.getSecretKey());
@@ -294,7 +310,7 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
         Node node = nodeMap.values().stream().filter(e -> Objects.equals(e.getAddress(), address))
                 .findAny().orElse(null);
         if (null == node) {
-            return byteBuf;
+            throw new ProcessException("not found node");
         }
         try {
             byte[] bytes = Ecdh.decryptAES(ByteBufUtil.toBytes(byteBuf), node.getSecretKey());
