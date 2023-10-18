@@ -176,9 +176,9 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                     punchingManager.getPublicAddress(localVIP, ipv4Packet, sdArpResp)
                             .whenComplete(((address, addressThrowable) -> {
                                 if (null != addressThrowable) {
-                                    if (addressThrowable instanceof UnsupportedOperationException) {
+                                    if (addressThrowable.getCause() instanceof UnsupportedOperationException) {
                                         //对称网络
-                                        StunPacket relayPacket = relayClient.createRelayPacket(localVIP, byteBuf);
+                                        StunPacket relayPacket = relayClient.createRelayPacket(sdArpResp.getVip(), byteBuf);
                                         ctx.fireChannelRead(relayPacket);
                                         return;
                                     }
