@@ -63,8 +63,10 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
     public void afterPropertiesSet() throws Exception {
         ecdhKeyPair = Ecdh.generateKeyPair();
         relayClient.onUpdateSecretKey(secretKey -> {
-            Node computeNode = new Node(properties.getRelayServer(), relayClient.getSecretKey(), System.currentTimeMillis());
-            nodeMap.computeIfAbsent(properties.getRelayServer().getHostString(), key -> computeNode);
+            Node node = nodeMap.computeIfAbsent(properties.getRelayServer().getHostString(), key -> {
+                return new Node(properties.getRelayServer(), secretKey, System.currentTimeMillis());
+            });
+            node.setSecretKey(secretKey);
         });
         checkResult = stunClient.check(properties.getStunServer(), 3000);
         Thread stunCheckThread = new Thread(() -> {
