@@ -22,24 +22,36 @@ public class RelayServerTest {
         stunClient1.getChannel().pipeline().addLast(new SimpleChannelInboundHandler<StunPacket>() {
             @Override
             protected void channelRead0(ChannelHandlerContext ctx, StunPacket msg) throws Exception {
-                System.out.println();
+                ByteBufAttr byteBufAttr = (ByteBufAttr) msg.content().getAttrs().get(AttrType.Data);
+                byte[] bytes = ByteBufUtil.toBytes(byteBufAttr.getByteBuf());
+                String text = new String(bytes);
+                System.out.println(text);
             }
         });
         StunPacket stunPacket1 = stunClient1.sendAllocate(new InetSocketAddress("127.0.0.1", 888), 3000).get();
         StringAttr channelIdAttr = (StringAttr) stunPacket1.content().getAttrs().get(AttrType.ChannelId);
         String channelId = channelIdAttr.getData();
         new Thread(() -> {
-            stunClient1.sendAllocateRefresh(new InetSocketAddress("127.0.0.1", 888), channelId);
+            while (true) {
+                stunClient1.sendAllocateRefresh(new InetSocketAddress("127.0.0.1", 888), channelId);
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
         }).start();
         StunClient stunClient2 = new StunClient(new InetSocketAddress("0.0.0.0", 5552));
         stunClient2.afterPropertiesSet();
-        StunPacket stunPacket2 = stunClient2.sendAllocate(new InetSocketAddress("127.0.0.1", 888), 3000).get();
-        StunMessage message = new StunMessage(MessageType.Transfer);
-        message.getAttrs().put(AttrType.ChannelId, new StringAttr(channelId));
-        message.getAttrs().put(AttrType.Data, new ByteBufAttr(Unpooled.wrappedBuffer("test".getBytes())));
-        StunPacket stunPacket = new StunPacket(message, new InetSocketAddress("127.0.0.1", 888));
-        stunClient2.getChannel().writeAndFlush(stunPacket);
-        stunClient2.getChannel().closeFuture().sync();
-        System.out.println();
+        stunClient2.sendAllocate(new InetSocketAddress("127.0.0.1", 888), 3000).get();
+        int n = 1;
+        while (true) {
+            StunMessage message = new StunMessage(MessageType.Transfer);
+            message.getAttrs().put(AttrType.ChannelId, new StringAttr(channelId));
+            message.getAttrs().put(AttrType.Data, new ByteBufAttr(Unpooled.wrappedBuffer(("test" + n++).getBytes())));
+            StunPacket stunPacket = new StunPacket(message, new InetSocketAddress("127.0.0.1", 888));
+            stunClient2.sendTurnData(stunPacket);
+            Thread.sleep(1000);
+        }
     }
 }

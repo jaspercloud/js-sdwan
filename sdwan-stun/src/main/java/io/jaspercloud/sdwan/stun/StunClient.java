@@ -165,4 +165,8 @@ public class StunClient implements InitializingBean {
             return null;
         }
     }
+
+    public void sendTurnData(StunPacket packet) {
+        channel.writeAndFlush(packet);
+    }
 }
