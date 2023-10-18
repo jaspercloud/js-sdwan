@@ -1,6 +1,5 @@
 package io.jaspercloud.sdwan.stun;
 
-import io.jaspercloud.sdwan.ByteBufUtil;
 import io.netty.buffer.ByteBuf;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,10 +15,8 @@ public class LongAttr extends Attr {
     private Long data;
 
     @Override
-    public ByteBuf toByteBuf() {
-        ByteBuf byteBuf = ByteBufUtil.create();
+    public void write(ByteBuf byteBuf) {
         byteBuf.writeLong(data);
-        return byteBuf;
     }
 
     @Override

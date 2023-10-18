@@ -1,6 +1,5 @@
 package io.jaspercloud.sdwan.stun;
 
-import io.jaspercloud.sdwan.ByteBufUtil;
 import io.jaspercloud.sdwan.IPUtil;
 import io.netty.buffer.ByteBuf;
 import lombok.Data;
@@ -24,13 +23,11 @@ public class AddressAttr extends Attr {
     }
 
     @Override
-    public ByteBuf toByteBuf() {
-        ByteBuf attrByteBuf = ByteBufUtil.create();
-        attrByteBuf.writeByte(0);
-        attrByteBuf.writeByte(getFamily().getCode());
-        attrByteBuf.writeShort(getPort());
-        attrByteBuf.writeBytes(IPUtil.ip2bytes(getIp()));
-        return attrByteBuf;
+    public void write(ByteBuf byteBuf) {
+        byteBuf.writeByte(0);
+        byteBuf.writeByte(getFamily().getCode());
+        byteBuf.writeShort(getPort());
+        byteBuf.writeBytes(IPUtil.ip2bytes(getIp()));
     }
 
     private static class Decode implements AttrDecode {

@@ -20,14 +20,17 @@ public class StunEncoder extends MessageToMessageEncoder<StunPacket> {
         try {
             for (Map.Entry<AttrType, Attr> entry : message.getAttrs().entrySet()) {
                 AttrType key = entry.getKey();
-                ByteBuf value = entry.getValue().toByteBuf();
+                Attr value = entry.getValue();
                 ByteBuf attrByteBuf = channel.alloc().buffer();
+                ByteBuf valueByteBuf = channel.alloc().buffer();
                 try {
+                    value.write(valueByteBuf);
                     attrByteBuf.writeShort(key.getCode());
-                    attrByteBuf.writeShort(value.readableBytes());
-                    attrByteBuf.writeBytes(value);
+                    attrByteBuf.writeShort(valueByteBuf.readableBytes());
+                    attrByteBuf.writeBytes(valueByteBuf);
                     attrsByteBuf.writeBytes(attrByteBuf);
                 } finally {
+                    valueByteBuf.release();
                     attrByteBuf.release();
                 }
             }

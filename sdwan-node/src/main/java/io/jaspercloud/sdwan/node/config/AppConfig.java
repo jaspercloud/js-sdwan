@@ -34,8 +34,9 @@ public class AppConfig {
     @Bean
     public PunchingManager punchingManager(SDWanNodeProperties properties,
                                            SDWanNode sdWanNode,
-                                           StunClient stunClient) {
-        return new PunchingManager(properties, sdWanNode, stunClient);
+                                           StunClient stunClient,
+                                           RelayClient relayClient) {
+        return new PunchingManager(properties, sdWanNode, stunClient, relayClient);
     }
 
     @Bean

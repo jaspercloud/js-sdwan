@@ -39,6 +39,7 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
     private SDWanNodeProperties properties;
     private SDWanNode sdWanNode;
     private StunClient stunClient;
+    private RelayClient relayClient;
     private Map<String, Node> nodeMap = new ConcurrentHashMap<>();
 
     private KeyPair ecdhKeyPair;
@@ -48,10 +49,14 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
         return checkResult;
     }
 
-    public PunchingManager(SDWanNodeProperties properties, SDWanNode sdWanNode, StunClient stunClient) {
+    public PunchingManager(SDWanNodeProperties properties,
+                           SDWanNode sdWanNode,
+                           StunClient stunClient,
+                           RelayClient relayClient) {
+        this.properties = properties;
         this.sdWanNode = sdWanNode;
         this.stunClient = stunClient;
-        this.properties = properties;
+        this.relayClient = relayClient;
     }
 
     @Override
@@ -247,26 +252,16 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
             CompletableFuture<StunPacket> future = stunClient.sendBind(request, 3000);
             return processNodeCache(dstVIP, future);
         } else {
-            //Symmetric对称网络，Relay
-            StunMessage message = new StunMessage(MessageType.BindRequest);
-            message.getAttrs().put(AttrType.EncryptKey, new StringAttr(Hex.toHexString(ecdhKeyPair.getPublic().getEncoded())));
-            message.getAttrs().put(AttrType.VIP, new StringAttr(localVIP));
-            StunPacket request = new StunPacket(message, properties.getRelayServer());
-            CompletableFuture<StunPacket> future = stunClient.sendBind(request, 3000);
-            return future.thenApply(packet -> {
-                try {
-                    StunMessage stunMessage = packet.content();
-                    //saveNode
-                    StringAttr encryptKeyAttr = (StringAttr) stunMessage.getAttrs().get(AttrType.EncryptKey);
-                    String publicKey = encryptKeyAttr.getData();
-                    SecretKey secretKey = Ecdh.generateAESKey(ecdhKeyPair.getPrivate(), Hex.decode(publicKey));
-                    Node computeNode = new Node(properties.getRelayServer(), secretKey, System.currentTimeMillis());
-                    nodeMap.computeIfAbsent(dstVIP, key -> computeNode);
-                    return packet;
-                } catch (Exception e) {
-                    throw new ProcessException(e.getMessage(), e);
-                }
-            });
+            try {
+                //Symmetric对称网络，Relay
+                StunMessage stunMessage = new StunMessage(MessageType.BindResponse);
+                StunPacket packet = new StunPacket(stunMessage, properties.getRelayServer());
+                Node computeNode = new Node(properties.getRelayServer(), relayClient.getSecretKey(), System.currentTimeMillis());
+                nodeMap.computeIfAbsent(dstVIP, key -> computeNode);
+                return CompletableFuture.completedFuture(packet);
+            } catch (Exception e) {
+                throw new ProcessException(e.getMessage(), e);
+            }
         }
     }
 

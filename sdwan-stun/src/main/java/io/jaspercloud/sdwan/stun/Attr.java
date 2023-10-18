@@ -8,7 +8,7 @@ import lombok.Data;
 @Data
 public abstract class Attr implements Referenced {
 
-    public abstract ByteBuf toByteBuf();
+    public abstract void write(ByteBuf byteBuf);
 
     @Override
     public ReferenceCounted retain(int increment) {

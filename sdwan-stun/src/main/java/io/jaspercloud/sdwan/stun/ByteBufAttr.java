@@ -13,21 +13,21 @@ public class ByteBufAttr extends Attr {
 
     public static final Decode Decode = new Decode();
 
-    private ByteBuf byteBuf;
+    private ByteBuf data;
 
     @Override
-    public ByteBuf toByteBuf() {
-        return byteBuf;
+    public void write(ByteBuf byteBuf) {
+        byteBuf.writeBytes(data);
     }
 
     @Override
     public ReferenceCounted retain(int increment) {
-        return byteBuf.retain(increment);
+        return data.retain(increment);
     }
 
     @Override
     public boolean release(int decrement) {
-        return byteBuf.release(decrement);
+        return data.release(decrement);
     }
 
     private static class Decode implements AttrDecode {

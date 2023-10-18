@@ -12,6 +12,7 @@ import io.netty.channel.socket.nio.NioDatagramChannel;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.util.encoders.Hex;
 import org.springframework.beans.factory.InitializingBean;
 
@@ -74,36 +75,25 @@ public class RelayServer implements InitializingBean {
                                 if (MessageType.Heart.equals(request.getMessageType())) {
                                     StunPacket response = new StunPacket(request, sender);
                                     ctx.writeAndFlush(response);
-                                } else if (MessageType.BindRequest.equals(request.getMessageType())) {
+                                } else if (MessageType.BindRelayRequest.equals(request.getMessageType())) {
+                                    //resp
+                                    StunMessage responseMessage = new StunMessage(MessageType.BindRelayResponse, request.getTranId());
+                                    responseMessage.getAttrs().put(AttrType.EncryptKey, new StringAttr(Hex.toHexString(ecdhKeyPair.getPublic().getEncoded())));
+                                    StunPacket response = new StunPacket(responseMessage, sender);
+                                    ctx.writeAndFlush(response);
+                                    //save
                                     StringAttr vipAttr = (StringAttr) request.getAttrs().get(AttrType.VIP);
                                     String vip = vipAttr.getData();
                                     StringAttr encryptKeyAttr = (StringAttr) request.getAttrs().get(AttrType.EncryptKey);
                                     String publicKey = encryptKeyAttr.getData();
-                                    Node node = channelMap.get(vip);
-                                    if (null == node) {
-                                        return;
-                                    }
-                                    //resp
-                                    StunMessage response = new StunMessage(MessageType.BindResponse);
-                                    response.setTranId(request.getTranId());
-                                    AddressAttr addressAttr = new AddressAttr(ProtoFamily.IPv4, sender.getHostString(), sender.getPort());
-                                    response.getAttrs().put(AttrType.MappedAddress, addressAttr);
-                                    response.getAttrs().put(AttrType.EncryptKey, new StringAttr(Hex.toHexString(ecdhKeyPair.getPublic().getEncoded())));
-                                    StunPacket resp = new StunPacket(response, sender);
-                                    channel.writeAndFlush(resp);
-                                    //gen
-                                    SecretKey secretKey = Ecdh.generateAESKey(ecdhKeyPair.getPrivate(), Hex.decode(publicKey));
-                                    node.setSecretKey(secretKey);
-                                } else if (MessageType.BindRelayRequest.equals(request.getMessageType())) {
-                                    StringAttr vipAttr = (StringAttr) request.getAttrs().get(AttrType.VIP);
-                                    String vip = vipAttr.getData();
                                     Node node = channelMap.computeIfAbsent(vip, key -> new Node(sender, System.currentTimeMillis()));
+                                    if (!StringUtils.equals(node.getPublicKey(), publicKey)) {
+                                        SecretKey secretKey = Ecdh.generateAESKey(ecdhKeyPair.getPrivate(), Hex.decode(publicKey));
+                                        node.setPublicKey(publicKey);
+                                        node.setSecretKey(secretKey);
+                                    }
                                     node.setAddress(sender);
                                     node.setLastTime(System.currentTimeMillis());
-                                    //resp
-                                    StunMessage responseMessage = new StunMessage(MessageType.BindRelayResponse, request.getTranId());
-                                    StunPacket response = new StunPacket(responseMessage, sender);
-                                    ctx.writeAndFlush(response);
                                 } else if (MessageType.Transfer.equals(request.getMessageType())) {
                                     StringAttr srcVIPAttr = (StringAttr) request.getAttrs().get(AttrType.SrcVIP);
                                     StringAttr dstVIPAttr = (StringAttr) request.getAttrs().get(AttrType.DstVIP);
@@ -117,7 +107,7 @@ public class RelayServer implements InitializingBean {
                                     }
                                     //resp
                                     ByteBufAttr dataAttr = (ByteBufAttr) request.getAttrs().get(AttrType.Data);
-                                    byte[] bytes = Ecdh.decryptAES(ByteBufUtil.toBytes(dataAttr.getByteBuf()), srcNode.getSecretKey());
+                                    byte[] bytes = Ecdh.decryptAES(ByteBufUtil.toBytes(dataAttr.getData()), srcNode.getSecretKey());
                                     bytes = Ecdh.encryptAES(bytes, dstNode.getSecretKey());
                                     StunMessage message = new StunMessage(MessageType.Transfer);
                                     message.getAttrs().put(AttrType.Data, new ByteBufAttr(ByteBufUtil.toByteBuf(bytes)));
@@ -139,6 +129,7 @@ public class RelayServer implements InitializingBean {
 
         private InetSocketAddress address;
         private long lastTime;
+        private String publicKey;
         private SecretKey secretKey;
 
         public Node(InetSocketAddress address, long lastTime) {

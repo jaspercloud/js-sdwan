@@ -16,9 +16,8 @@ public class StringAttr extends Attr {
     private String data;
 
     @Override
-    public ByteBuf toByteBuf() {
-        ByteBuf byteBuf = ByteBufUtil.toByteBuf(data.getBytes());
-        return byteBuf;
+    public void write(ByteBuf byteBuf) {
+        byteBuf.writeBytes(data.getBytes());
     }
 
     @Override

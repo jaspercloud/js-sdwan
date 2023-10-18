@@ -1,6 +1,5 @@
 package io.jaspercloud.sdwan.stun;
 
-import io.jaspercloud.sdwan.ByteBufUtil;
 import io.netty.buffer.ByteBuf;
 import lombok.Data;
 
@@ -21,8 +20,7 @@ public class ChangeRequestAttr extends Attr {
     }
 
     @Override
-    public ByteBuf toByteBuf() {
-        ByteBuf attrByteBuf = ByteBufUtil.create();
+    public void write(ByteBuf byteBuf) {
         int flag = 0;
         if (getChangeIP()) {
             flag |= 0b100;
@@ -30,8 +28,7 @@ public class ChangeRequestAttr extends Attr {
         if (getChangePort()) {
             flag |= 0b10;
         }
-        attrByteBuf.writeInt(flag);
-        return attrByteBuf;
+        byteBuf.writeInt(flag);
     }
 
     private static class Decode implements AttrDecode {
