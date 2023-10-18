@@ -2,10 +2,7 @@ package io.jaspercloud.sdwan.infra.config;
 
 import io.jaspercloud.sdwan.app.NodeManager;
 import io.jaspercloud.sdwan.app.SDWanControllerService;
-import io.jaspercloud.sdwan.infra.support.DerbyDatabaseInit;
-import io.jaspercloud.sdwan.infra.support.JdbcTemplatePlus;
-import io.jaspercloud.sdwan.infra.support.SDWanControllerServer;
-import io.jaspercloud.sdwan.infra.support.SDWanProcessHandler;
+import io.jaspercloud.sdwan.infra.support.*;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,7 +12,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.sql.DataSource;
 
-@EnableConfigurationProperties(SDWanControllerProperties.class)
+@EnableConfigurationProperties({
+        SDWanControllerProperties.class,
+        SDWanRelayProperties.class
+})
 @Configuration
 public class AppConfig {
 
@@ -56,5 +56,10 @@ public class AppConfig {
                                                  SDWanProcessHandler processHandler) {
         SDWanControllerServer sdWanControllerServer = new SDWanControllerServer(properties, processHandler);
         return sdWanControllerServer;
+    }
+
+    @Bean
+    public RelayServer relayServer(SDWanRelayProperties properties) {
+        return new RelayServer(properties);
     }
 }

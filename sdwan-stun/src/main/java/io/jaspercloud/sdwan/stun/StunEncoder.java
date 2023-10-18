@@ -28,7 +28,6 @@ public class StunEncoder extends MessageToMessageEncoder<StunPacket> {
                     attrByteBuf.writeBytes(value);
                     attrsByteBuf.writeBytes(attrByteBuf);
                 } finally {
-                    value.release();
                     attrByteBuf.release();
                 }
             }

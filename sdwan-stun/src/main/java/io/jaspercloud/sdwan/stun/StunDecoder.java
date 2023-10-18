@@ -13,7 +13,7 @@ import java.util.List;
 public class StunDecoder extends MessageToMessageDecoder<DatagramPacket> {
 
     private List<AttrType> AddrTypeList = Arrays.asList(AttrType.MappedAddress, AttrType.OtherAddress, AttrType.ResponseOrigin);
-    private List<AttrType> StringTypeList = Arrays.asList(AttrType.VIP, AttrType.EncryptKey);
+    private List<AttrType> StringTypeList = Arrays.asList(AttrType.VIP, AttrType.EncryptKey, AttrType.ChannelId);
 
     @Override
     protected void decode(ChannelHandlerContext ctx, DatagramPacket msg, List<Object> out) throws Exception {

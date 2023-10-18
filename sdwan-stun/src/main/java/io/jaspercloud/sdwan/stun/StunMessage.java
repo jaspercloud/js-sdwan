@@ -40,6 +40,11 @@ public class StunMessage implements Referenced {
     }
 
     @Override
+    public StunMessage retain() {
+        return retain(1);
+    }
+
+    @Override
     public StunMessage retain(int increment) {
         for (Attr attr : attrs.values()) {
             attr.retain(increment);

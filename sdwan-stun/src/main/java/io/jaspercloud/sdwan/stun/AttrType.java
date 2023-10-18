@@ -9,7 +9,8 @@ public enum AttrType {
     XorMappedAddress(0x0020),
     EncryptKey(0x8001),
     VIP(0x8002),
-    Data(0x8003);
+    Data(0x8003),
+    ChannelId(0x8004);
 
     private int code;
 

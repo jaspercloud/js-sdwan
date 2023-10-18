@@ -4,12 +4,7 @@ import io.jaspercloud.sdwan.AsyncTask;
 import io.jaspercloud.sdwan.NioEventLoopFactory;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.*;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
@@ -56,6 +51,8 @@ public class StunClient implements InitializingBean {
                                     ctx.writeAndFlush(response);
                                     AsyncTask.completeTask(request.getTranId(), packet);
                                 } else if (MessageType.BindResponse.equals(request.getMessageType())) {
+                                    AsyncTask.completeTask(request.getTranId(), packet);
+                                } else if (MessageType.AllocateResponse.equals(request.getMessageType())) {
                                     AsyncTask.completeTask(request.getTranId(), packet);
                                 } else {
                                     ctx.fireChannelRead(packet.retain());
@@ -125,6 +122,21 @@ public class StunClient implements InitializingBean {
         CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), timeout);
         channel.writeAndFlush(request);
         return future;
+    }
+
+    public CompletableFuture<StunPacket> sendAllocate(InetSocketAddress address, long timeout) {
+        StunMessage message = new StunMessage(MessageType.AllocateRequest);
+        StunPacket request = new StunPacket(message, address);
+        CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), timeout);
+        channel.writeAndFlush(request);
+        return future;
+    }
+
+    public void sendAllocateRefresh(InetSocketAddress address, String channelId) {
+        StunMessage message = new StunMessage(MessageType.AllocateRefresh);
+        message.getAttrs().put(AttrType.ChannelId, new StringAttr(channelId));
+        StunPacket request = new StunPacket(message, address);
+        channel.writeAndFlush(request);
     }
 
     public CompletableFuture<StunPacket> sendHeart(InetSocketAddress address, long timeout) {

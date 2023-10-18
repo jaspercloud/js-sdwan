@@ -245,6 +245,7 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
             CompletableFuture<StunPacket> future = stunClient.sendBind(request, 3000);
             return processNodeCache(dstVIP, future);
         } else {
+            //Symmetric对称网络，TURN
             throw new UnsupportedOperationException();
         }
     }

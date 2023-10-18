@@ -5,7 +5,10 @@ public enum MessageType {
     BindRequest(0x0001),
     BindResponse(0x0101),
     Transfer(0x0301),
-    Heart(0x0302);
+    Heart(0x0302),
+    AllocateRequest(0x0303),
+    AllocateResponse(0x0304),
+    AllocateRefresh(0x0305);
     private int code;
 
     public int getCode() {
