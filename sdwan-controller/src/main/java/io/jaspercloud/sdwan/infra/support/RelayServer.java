@@ -83,6 +83,10 @@ public class RelayServer implements InitializingBean {
                                     String channelId = channelIdAttr.getData();
                                     Node node = channelMap.get(channelId);
                                     if (null == node) {
+                                        StunMessage responseMessage = new StunMessage(MessageType.AllocateRefreshResponse, request.getTranId());
+                                        responseMessage.getAttrs().put(AttrType.LiveTime, new LongAttr(-1L));
+                                        StunPacket response = new StunPacket(responseMessage, sender);
+                                        ctx.writeAndFlush(response);
                                         return;
                                     }
                                     node.setLastTime(System.currentTimeMillis());
