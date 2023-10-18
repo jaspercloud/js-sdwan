@@ -51,7 +51,7 @@ public class SDWanControllerService implements InitializingBean {
     @Override
     public void afterPropertiesSet() throws Exception {
         ipPool = Cidr.parseCidr(properties.getCidr());
-        ipPool.getIpList()
+        ipPool.getAvailableIpList()
                 .forEach(item -> {
                     bindIPMap.put(item, new AtomicReference<>());
                 });

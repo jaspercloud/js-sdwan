@@ -11,8 +11,11 @@ import java.util.List;
 public class Cidr {
 
     private List<String> ipList;
+    private List<String> availableIpList;
     private String address;
     private String maskAddress;
+    private String networkIdentifier;
+    private String broadcastAddress;
     private int maskBits;
 
     private Cidr() {
@@ -34,17 +37,25 @@ public class Cidr {
         String[] split = text.split("/");
         String address = split[0];
         int maskBits = Integer.parseInt(split[1]);
-        List<String> ipList = getIpList(IPUtil.ip2int(address), maskBits);
-        String maskAddress = getMaskAddress(maskBits);
+        List<String> ipList = parseIpList(IPUtil.ip2int(address), maskBits);
+        String maskAddress = parseMaskAddress(maskBits);
+        String networkIdentifier = parseNetworkIdentifier(IPUtil.ip2int(address), maskBits);
+        String broadcastAddress = parseBroadcastAddress(IPUtil.ip2int(address), maskBits);
         Cidr cidr = new Cidr();
         cidr.setAddress(address);
         cidr.setMaskBits(maskBits);
         cidr.setMaskAddress(maskAddress);
+        cidr.setNetworkIdentifier(networkIdentifier);
+        cidr.setBroadcastAddress(broadcastAddress);
         cidr.setIpList(ipList);
+        List<String> availableIpList = new ArrayList<>(ipList);
+        availableIpList.remove(address);
+        availableIpList.remove(broadcastAddress);
+        cidr.setAvailableIpList(availableIpList);
         return cidr;
     }
 
-    private static List<String> getIpList(int address, int maskBits) {
+    private static List<String> parseIpList(int address, int maskBits) {
         address = (address >> (32 - maskBits)) << (32 - maskBits);
         int count = (int) Math.pow(2, 32 - maskBits) - 1;
         List<String> list = new ArrayList<>();
@@ -57,7 +68,21 @@ public class Cidr {
         return list;
     }
 
-    private static String getMaskAddress(int maskBits) {
+    private static String parseNetworkIdentifier(int address, int maskBits) {
+        address = (address >> (32 - maskBits)) << (32 - maskBits);
+        String ip = IPUtil.int2ip(address);
+        return ip;
+    }
+
+    private static String parseBroadcastAddress(int address, int maskBits) {
+        address = (address >> (32 - maskBits)) << (32 - maskBits);
+        int count = (int) Math.pow(2, 32 - maskBits) - 1;
+        int s = address + count;
+        String ip = IPUtil.int2ip(s);
+        return ip;
+    }
+
+    private static String parseMaskAddress(int maskBits) {
         int mask = Integer.MAX_VALUE << (32 - maskBits);
         String maskAddr = IPUtil.int2ip(mask);
         return maskAddr;
