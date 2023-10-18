@@ -99,10 +99,10 @@ public class StunClient implements InitializingBean {
             return new CheckResult(localPort, mapping, filtering, mappedAddress1);
         } else if (Objects.equals(mappedAddress1.getHostString(), mappedAddress2.getHostString())) {
             mapping = StunRule.AddressDependent;
-            return new CheckResult(localPort, mapping, filtering, null);
+            return new CheckResult(localPort, mapping, filtering, mappedAddress1);
         } else {
             mapping = StunRule.AddressAndPortDependent;
-            return new CheckResult(localPort, mapping, filtering, null);
+            return new CheckResult(localPort, mapping, filtering, mappedAddress1);
         }
     }
 

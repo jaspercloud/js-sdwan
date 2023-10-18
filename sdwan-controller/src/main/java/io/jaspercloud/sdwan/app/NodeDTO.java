@@ -3,6 +3,8 @@ package io.jaspercloud.sdwan.app;
 import io.jaspercloud.sdwan.infra.support.NodeType;
 import lombok.Data;
 
+import java.net.InetSocketAddress;
+
 @Data
 public class NodeDTO {
 
@@ -11,5 +13,8 @@ public class NodeDTO {
     private String vip;
     private String macAddress;
     private String remark;
+    private String mapping;
+    private String filtering;
+    private InetSocketAddress mappingAddress;
     private Boolean online;
 }

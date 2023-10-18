@@ -4,11 +4,11 @@ import io.jaspercloud.sdwan.Cidr;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.domian.Node;
 import io.jaspercloud.sdwan.domian.Route;
+import io.jaspercloud.sdwan.domian.repository.NodeRepository;
+import io.jaspercloud.sdwan.domian.repository.RouteRepository;
 import io.jaspercloud.sdwan.exception.CidrParseException;
 import io.jaspercloud.sdwan.exception.ProcessCodeException;
 import io.jaspercloud.sdwan.infra.config.SDWanControllerProperties;
-import io.jaspercloud.sdwan.domian.repository.NodeRepository;
-import io.jaspercloud.sdwan.domian.repository.RouteRepository;
 import io.jaspercloud.sdwan.infra.support.NodeType;
 import io.netty.channel.Channel;
 import org.apache.commons.lang3.StringUtils;
@@ -188,7 +188,13 @@ public class ConfigServiceImpl implements ConfigService {
             nodeDTO.setVip(e.getVip());
             nodeDTO.setMacAddress(e.getMacAddress());
             nodeDTO.setRemark(e.getRemark());
-            nodeDTO.setOnline(null != onlineMap.get(e.getVip()));
+            Node node = onlineMap.get(e.getVip());
+            nodeDTO.setOnline(null != node);
+            if (null != node) {
+                nodeDTO.setMapping(node.getStunMapping());
+                nodeDTO.setFiltering(node.getStunFiltering());
+                nodeDTO.setMappingAddress(node.getPublicAddress());
+            }
             return nodeDTO;
         }).collect(Collectors.toList());
         return resultList;
