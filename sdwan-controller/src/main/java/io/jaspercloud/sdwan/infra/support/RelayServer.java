@@ -17,6 +17,7 @@ import org.springframework.beans.factory.InitializingBean;
 import javax.crypto.SecretKey;
 import java.net.InetSocketAddress;
 import java.security.KeyPair;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,7 +28,11 @@ public class RelayServer implements InitializingBean {
     private SDWanRelayProperties properties;
     private Channel channel;
     private KeyPair ecdhKeyPair;
-    private Map<String, Node> channelMap = new ConcurrentHashMap<>();
+    private Map<String, RelayNode> channelMap = new ConcurrentHashMap<>();
+
+    public Map<String, RelayNode> getNodeMap() {
+        return Collections.unmodifiableMap(channelMap);
+    }
 
     public RelayServer(SDWanRelayProperties properties) {
         this.properties = properties;
@@ -38,10 +43,10 @@ public class RelayServer implements InitializingBean {
         ecdhKeyPair = Ecdh.generateKeyPair();
         new Thread(() -> {
             while (true) {
-                Iterator<Map.Entry<String, Node>> iterator = channelMap.entrySet().iterator();
+                Iterator<Map.Entry<String, RelayNode>> iterator = channelMap.entrySet().iterator();
                 while (iterator.hasNext()) {
-                    Map.Entry<String, Node> next = iterator.next();
-                    Node node = next.getValue();
+                    Map.Entry<String, RelayNode> next = iterator.next();
+                    RelayNode node = next.getValue();
                     long diffTime = System.currentTimeMillis() - node.getLastTime();
                     if (diffTime > properties.getTimeout()) {
                         iterator.remove();
@@ -76,7 +81,7 @@ public class RelayServer implements InitializingBean {
                                 } else if (MessageType.RelayHeart.equals(request.getMessageType())) {
                                     StringAttr vipAttr = (StringAttr) request.getAttrs().get(AttrType.VIP);
                                     String vip = vipAttr.getData();
-                                    Node node = channelMap.get(vip);
+                                    RelayNode node = channelMap.get(vip);
                                     if (null == node) {
                                         return;
                                     }
@@ -94,19 +99,19 @@ public class RelayServer implements InitializingBean {
                                     String vip = vipAttr.getData();
                                     StringAttr encryptKeyAttr = (StringAttr) request.getAttrs().get(AttrType.EncryptKey);
                                     String publicKey = encryptKeyAttr.getData();
-                                    Node node = new Node(sender, System.currentTimeMillis());
+                                    RelayNode node = new RelayNode(sender, System.currentTimeMillis());
                                     SecretKey secretKey = Ecdh.generateAESKey(ecdhKeyPair.getPrivate(), Hex.decode(publicKey));
                                     node.setSecretKey(secretKey);
-                                    node.setAddress(sender);
+                                    node.setRelayAddress(sender);
                                     channelMap.put(vip, node);
                                 } else if (MessageType.Transfer.equals(request.getMessageType())) {
                                     StringAttr srcVIPAttr = (StringAttr) request.getAttrs().get(AttrType.SrcVIP);
                                     StringAttr dstVIPAttr = (StringAttr) request.getAttrs().get(AttrType.DstVIP);
-                                    Node srcNode = channelMap.get(srcVIPAttr.getData());
+                                    RelayNode srcNode = channelMap.get(srcVIPAttr.getData());
                                     if (null == srcNode) {
                                         return;
                                     }
-                                    Node dstNode = channelMap.get(dstVIPAttr.getData());
+                                    RelayNode dstNode = channelMap.get(dstVIPAttr.getData());
                                     if (null == dstNode) {
                                         return;
                                     }
@@ -116,7 +121,7 @@ public class RelayServer implements InitializingBean {
                                     bytes = Ecdh.encryptAES(bytes, dstNode.getSecretKey());
                                     StunMessage message = new StunMessage(MessageType.Transfer);
                                     message.getAttrs().put(AttrType.Data, new BytesAttr(bytes));
-                                    StunPacket response = new StunPacket(message, dstNode.getAddress());
+                                    StunPacket response = new StunPacket(message, dstNode.getRelayAddress());
                                     ctx.writeAndFlush(response);
                                 } else {
                                     ctx.fireChannelRead(packet.retain());
@@ -130,14 +135,14 @@ public class RelayServer implements InitializingBean {
 
     @NoArgsConstructor
     @Data
-    private static class Node {
+    public static class RelayNode {
 
-        private InetSocketAddress address;
+        private InetSocketAddress relayAddress;
         private long lastTime;
         private SecretKey secretKey;
 
-        public Node(InetSocketAddress address, long lastTime) {
-            this.address = address;
+        public RelayNode(InetSocketAddress relayAddress, long lastTime) {
+            this.relayAddress = relayAddress;
             this.lastTime = lastTime;
         }
     }

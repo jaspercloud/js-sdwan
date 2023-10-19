@@ -6,12 +6,8 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 public class NodeManager {
 
@@ -21,11 +17,14 @@ public class NodeManager {
         return Collections.unmodifiableList(new ArrayList<>(channelMap.values()));
     }
 
-    public List<Node> getNodeList() {
-        List<Node> nodeList = channelMap.values().stream()
-                .map(e -> AttributeKeys.node(e).get())
-                .collect(Collectors.toList());
-        return Collections.unmodifiableList(nodeList);
+    public Map<String, Node> getNodeMap() {
+        Map<String, Node> nodeMap = new HashMap<>();
+        for (Map.Entry<String, Channel> entry : channelMap.entrySet()) {
+            String key = entry.getKey();
+            Node node = AttributeKeys.node(entry.getValue()).get();
+            nodeMap.put(key, node);
+        }
+        return nodeMap;
     }
 
     public void addChannel(String vip, Channel channel) {

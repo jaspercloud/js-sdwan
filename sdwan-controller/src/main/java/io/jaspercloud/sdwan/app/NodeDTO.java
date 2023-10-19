@@ -15,7 +15,7 @@ public class NodeDTO {
     private String remark;
     private String mapping;
     private String filtering;
-    private String relayId;
     private InetSocketAddress mappingAddress;
+    private InetSocketAddress relayAddress;
     private Boolean online;
 }

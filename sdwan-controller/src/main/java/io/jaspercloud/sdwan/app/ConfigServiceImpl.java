@@ -10,6 +10,7 @@ import io.jaspercloud.sdwan.exception.CidrParseException;
 import io.jaspercloud.sdwan.exception.ProcessCodeException;
 import io.jaspercloud.sdwan.infra.config.SDWanControllerProperties;
 import io.jaspercloud.sdwan.infra.support.NodeType;
+import io.jaspercloud.sdwan.infra.support.RelayServer;
 import io.netty.channel.Channel;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -36,6 +37,9 @@ public class ConfigServiceImpl implements ConfigService {
 
     @Resource
     private NodeManager nodeManager;
+
+    @Resource
+    private RelayServer relayServer;
 
     @Resource
     private TransactionTemplate transactionTemplate;
@@ -178,8 +182,8 @@ public class ConfigServiceImpl implements ConfigService {
 
     @Override
     public List<NodeDTO> getNodeList() {
-        Map<String, Node> onlineMap = nodeManager.getNodeList()
-                .stream().collect(Collectors.toMap(e -> e.getVip(), e -> e));
+        Map<String, Node> onlineMap = nodeManager.getNodeMap();
+        Map<String, RelayServer.RelayNode> relayNodeMap = relayServer.getNodeMap();
         List<Node> nodeList = nodeRepository.queryList();
         List<NodeDTO> resultList = nodeList.stream().map(e -> {
             NodeDTO nodeDTO = new NodeDTO();
@@ -194,6 +198,10 @@ public class ConfigServiceImpl implements ConfigService {
                 nodeDTO.setMapping(node.getStunMapping());
                 nodeDTO.setFiltering(node.getStunFiltering());
                 nodeDTO.setMappingAddress(node.getPublicAddress());
+            }
+            RelayServer.RelayNode relayNode = relayNodeMap.get(e.getVip());
+            if (null != relayNode) {
+                nodeDTO.setRelayAddress(relayNode.getRelayAddress());
             }
             return nodeDTO;
         }).collect(Collectors.toList());
