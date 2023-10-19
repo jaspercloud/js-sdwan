@@ -293,11 +293,17 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
     public ByteBuf encode(InetSocketAddress address, ByteBuf byteBuf) {
         Node node = nodeMap.values().stream().filter(e -> Objects.equals(e.getMappedAddress(), address))
                 .findAny().orElse(null);
-        if (null == node) {
-            throw new ProcessException("not found node");
+        SecretKey secretKey;
+        if (null != node) {
+            secretKey = node.getSecretKey();
+        } else {
+            if (!Objects.equals(address, properties.getRelayServer())) {
+                throw new ProcessException("not found node");
+            }
+            secretKey = relayClient.getSecretKey();
         }
         try {
-            byte[] bytes = Ecdh.encryptAES(ByteBufUtil.toBytes(byteBuf), node.getSecretKey());
+            byte[] bytes = Ecdh.encryptAES(ByteBufUtil.toBytes(byteBuf), secretKey);
             return ByteBufUtil.toByteBuf(bytes);
         } catch (Exception e) {
             throw new ProcessException(e.getMessage(), e);
@@ -310,11 +316,17 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
     public ByteBuf decode(InetSocketAddress address, ByteBuf byteBuf) {
         Node node = nodeMap.values().stream().filter(e -> Objects.equals(e.getMappedAddress(), address))
                 .findAny().orElse(null);
-        if (null == node) {
-            throw new ProcessException("not found node");
+        SecretKey secretKey;
+        if (null != node) {
+            secretKey = node.getSecretKey();
+        } else {
+            if (!Objects.equals(address, properties.getRelayServer())) {
+                throw new ProcessException("not found node");
+            }
+            secretKey = relayClient.getSecretKey();
         }
         try {
-            byte[] bytes = Ecdh.decryptAES(ByteBufUtil.toBytes(byteBuf), node.getSecretKey());
+            byte[] bytes = Ecdh.decryptAES(ByteBufUtil.toBytes(byteBuf), secretKey);
             return ByteBufUtil.toByteBuf(bytes);
         } catch (Exception e) {
             throw new ProcessException(e.getMessage(), e);
