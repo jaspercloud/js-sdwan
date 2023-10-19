@@ -50,6 +50,8 @@ public class StunClient implements InitializingBean {
                                     StunPacket response = new StunPacket(request, sender);
                                     ctx.writeAndFlush(response);
                                     AsyncTask.completeTask(request.getTranId(), packet);
+                                } else if (MessageType.RelayHeart.equals(request.getMessageType())) {
+                                    AsyncTask.completeTask(request.getTranId(), packet);
                                 } else if (MessageType.BindResponse.equals(request.getMessageType())) {
                                     AsyncTask.completeTask(request.getTranId(), packet);
                                 } else if (MessageType.BindRelayResponse.equals(request.getMessageType())) {

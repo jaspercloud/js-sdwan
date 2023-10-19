@@ -99,7 +99,7 @@ public class RelayClient implements InitializingBean {
     }
 
     private CompletableFuture<StunPacket> sendRelayHeart(String vip, long timeout) {
-        StunMessage message = new StunMessage(MessageType.Heart);
+        StunMessage message = new StunMessage(MessageType.RelayHeart);
         message.getAttrs().put(AttrType.VIP, new StringAttr(vip));
         StunPacket request = new StunPacket(message, properties.getRelayServer());
         CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), timeout);

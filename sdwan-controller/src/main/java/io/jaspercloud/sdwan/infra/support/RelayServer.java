@@ -72,6 +72,9 @@ public class RelayServer implements InitializingBean {
                                 InetSocketAddress sender = packet.sender();
                                 StunMessage request = packet.content();
                                 if (MessageType.Heart.equals(request.getMessageType())) {
+                                    StunPacket response = new StunPacket(request, sender);
+                                    ctx.writeAndFlush(response);
+                                } else if (MessageType.RelayHeart.equals(request.getMessageType())) {
                                     StringAttr vipAttr = (StringAttr) request.getAttrs().get(AttrType.VIP);
                                     String vip = vipAttr.getData();
                                     Node node = channelMap.get(vip);
