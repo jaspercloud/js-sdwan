@@ -48,7 +48,7 @@ public class StunTransporter implements Transporter {
                 InetSocketAddress address = packet.recipient();
                 StunMessage stunMessage = packet.content();
                 ByteBufAttr dataAttr = (ByteBufAttr) stunMessage.getAttrs().get(AttrType.Data);
-                ByteBuf byteBuf = dataAttr.getData();
+                ByteBuf byteBuf = dataAttr.getData().retain();
                 Ipv4Packet ipv4Packet = Ipv4Packet.decodeMark(byteBuf);
                 log.debug("output: {} -> {} -> {}",
                         ipv4Packet.getSrcIP(), ipv4Packet.getDstIP(), address.getHostString());
@@ -56,7 +56,7 @@ public class StunTransporter implements Transporter {
                     byteBuf = filter.encode(address, byteBuf);
                 }
                 stunMessage.getAttrs().put(AttrType.Data, new ByteBufAttr(byteBuf));
-                stunClient.getChannel().writeAndFlush(packet.retain());
+                stunClient.getChannel().writeAndFlush(packet);
             }
         });
     }
