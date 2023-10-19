@@ -2,11 +2,11 @@ server:
   port: 8080
 sdwan:
   controller:
-    port: 8081
+    port: 51002
     cidr: 10.1.0.0/20
     # second
     sdArpTTL: 300
     dbPath: ${user.dir}/derby.db
   relay:
-    port: 8082
+    port: 51003
     timeout: 30000
