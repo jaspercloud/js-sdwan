@@ -114,7 +114,9 @@ sdwan:
 4.在dashboard中定义路由
 
 查看在线的node信息
+
 ![node](doc/img/node.png)
 
 配置路由信息
+
 ![route](doc/img/route.png)
