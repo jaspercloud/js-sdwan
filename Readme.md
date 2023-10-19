@@ -4,7 +4,9 @@
 
 netThunder是一款私有SD-WAN（软件定义广域网）解决方案，专为满足用户的网络需求而设计。它将点对点连接和端到端加密传输相结合，为用户提供卓越的网络性能和安全性。
 
-前端： [https://github.com/jaspercloud/js-sdwan-dashboard](https://github.com/jaspercloud/js-sdwan-dashboard)
+前端: [https://github.com/jaspercloud/js-sdwan-dashboard](https://github.com/jaspercloud/js-sdwan-dashboard)
+
+下载: [https://github.com/jaspercloud/js-sdwan/releases](https://github.com/jaspercloud/js-sdwan/releases)
 
 # netThunder与传统VPN的对比
 
