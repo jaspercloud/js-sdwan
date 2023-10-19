@@ -1,11 +1,15 @@
+server:
+  port: 1001
 sdwan:
   node:
     # connect
-    controllerServer: 222.94.95.119:51002
-    #    controllerServer: 127.0.0.1:8085
+    controllerHost: 127.0.0.1
+    controllerPort: 8085
+    controllerServer: 127.0.0.1:8081
     connectTimeout: 30000
     mtu: 1400
     # address
     stunServer: stun.miwifi.com:3478
-    relayServer: 222.94.95.119:51003
-    localIP: 192.222.0.66
+    relayServer: 127.0.0.1:8082
+    localIP: 127.0.0.1
+
