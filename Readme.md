@@ -61,6 +61,60 @@ TUN设备中转： 数据包被写入TUN设备后，它们被传输到SD-WAN设�
 
 ### 部署
 1.在公网云主机上部署controller
+```yaml
+server:
+  #dashboard网页地址
+  port: 8080
+sdwan:
+  controller:
+    #控制器端口TCP
+    port: 8081
+    #定义地址池
+    cidr: 10.1.0.0/20
+    # arp过期时间second
+    sdArpTTL: 300
+    # 数据库路径
+    dbPath: ${user.dir}/derby.db
+  relay:
+    #中继端口UDP
+    port: 8082
+    timeout: 30000
+
+```
 2.在需要访问的机房部署sdwan-node(Mesh模式)
+```yaml
+sdwan:
+  node:
+    #控制器地址
+    controllerServer: 127.0.0.1:8081
+    connectTimeout: 30000
+    mtu: 1400
+    #stun服务器地址，这里使用小米的
+    stunServer: stun.miwifi.com:3478
+    #中继服务器地址
+    relayServer: 127.0.0.1:8082
+    #配置本机的ip，由于有多个网卡需要配置
+    localIP: 192.168.1.2
+```
 3.本机启动sdwan-node
+```yaml
+sdwan:
+  node:
+    #控制器地址
+    controllerServer: 127.0.0.1:8081
+    connectTimeout: 30000
+    mtu: 1400
+    #stun服务器地址，这里使用小米的
+    stunServer: stun.miwifi.com:3478
+    #中继服务器地址
+    relayServer: 127.0.0.1:8082
+    #配置本机的ip，由于有多个网卡需要配置
+    localIP: 10.22.6.3
+```
 4.在dashboard中定义路由
+
+查看在线的node信息
+![node](doc/img/node.png)
+
+配置路由信息
+![route](doc/img/route.png)

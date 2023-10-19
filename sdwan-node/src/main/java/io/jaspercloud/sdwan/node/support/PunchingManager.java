@@ -226,6 +226,7 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
             CompletableFuture<StunPacket> future = stunClient.sendBind(request, 3000);
             return processNodeCache(dstVIP, future);
         } else if (StunRule.EndpointIndependent.equals(self.getFiltering())) {
+            //A -> S -> B 发送bindReq请求
             String tranId = StunMessage.genTranId();
             CompletableFuture<StunPacket> future = AsyncTask.waitTask(tranId, 3000);
             sdWanNode.forwardPunching(localVIP, dstVIP, address.getHostString(), address.getPort(), tranId);
