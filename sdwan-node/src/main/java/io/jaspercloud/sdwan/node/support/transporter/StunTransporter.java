@@ -32,12 +32,12 @@ public class StunTransporter implements Transporter {
                 InetSocketAddress address = stunPacket.sender();
                 BytesAttr bytesAttr = (BytesAttr) stunPacket.content().getAttrs().get(AttrType.Data);
                 byte[] data = bytesAttr.getData();
-                Ipv4Packet ipv4Packet = Ipv4Packet.decode(data);
-                log.debug("input: {} -> {} -> {}",
-                        address.getHostString(), ipv4Packet.getSrcIP(), ipv4Packet.getDstIP());
                 for (Filter filter : filterList) {
                     data = filter.decode(address, data);
                 }
+                Ipv4Packet ipv4Packet = Ipv4Packet.decode(data);
+                log.debug("input: {} -> {} -> {}",
+                        address.getHostString(), ipv4Packet.getSrcIP(), ipv4Packet.getDstIP());
                 tunChannel.writeAndFlush(ByteBufUtil.toByteBuf(data));
             }
         });
