@@ -1,11 +1,13 @@
 package io.jaspercloud.sdwan;
 
-import io.jaspercloud.sdwan.stun.*;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import io.jaspercloud.sdwan.stun.AttrType;
+import io.jaspercloud.sdwan.stun.BytesAttr;
+import io.jaspercloud.sdwan.stun.MessageType;
+import io.jaspercloud.sdwan.stun.StunClient;
+import io.jaspercloud.sdwan.stun.StunMessage;
+import io.jaspercloud.sdwan.stun.StunPacket;
 
 import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 
 public class DataTest {
@@ -17,9 +19,8 @@ public class DataTest {
         stunClient1.afterPropertiesSet();
         StunClient stunClient2 = new StunClient(address2);
         stunClient2.afterPropertiesSet();
-        ByteBuf byteBuf = Unpooled.wrappedBuffer("test".getBytes(StandardCharsets.UTF_8));
         StunMessage message = new StunMessage(MessageType.Transfer);
-        message.getAttrs().put(AttrType.Data, new BytesAttr(byteBuf));
+        message.getAttrs().put(AttrType.Data, new BytesAttr("test".getBytes()));
         StunPacket request = new StunPacket(message, address2);
         stunClient1.getChannel().writeAndFlush(request);
         CountDownLatch countDownLatch = new CountDownLatch(1);
