@@ -35,7 +35,7 @@ public class StunTransporter implements Transporter {
                 for (Filter filter : filterList) {
                     data = filter.decode(address, data);
                 }
-                Ipv4Packet ipv4Packet = Ipv4Packet.decode(data);
+                Ipv4Packet ipv4Packet = Ipv4Packet.decode(ByteBufUtil.heapBuffer(data));
                 log.debug("input: {} -> {} -> {}",
                         address.getHostString(), ipv4Packet.getSrcIP(), ipv4Packet.getDstIP());
                 tunChannel.writeAndFlush(ByteBufUtil.toByteBuf(data));
@@ -49,7 +49,7 @@ public class StunTransporter implements Transporter {
                 StunMessage stunMessage = packet.content();
                 BytesAttr dataAttr = (BytesAttr) stunMessage.getAttrs().get(AttrType.Data);
                 byte[] data = dataAttr.getData();
-                Ipv4Packet ipv4Packet = Ipv4Packet.decode(data);
+                Ipv4Packet ipv4Packet = Ipv4Packet.decode(ByteBufUtil.heapBuffer(data));
                 log.debug("output: {} -> {} -> {}",
                         ipv4Packet.getSrcIP(), ipv4Packet.getDstIP(), address.getHostString());
                 for (Filter filter : filterList) {

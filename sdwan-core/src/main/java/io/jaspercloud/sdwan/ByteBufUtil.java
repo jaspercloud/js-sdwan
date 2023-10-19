@@ -26,4 +26,10 @@ public class ByteBufUtil {
         byteBuf.readBytes(bytes);
         return bytes;
     }
+
+    public static ByteBuf heapBuffer(byte[] bytes) {
+        ByteBuf byteBuf = DEFAULT.heapBuffer();
+        byteBuf.writeBytes(bytes);
+        return byteBuf;
+    }
 }

@@ -130,16 +130,6 @@ public class Ipv4Packet implements IpPacket {
         return packet;
     }
 
-    public static Ipv4Packet decode(byte[] bytes) {
-        ByteBuf byteBuf = ByteBufUtil.toByteBuf(bytes);
-        try {
-            Ipv4Packet packet = decode(byteBuf);
-            return packet;
-        } finally {
-            byteBuf.release();
-        }
-    }
-
     public static Ipv4Packet decode(ByteBuf byteBuf) {
         Ipv4Packet ipv4Packet = new Ipv4Packet();
         short head = byteBuf.readUnsignedByte();
