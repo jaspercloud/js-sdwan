@@ -69,7 +69,7 @@ TUN设备中转： 数据包被写入TUN设备后，它们被传输到SD-WAN设�
 
 总的来说，SD-WAN中使用的TUN设备充当了虚拟隧道接口，通过它，数据包可以被加密、路由和传输，从而实现了SD-WAN的核心功能，如安全连接、流量管理和优化。这种虚拟化网络设备的使用允许SD-WAN系统更灵活地管理和优化网络流量，提供更好的性能和安全性。
 
-### 组件关系
+### 组件依赖关系
 
 ![componentRel](doc/img/componentRel.png)
 
@@ -95,7 +95,7 @@ sdwan:
     timeout: 30000
 
 ```
-2.在需要访问的机房部署sdwan-node(Mesh模式)
+2.在需要访问的机房部署sdwan-node(Mesh模式) 以ROOT用户运行
 ```yaml
 sdwan:
   node:
@@ -110,7 +110,7 @@ sdwan:
     #配置本机的ip，由于有多个网卡需要配置
     localIP: 192.168.1.2
 ```
-3.本机启动sdwan-node
+3.本机启动sdwan-node 以管理员权限/ROOT运行
 ```yaml
 sdwan:
   node:
