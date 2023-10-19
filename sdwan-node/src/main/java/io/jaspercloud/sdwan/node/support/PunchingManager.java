@@ -97,14 +97,14 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
                 for (Map.Entry<String, Node> entry : nodeMap.entrySet()) {
                     String vip = entry.getKey();
                     Node node = entry.getValue();
-                    stunClient.sendHeart(node.getMappingAddress(), 3000)
+                    stunClient.sendHeart(node.getMappedAddress(), 3000)
                             .whenComplete((packet, throwable) -> {
                                 if (null != throwable) {
                                     for (String accessIP : node.getAccessIPList()) {
                                         publisher.publishEvent(new NodeOfflineEvent(this, accessIP));
                                     }
                                     nodeMap.remove(vip);
-                                    log.error("punchingHeartTimout: {}", node.getMappingAddress());
+                                    log.error("punchingHeartTimout: {}", node.getMappedAddress());
                                     return;
                                 }
                                 node.setLastHeart(System.currentTimeMillis());
@@ -191,7 +191,7 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
         Node node = nodeMap.get(nodeVIP);
         if (null != node) {
             node.addAccessIP(ipPacket.getDstIP());
-            InetSocketAddress address = node.getMappingAddress();
+            InetSocketAddress address = node.getMappedAddress();
             return CompletableFuture.completedFuture(address);
         }
         InetSocketAddress internalAddress = new InetSocketAddress(sdArp.getInternalAddr().getIp(), sdArp.getInternalAddr().getPort());
@@ -291,7 +291,7 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
 
     @Override
     public ByteBuf encode(InetSocketAddress address, ByteBuf byteBuf) {
-        Node node = nodeMap.values().stream().filter(e -> Objects.equals(e.getMappingAddress(), address))
+        Node node = nodeMap.values().stream().filter(e -> Objects.equals(e.getMappedAddress(), address))
                 .findAny().orElse(null);
         if (null == node) {
             throw new ProcessException("not found node");
@@ -308,7 +308,7 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
 
     @Override
     public ByteBuf decode(InetSocketAddress address, ByteBuf byteBuf) {
-        Node node = nodeMap.values().stream().filter(e -> Objects.equals(e.getMappingAddress(), address))
+        Node node = nodeMap.values().stream().filter(e -> Objects.equals(e.getMappedAddress(), address))
                 .findAny().orElse(null);
         if (null == node) {
             throw new ProcessException("not found node");
@@ -326,7 +326,7 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
     @Data
     public static class Node {
 
-        private InetSocketAddress mappingAddress;
+        private InetSocketAddress mappedAddress;
         private SecretKey secretKey;
         private Set<String> accessIPList = new ConcurrentSkipListSet<>();
         private long lastHeart;
@@ -335,8 +335,8 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
             accessIPList.add(ip);
         }
 
-        public Node(InetSocketAddress mappingAddress, SecretKey secretKey, long lastHeart) {
-            this.mappingAddress = mappingAddress;
+        public Node(InetSocketAddress mappedAddress, SecretKey secretKey, long lastHeart) {
+            this.mappedAddress = mappedAddress;
             this.secretKey = secretKey;
             this.lastHeart = lastHeart;
         }
