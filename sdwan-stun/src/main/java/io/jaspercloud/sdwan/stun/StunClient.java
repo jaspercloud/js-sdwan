@@ -124,16 +124,6 @@ public class StunClient implements InitializingBean {
         return future;
     }
 
-    public CompletableFuture<StunPacket> sendBindRelay(InetSocketAddress address, String vip, String publicKey, long timeout) {
-        StunMessage message = new StunMessage(MessageType.BindRelayRequest);
-        message.getAttrs().put(AttrType.VIP, new StringAttr(vip));
-        message.getAttrs().put(AttrType.EncryptKey, new StringAttr(publicKey));
-        StunPacket request = new StunPacket(message, address);
-        CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), timeout);
-        channel.writeAndFlush(request);
-        return future;
-    }
-
     public CompletableFuture<StunPacket> sendHeart(InetSocketAddress address, long timeout) {
         StunMessage message = new StunMessage(MessageType.Heart);
         StunPacket request = new StunPacket(message, address);

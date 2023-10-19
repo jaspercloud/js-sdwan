@@ -1,5 +1,6 @@
 package io.jaspercloud.sdwan.node.support;
 
+import io.jaspercloud.sdwan.AsyncTask;
 import io.jaspercloud.sdwan.Ecdh;
 import io.jaspercloud.sdwan.stun.*;
 import io.netty.buffer.ByteBuf;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.InitializingBean;
 
 import javax.crypto.SecretKey;
 import java.security.KeyPair;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 @Slf4j
@@ -19,7 +21,6 @@ public class RelayClient implements InitializingBean {
     private StunClient stunClient;
     private String localVIP;
     private KeyPair ecdhKeyPair;
-    private String publicKey;
     private SecretKey secretKey;
     private Consumer<SecretKey> consumer;
 
@@ -48,13 +49,19 @@ public class RelayClient implements InitializingBean {
             while (true) {
                 if (StringUtils.isNotEmpty(localVIP)) {
                     try {
-                        StunPacket stunPacket = stunClient.sendBindRelay(properties.getRelayServer(), localVIP, Hex.toHexString(ecdhKeyPair.getPublic().getEncoded()), 3000).get();
+                        String publicKey = Hex.toHexString(ecdhKeyPair.getPublic().getEncoded());
+                        StunPacket stunPacket = sendBindRelay(localVIP, publicKey, 3000).get();
                         StringAttr encryptKeyAttr = (StringAttr) stunPacket.content().getAttrs().get(AttrType.EncryptKey);
-                        if (!StringUtils.equals(encryptKeyAttr.getData(), publicKey)) {
-                            publicKey = encryptKeyAttr.getData();
-                            secretKey = Ecdh.generateAESKey(ecdhKeyPair.getPrivate(), Hex.decode(publicKey));
-                            if (null != consumer) {
-                                consumer.accept(secretKey);
+                        secretKey = Ecdh.generateAESKey(ecdhKeyPair.getPrivate(), Hex.decode(encryptKeyAttr.getData()));
+                        if (null != consumer) {
+                            consumer.accept(secretKey);
+                        }
+                        while (true) {
+                            sendRelayHeart(localVIP, 3000).get();
+                            try {
+                                Thread.sleep(5000);
+                            } catch (InterruptedException e) {
+                                log.error(e.getMessage(), e);
                             }
                         }
                     } catch (Exception e) {
@@ -79,5 +86,24 @@ public class RelayClient implements InitializingBean {
         message.getAttrs().put(AttrType.Data, new ByteBufAttr(byteBuf));
         StunPacket packet = new StunPacket(message, properties.getRelayServer());
         return packet;
+    }
+
+    private CompletableFuture<StunPacket> sendBindRelay(String vip, String publicKey, long timeout) {
+        StunMessage message = new StunMessage(MessageType.BindRelayRequest);
+        message.getAttrs().put(AttrType.VIP, new StringAttr(vip));
+        message.getAttrs().put(AttrType.EncryptKey, new StringAttr(publicKey));
+        StunPacket request = new StunPacket(message, properties.getRelayServer());
+        CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), timeout);
+        stunClient.getChannel().writeAndFlush(request);
+        return future;
+    }
+
+    private CompletableFuture<StunPacket> sendRelayHeart(String vip, long timeout) {
+        StunMessage message = new StunMessage(MessageType.Heart);
+        message.getAttrs().put(AttrType.VIP, new StringAttr(vip));
+        StunPacket request = new StunPacket(message, properties.getRelayServer());
+        CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), timeout);
+        stunClient.getChannel().writeAndFlush(request);
+        return future;
     }
 }

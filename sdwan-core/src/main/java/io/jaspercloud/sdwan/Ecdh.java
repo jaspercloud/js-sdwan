@@ -9,16 +9,7 @@ import javax.crypto.KeyAgreement;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.KeyFactory;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.Security;
+import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 
@@ -53,7 +44,7 @@ public final class Ecdh {
             return sharedSecret;
         } finally {
             long e = System.currentTimeMillis();
-            System.out.println("Ecdh:generateSecret:" + (e - s));
+            System.out.println(String.format("Ecdh:generateSecret: %s ms", e - s));
         }
     }
 
@@ -68,7 +59,7 @@ public final class Ecdh {
             return new SecretKeySpec(sharedSecret, "AES");
         } finally {
             long e = System.currentTimeMillis();
-            System.out.println("Ecdh:generateAESKey:" + (e - s));
+            System.out.println(String.format("Ecdh:generateAESKey: %s ms", e - s));
         }
     }
 

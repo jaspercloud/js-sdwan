@@ -12,7 +12,6 @@ import io.netty.channel.socket.nio.NioDatagramChannel;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.util.encoders.Hex;
 import org.springframework.beans.factory.InitializingBean;
 
@@ -73,6 +72,13 @@ public class RelayServer implements InitializingBean {
                                 InetSocketAddress sender = packet.sender();
                                 StunMessage request = packet.content();
                                 if (MessageType.Heart.equals(request.getMessageType())) {
+                                    StringAttr vipAttr = (StringAttr) request.getAttrs().get(AttrType.VIP);
+                                    String vip = vipAttr.getData();
+                                    Node node = channelMap.get(vip);
+                                    if (null == node) {
+                                        return;
+                                    }
+                                    node.setLastTime(System.currentTimeMillis());
                                     StunPacket response = new StunPacket(request, sender);
                                     ctx.writeAndFlush(response);
                                 } else if (MessageType.BindRelayRequest.equals(request.getMessageType())) {
@@ -86,14 +92,11 @@ public class RelayServer implements InitializingBean {
                                     String vip = vipAttr.getData();
                                     StringAttr encryptKeyAttr = (StringAttr) request.getAttrs().get(AttrType.EncryptKey);
                                     String publicKey = encryptKeyAttr.getData();
-                                    Node node = channelMap.computeIfAbsent(vip, key -> new Node(sender, System.currentTimeMillis()));
-                                    if (!StringUtils.equals(node.getPublicKey(), publicKey)) {
-                                        SecretKey secretKey = Ecdh.generateAESKey(ecdhKeyPair.getPrivate(), Hex.decode(publicKey));
-                                        node.setPublicKey(publicKey);
-                                        node.setSecretKey(secretKey);
-                                    }
+                                    Node node = new Node(sender, System.currentTimeMillis());
+                                    SecretKey secretKey = Ecdh.generateAESKey(ecdhKeyPair.getPrivate(), Hex.decode(publicKey));
+                                    node.setSecretKey(secretKey);
                                     node.setAddress(sender);
-                                    node.setLastTime(System.currentTimeMillis());
+                                    channelMap.put(vip, node);
                                 } else if (MessageType.Transfer.equals(request.getMessageType())) {
                                     StringAttr srcVIPAttr = (StringAttr) request.getAttrs().get(AttrType.SrcVIP);
                                     StringAttr dstVIPAttr = (StringAttr) request.getAttrs().get(AttrType.DstVIP);
@@ -129,7 +132,6 @@ public class RelayServer implements InitializingBean {
 
         private InetSocketAddress address;
         private long lastTime;
-        private String publicKey;
         private SecretKey secretKey;
 
         public Node(InetSocketAddress address, long lastTime) {
