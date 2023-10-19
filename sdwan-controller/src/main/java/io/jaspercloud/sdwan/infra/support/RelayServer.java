@@ -1,6 +1,5 @@
 package io.jaspercloud.sdwan.infra.support;
 
-import io.jaspercloud.sdwan.ByteBufUtil;
 import io.jaspercloud.sdwan.Ecdh;
 import io.jaspercloud.sdwan.NioEventLoopFactory;
 import io.jaspercloud.sdwan.infra.config.SDWanRelayProperties;
@@ -112,11 +111,11 @@ public class RelayServer implements InitializingBean {
                                         return;
                                     }
                                     //resp
-                                    ByteBufAttr dataAttr = (ByteBufAttr) request.getAttrs().get(AttrType.Data);
-                                    byte[] bytes = Ecdh.decryptAES(ByteBufUtil.toBytes(dataAttr.getData()), srcNode.getSecretKey());
+                                    BytesAttr dataAttr = (BytesAttr) request.getAttrs().get(AttrType.Data);
+                                    byte[] bytes = Ecdh.decryptAES(dataAttr.getData(), srcNode.getSecretKey());
                                     bytes = Ecdh.encryptAES(bytes, dstNode.getSecretKey());
                                     StunMessage message = new StunMessage(MessageType.Transfer);
-                                    message.getAttrs().put(AttrType.Data, new ByteBufAttr(ByteBufUtil.toByteBuf(bytes)));
+                                    message.getAttrs().put(AttrType.Data, new BytesAttr(bytes));
                                     StunPacket response = new StunPacket(message, dstNode.getAddress());
                                     ctx.writeAndFlush(response);
                                 } else {

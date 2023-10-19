@@ -1,7 +1,6 @@
 package io.jaspercloud.sdwan.node.support;
 
 import io.jaspercloud.sdwan.AsyncTask;
-import io.jaspercloud.sdwan.ByteBufUtil;
 import io.jaspercloud.sdwan.CompletableFutures;
 import io.jaspercloud.sdwan.Ecdh;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
@@ -9,7 +8,6 @@ import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.node.support.transporter.Transporter;
 import io.jaspercloud.sdwan.stun.*;
 import io.jaspercloud.sdwan.tun.IpPacket;
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import lombok.Data;
@@ -290,7 +288,7 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
     }
 
     @Override
-    public ByteBuf encode(InetSocketAddress address, ByteBuf byteBuf) {
+    public byte[] encode(InetSocketAddress address, byte[] bytes) {
         Node node = nodeMap.values().stream().filter(e -> Objects.equals(e.getMappedAddress(), address))
                 .findAny().orElse(null);
         SecretKey secretKey;
@@ -303,17 +301,15 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
             secretKey = relayClient.getSecretKey();
         }
         try {
-            byte[] bytes = Ecdh.encryptAES(ByteBufUtil.toBytes(byteBuf), secretKey);
-            return ByteBufUtil.toByteBuf(bytes);
+            byte[] encode = Ecdh.encryptAES(bytes, secretKey);
+            return encode;
         } catch (Exception e) {
             throw new ProcessException(e.getMessage(), e);
-        } finally {
-            byteBuf.release();
         }
     }
 
     @Override
-    public ByteBuf decode(InetSocketAddress address, ByteBuf byteBuf) {
+    public byte[] decode(InetSocketAddress address, byte[] bytes) {
         Node node = nodeMap.values().stream().filter(e -> Objects.equals(e.getMappedAddress(), address))
                 .findAny().orElse(null);
         SecretKey secretKey;
@@ -326,12 +322,10 @@ public class PunchingManager implements InitializingBean, Transporter.Filter {
             secretKey = relayClient.getSecretKey();
         }
         try {
-            byte[] bytes = Ecdh.decryptAES(ByteBufUtil.toBytes(byteBuf), secretKey);
-            return ByteBufUtil.toByteBuf(bytes);
+            byte[] decode = Ecdh.decryptAES(bytes, secretKey);
+            return decode;
         } catch (Exception e) {
             throw new ProcessException(e.getMessage(), e);
-        } finally {
-            byteBuf.release();
         }
     }
 

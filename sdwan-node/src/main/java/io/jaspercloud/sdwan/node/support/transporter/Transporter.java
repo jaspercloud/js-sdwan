@@ -11,8 +11,8 @@ public interface Transporter {
 
     interface Filter {
 
-        ByteBuf encode(InetSocketAddress address, ByteBuf byteBuf);
+        byte[] encode(InetSocketAddress address, byte[] bytes);
 
-        ByteBuf decode(InetSocketAddress address, ByteBuf byteBuf);
+        byte[] decode(InetSocketAddress address, byte[] bytes);
     }
 }

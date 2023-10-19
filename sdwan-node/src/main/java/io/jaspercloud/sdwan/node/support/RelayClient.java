@@ -3,7 +3,6 @@ package io.jaspercloud.sdwan.node.support;
 import io.jaspercloud.sdwan.AsyncTask;
 import io.jaspercloud.sdwan.Ecdh;
 import io.jaspercloud.sdwan.stun.*;
-import io.netty.buffer.ByteBuf;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.util.encoders.Hex;
@@ -79,11 +78,11 @@ public class RelayClient implements InitializingBean {
         thread.start();
     }
 
-    public StunPacket createRelayPacket(String localVIP, String dstVIP, ByteBuf byteBuf) {
+    public StunPacket createRelayPacket(String localVIP, String dstVIP, byte[] bytes) {
         StunMessage message = new StunMessage(MessageType.Transfer);
         message.getAttrs().put(AttrType.SrcVIP, new StringAttr(localVIP));
         message.getAttrs().put(AttrType.DstVIP, new StringAttr(dstVIP));
-        message.getAttrs().put(AttrType.Data, new ByteBufAttr(byteBuf));
+        message.getAttrs().put(AttrType.Data, new BytesAttr(bytes));
         StunPacket packet = new StunPacket(message, properties.getRelayServer());
         return packet;
     }

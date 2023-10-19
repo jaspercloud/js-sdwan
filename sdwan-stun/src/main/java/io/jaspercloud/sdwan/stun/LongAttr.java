@@ -19,16 +19,6 @@ public class LongAttr extends Attr {
         byteBuf.writeLong(data);
     }
 
-    @Override
-    public LongAttr retain(int increment) {
-        return this;
-    }
-
-    @Override
-    public boolean release(int decrement) {
-        return false;
-    }
-
     private static class Decode implements AttrDecode {
 
         @Override

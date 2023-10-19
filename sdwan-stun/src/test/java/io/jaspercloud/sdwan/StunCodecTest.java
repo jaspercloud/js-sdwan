@@ -23,7 +23,7 @@ public class StunCodecTest {
         StunMessage stunMessage = new StunMessage(MessageType.Transfer);
         stunMessage.getAttrs().put(AttrType.EncryptKey, new StringAttr("key"));
         stunMessage.getAttrs().put(AttrType.VIP, new StringAttr("vip"));
-        stunMessage.getAttrs().put(AttrType.Data, new ByteBufAttr(ByteBufUtil.toByteBuf("data".getBytes())));
+        stunMessage.getAttrs().put(AttrType.Data, new BytesAttr(ByteBufUtil.toByteBuf("data".getBytes())));
         stunMessage.getAttrs().put(AttrType.MappedAddress, new AddressAttr(ProtoFamily.IPv4, "127.0.0.1", 8888));
         StunPacket stunPacket = new StunPacket(stunMessage, new InetSocketAddress("127.0.0.1", 80));
         channel.writeAndFlush(stunPacket);

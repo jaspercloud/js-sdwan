@@ -19,7 +19,7 @@ public class DataTest {
         stunClient2.afterPropertiesSet();
         ByteBuf byteBuf = Unpooled.wrappedBuffer("test".getBytes(StandardCharsets.UTF_8));
         StunMessage message = new StunMessage(MessageType.Transfer);
-        message.getAttrs().put(AttrType.Data, new ByteBufAttr(byteBuf));
+        message.getAttrs().put(AttrType.Data, new BytesAttr(byteBuf));
         StunPacket request = new StunPacket(message, address2);
         stunClient1.getChannel().writeAndFlush(request);
         CountDownLatch countDownLatch = new CountDownLatch(1);

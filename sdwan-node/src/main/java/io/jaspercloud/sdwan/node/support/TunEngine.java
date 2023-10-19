@@ -1,5 +1,6 @@
 package io.jaspercloud.sdwan.node.support;
 
+import io.jaspercloud.sdwan.ByteBufUtil;
 import io.jaspercloud.sdwan.NetworkInterfaceInfo;
 import io.jaspercloud.sdwan.NetworkInterfaceUtil;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
@@ -161,32 +162,29 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
         TunAddress tunAddress = (TunAddress) ctx.channel().localAddress();
         String localVIP = tunAddress.getVip();
         Ipv4Packet ipv4Packet = Ipv4Packet.decodeMark(msg);
-        ByteBuf byteBuf = msg.retain();
+        byte[] data = ByteBufUtil.toBytes(msg);
         sdArpManager.sdArp(sdWanNode, ipv4Packet)
                 .whenComplete((sdArpResp, sdArpThrowable) -> {
                     if (null != sdArpThrowable) {
                         log.error("sdArpTimeout: {}", ipv4Packet.getDstIP());
-                        byteBuf.release();
                         return;
                     }
                     if (null == sdArpResp) {
-                        byteBuf.release();
                         return;
                     }
                     punchingManager.getPublicAddress(localVIP, ipv4Packet, sdArpResp)
                             .whenComplete(((address, addressThrowable) -> {
                                 if (null != addressThrowable) {
                                     log.error("getPublicAddressTimeout: {}", ipv4Packet.getDstIP());
-                                    byteBuf.release();
                                     return;
                                 }
                                 if (properties.getRelayServer().equals(address)) {
                                     //对称网络
-                                    StunPacket relayPacket = relayClient.createRelayPacket(localVIP, sdArpResp.getVip(), byteBuf);
+                                    StunPacket relayPacket = relayClient.createRelayPacket(localVIP, sdArpResp.getVip(), data);
                                     ctx.fireChannelRead(relayPacket);
                                 } else {
                                     StunMessage message = new StunMessage(MessageType.Transfer);
-                                    message.getAttrs().put(AttrType.Data, new ByteBufAttr(byteBuf));
+                                    message.getAttrs().put(AttrType.Data, new BytesAttr(data));
                                     StunPacket request = new StunPacket(message, address);
                                     ctx.fireChannelRead(request);
                                 }

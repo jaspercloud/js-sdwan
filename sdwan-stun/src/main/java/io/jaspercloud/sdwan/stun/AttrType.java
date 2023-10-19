@@ -9,7 +9,7 @@ public enum AttrType {
     XorMappedAddress(0x0020, AddressAttr.Decode),
     EncryptKey(0x8001, StringAttr.Decode),
     VIP(0x8002, StringAttr.Decode),
-    Data(0x8003, ByteBufAttr.Decode),
+    Data(0x8003, BytesAttr.Decode),
     SrcVIP(0x8004, StringAttr.Decode),
     DstVIP(0x8005, StringAttr.Decode);
 

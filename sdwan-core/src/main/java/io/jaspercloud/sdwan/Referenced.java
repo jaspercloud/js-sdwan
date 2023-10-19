@@ -5,11 +5,6 @@ import io.netty.util.ReferenceCounted;
 public interface Referenced extends ReferenceCounted {
 
     @Override
-    default int refCnt() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     default ReferenceCounted touch() {
         return this;
     }

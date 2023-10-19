@@ -20,16 +20,6 @@ public class StringAttr extends Attr {
         byteBuf.writeBytes(data.getBytes());
     }
 
-    @Override
-    public StringAttr retain(int increment) {
-        return this;
-    }
-
-    @Override
-    public boolean release(int decrement) {
-        return false;
-    }
-
     private static class Decode implements AttrDecode {
 
         @Override
