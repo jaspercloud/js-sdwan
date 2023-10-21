@@ -1,14 +1,5 @@
 package io.jaspercloud.sdwan;
 
-import io.jaspercloud.sdwan.infra.config.SDWanRelayProperties;
-import io.jaspercloud.sdwan.infra.support.RelayServer;
-import io.jaspercloud.sdwan.stun.*;
-import io.netty.buffer.Unpooled;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
-
-import java.net.InetSocketAddress;
-
 public class RelayServerTest {
 
     public static void main(String[] args) throws Exception {
