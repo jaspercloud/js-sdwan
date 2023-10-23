@@ -76,7 +76,9 @@ TUN设备中转： 数据包被写入TUN设备后，它们被传输到SD-WAN设�
 ![componentRel](doc/img/componentRel.png)
 
 ### 部署
+
 1.在公网云主机上部署controller
+
 ```yaml
 server:
   #dashboard网页地址
@@ -95,7 +97,6 @@ sdwan:
     #中继端口UDP
     port: 8082
     timeout: 30000
-
 ```
 2.在需要访问的机房部署sdwan-node(Mesh模式) 以ROOT用户运行
 ```yaml
@@ -112,7 +113,9 @@ sdwan:
     #配置本机的ip，由于有多个网卡需要配置
     localIP: 192.168.1.2
 ```
+
 3.本机启动sdwan-node 以管理员权限/ROOT运行
+
 ```yaml
 sdwan:
   node:
@@ -127,6 +130,7 @@ sdwan:
     #配置本机的ip，由于有多个网卡需要配置
     localIP: 10.22.6.3
 ```
+
 4.在dashboard中定义路由
 
 查看在线的node信息
