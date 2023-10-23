@@ -49,7 +49,7 @@ public class NodeRepository {
     }
 
     public List<Node> queryList() {
-        String sql = "select * from node";
+        String sql = "select * from node order by id desc";
         List<Node> nodeList = jdbcTemplate.query(sql, ROW_MAPPER);
         return nodeList;
     }
@@ -89,7 +89,7 @@ public class NodeRepository {
     }
 
     public List<Node> getMeshNodeList() {
-        String sql = "select * from node where node_type=?";
+        String sql = "select * from node where node_type=? order by id desc";
         List<Node> nodeList = jdbcTemplate.query(sql, ROW_MAPPER, new Object[]{NodeType.Mesh.getCode()});
         return nodeList;
     }

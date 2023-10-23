@@ -58,7 +58,7 @@ public class RouteRepository {
     }
 
     public List<Route> queryList() {
-        String sql = "select * from static_route";
+        String sql = "select * from static_route order by id desc";
         List<Route> nodeList = jdbcTemplate.query(sql, ROW_MAPPER);
         return nodeList;
     }
