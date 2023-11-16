@@ -6,6 +6,7 @@ import com.sun.jna.platform.win32.WinNT;
 import com.sun.jna.ptr.IntByReference;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.tun.linux.NativeLinuxApi;
+import io.jaspercloud.sdwan.tun.osx.NativeOsxApi;
 import io.netty.util.internal.PlatformDependent;
 
 public class CheckAdmin {
@@ -13,7 +14,7 @@ public class CheckAdmin {
     public static void check() {
         boolean isAdmin;
         if (PlatformDependent.isOsx()) {
-            throw new UnsupportedOperationException("unsupported platform");
+            isAdmin = checkOsx();
         } else if (PlatformDependent.isWindows()) {
             isAdmin = checkWindows();
         } else {
@@ -39,6 +40,10 @@ public class CheckAdmin {
             throw new ProcessException("GetTokenInformation error");
         }
         return 1 == elevation.TokenIsElevated;
+    }
+
+    private static boolean checkOsx() {
+        return 0 == NativeOsxApi.geteuid();
     }
 
     private static boolean checkLinux() {
