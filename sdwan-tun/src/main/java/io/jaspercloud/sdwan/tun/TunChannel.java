@@ -1,19 +1,12 @@
 package io.jaspercloud.sdwan.tun;
 
-import io.jaspercloud.sdwan.tun.linux.LinuxTunDevice;
-import io.jaspercloud.sdwan.tun.windows.WinTunDevice;
 import io.jaspercloud.sdwan.NetworkInterfaceInfo;
 import io.jaspercloud.sdwan.NetworkInterfaceUtil;
+import io.jaspercloud.sdwan.tun.linux.LinuxTunDevice;
+import io.jaspercloud.sdwan.tun.osx.OsxTunDevice;
+import io.jaspercloud.sdwan.tun.windows.WinTunDevice;
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.AbstractChannel;
-import io.netty.channel.ChannelConfig;
-import io.netty.channel.ChannelMetadata;
-import io.netty.channel.ChannelOutboundBuffer;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.ChannelPromise;
-import io.netty.channel.DefaultEventLoop;
-import io.netty.channel.EventLoop;
-import io.netty.channel.RecvByteBufAllocator;
+import io.netty.channel.*;
 import io.netty.util.internal.PlatformDependent;
 
 import java.io.IOException;
@@ -93,6 +86,7 @@ public class TunChannel extends AbstractChannel {
         String type = "jaspercloud";
         String guid = UUID.randomUUID().toString();
         if (PlatformDependent.isOsx()) {
+            tunDevice = new OsxTunDevice(ethName, tunName, type, guid);
         } else if (PlatformDependent.isWindows()) {
             tunDevice = new WinTunDevice(tunName, type, guid);
         } else {

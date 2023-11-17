@@ -16,6 +16,7 @@ public class Cidr {
     private String maskAddress;
     private String networkIdentifier;
     private String broadcastAddress;
+    private String gatewayAddress;
     private int maskBits;
 
     private Cidr() {
@@ -41,12 +42,14 @@ public class Cidr {
         String maskAddress = parseMaskAddress(maskBits);
         String networkIdentifier = parseNetworkIdentifier(IPUtil.ip2int(address), maskBits);
         String broadcastAddress = parseBroadcastAddress(IPUtil.ip2int(address), maskBits);
+        String gatewayAddress = parseIp(IPUtil.ip2int(address), maskBits, +1);
         Cidr cidr = new Cidr();
         cidr.setAddress(address);
         cidr.setMaskBits(maskBits);
         cidr.setMaskAddress(maskAddress);
         cidr.setNetworkIdentifier(networkIdentifier);
         cidr.setBroadcastAddress(broadcastAddress);
+        cidr.setGatewayAddress(gatewayAddress);
         cidr.setIpList(ipList);
         List<String> availableIpList = new ArrayList<>(ipList);
         availableIpList.remove(address);
@@ -66,6 +69,12 @@ public class Cidr {
             s += 1;
         }
         return list;
+    }
+
+    private static String parseIp(int address, int maskBits, int index) {
+        address = (address >> (32 - maskBits)) << (32 - maskBits);
+        String ip = IPUtil.int2ip(address + index);
+        return ip;
     }
 
     private static String parseNetworkIdentifier(int address, int maskBits) {
