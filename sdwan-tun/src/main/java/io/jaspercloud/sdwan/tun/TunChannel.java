@@ -33,6 +33,10 @@ public class TunChannel extends AbstractChannel {
     private TunAddress tunAddress;
     private TunDevice tunDevice;
 
+    public TunDevice getTunDevice() {
+        return tunDevice;
+    }
+
     public TunChannel() {
         super(null);
         channelConfig = new TunChannelConfig(this);
@@ -54,14 +58,6 @@ public class TunChannel extends AbstractChannel {
         tunAddress.setVip(ip);
     }
 
-    public void addRoute(NetworkInterfaceInfo interfaceInfo, String route, String ip) throws Exception {
-        tunDevice.addRoute(interfaceInfo, route, ip);
-    }
-
-    public void delRoute(NetworkInterfaceInfo interfaceInfo, String route, String ip) throws Exception {
-        tunDevice.delRoute(interfaceInfo, route, ip);
-    }
-
     private void waitAddress(String vip, int timeout) throws Exception {
         long s = System.currentTimeMillis();
         while (true) {
@@ -81,16 +77,15 @@ public class TunChannel extends AbstractChannel {
     @Override
     protected void doBind(SocketAddress localAddress) throws Exception {
         tunAddress = (TunAddress) localAddress;
-        String ethName = tunAddress.getEthName();
         String tunName = tunAddress.getTunName();
         String type = "jaspercloud";
         String guid = UUID.randomUUID().toString();
         if (PlatformDependent.isOsx()) {
-            tunDevice = new OsxTunDevice(ethName, tunName, type, guid);
+            tunDevice = new OsxTunDevice(tunName, type, guid);
         } else if (PlatformDependent.isWindows()) {
             tunDevice = new WinTunDevice(tunName, type, guid);
         } else {
-            tunDevice = new LinuxTunDevice(ethName, tunName, type, guid);
+            tunDevice = new LinuxTunDevice(tunName, tunAddress.getEthName(), type, guid);
         }
         tunDevice.open();
         Integer mtu = config().getOption(TunChannelConfig.MTU);

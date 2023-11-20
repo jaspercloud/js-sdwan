@@ -1,7 +1,7 @@
 package io.jaspercloud.sdwan.support;
 
-import io.jaspercloud.sdwan.service.SDWanControllerService;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
+import io.jaspercloud.sdwan.service.SDWanControllerService;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -30,34 +30,34 @@ public class SDWanProcessHandler extends SimpleChannelInboundHandler<SDWanProtos
                 controllerService.regist(channel, request);
                 break;
             }
-            case SDWanProtos.MsgTypeCode.SDArpReqType_VALUE: {
-                processSDArp(channel, request);
+            case SDWanProtos.MsgTypeCode.RouteListReqType_VALUE: {
+                controllerService.processRouteList(channel, request);
                 break;
             }
-            case SDWanProtos.MsgTypeCode.PunchingType_VALUE: {
-                processPunching(channel, request);
+            case SDWanProtos.MsgTypeCode.NodeInfoReqType_VALUE: {
+                controllerService.processNodeInfo(channel, request);
                 break;
             }
         }
     }
 
     private void processPunching(Channel channel, SDWanProtos.Message request) throws Exception {
-        SDWanProtos.Punching punching = SDWanProtos.Punching.parseFrom(request.getData());
-        String dstVIP = punching.getDstVIP();
-        Channel targetChannel = controllerService.findNodeByIP(dstVIP);
-        if (null == targetChannel) {
-            return;
-        }
-        targetChannel.writeAndFlush(request);
+//        SDWanProtos.Punching punching = SDWanProtos.Punching.parseFrom(request.getData());
+//        String dstVIP = punching.getDstVIP();
+//        Channel targetChannel = controllerService.findNodeByIP(dstVIP);
+//        if (null == targetChannel) {
+//            return;
+//        }
+//        targetChannel.writeAndFlush(request);
     }
 
     private void processSDArp(Channel channel, SDWanProtos.Message request) throws Exception {
-        SDWanProtos.SDArpResp sdArpResp = controllerService.sdArp(channel, request);
-        SDWanProtos.Message response = request.toBuilder()
-                .setType(SDWanProtos.MsgTypeCode.SDArpRespType)
-                .setData(sdArpResp.toByteString())
-                .build();
-        channel.writeAndFlush(response);
+//        SDWanProtos.SDArpResp sdArpResp = controllerService.sdArp(channel, request);
+//        SDWanProtos.Message response = request.toBuilder()
+//                .setType(SDWanProtos.MsgTypeCode.SDArpRespType)
+//                .setData(sdArpResp.toByteString())
+//                .build();
+//        channel.writeAndFlush(response);
     }
 
     private void processHeart(Channel channel, SDWanProtos.Message request) {

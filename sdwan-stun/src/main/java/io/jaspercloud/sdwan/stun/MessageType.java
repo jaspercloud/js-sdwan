@@ -7,8 +7,8 @@ public enum MessageType {
     Transfer(0x0301),
     Heart(0x0302),
     BindRelayRequest(0x0303),
-    BindRelayResponse(0x0343),
-    RelayHeart(0x0304);
+    BindRelayResponse(0x0343);
+
     private int code;
 
     public int getCode() {

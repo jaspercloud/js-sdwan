@@ -1,6 +1,5 @@
 package io.jaspercloud.sdwan.support;
 
-import io.jaspercloud.sdwan.Ecdh;
 import io.jaspercloud.sdwan.NioEventLoopFactory;
 import io.jaspercloud.sdwan.config.SDWanRelayProperties;
 import io.jaspercloud.sdwan.stun.*;
@@ -8,15 +7,10 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
 import io.netty.channel.socket.nio.NioDatagramChannel;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.bouncycastle.util.encoders.Hex;
 import org.springframework.beans.factory.InitializingBean;
 
-import javax.crypto.SecretKey;
 import java.net.InetSocketAddress;
-import java.security.KeyPair;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
@@ -27,7 +21,6 @@ public class RelayServer implements InitializingBean {
 
     private SDWanRelayProperties properties;
     private Channel channel;
-    private KeyPair ecdhKeyPair;
     private Map<String, RelayNode> channelMap = new ConcurrentHashMap<>();
 
     public Map<String, RelayNode> getNodeMap() {
@@ -40,7 +33,6 @@ public class RelayServer implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        ecdhKeyPair = Ecdh.generateKeyPair();
         new Thread(() -> {
             while (true) {
                 Iterator<Map.Entry<String, RelayNode>> iterator = channelMap.entrySet().iterator();
@@ -53,7 +45,7 @@ public class RelayServer implements InitializingBean {
                     }
                 }
                 try {
-                    Thread.sleep(3000);
+                    Thread.sleep(5000);
                 } catch (InterruptedException e) {
                     log.error(e.getMessage(), e);
                 }
@@ -73,59 +65,7 @@ public class RelayServer implements InitializingBean {
                         pipeline.addLast("StunClient:stunProcess", new SimpleChannelInboundHandler<StunPacket>() {
                             @Override
                             protected void channelRead0(ChannelHandlerContext ctx, StunPacket packet) throws Exception {
-                                InetSocketAddress sender = packet.sender();
-                                StunMessage request = packet.content();
-                                if (MessageType.Heart.equals(request.getMessageType())) {
-                                    StunPacket response = new StunPacket(request, sender);
-                                    ctx.writeAndFlush(response);
-                                } else if (MessageType.RelayHeart.equals(request.getMessageType())) {
-                                    StringAttr vipAttr = (StringAttr) request.getAttrs().get(AttrType.VIP);
-                                    String vip = vipAttr.getData();
-                                    RelayNode node = channelMap.get(vip);
-                                    if (null == node) {
-                                        return;
-                                    }
-                                    node.setLastTime(System.currentTimeMillis());
-                                    StunPacket response = new StunPacket(request, sender);
-                                    ctx.writeAndFlush(response);
-                                } else if (MessageType.BindRelayRequest.equals(request.getMessageType())) {
-                                    //resp
-                                    StunMessage responseMessage = new StunMessage(MessageType.BindRelayResponse, request.getTranId());
-                                    responseMessage.getAttrs().put(AttrType.EncryptKey, new StringAttr(Hex.toHexString(ecdhKeyPair.getPublic().getEncoded())));
-                                    StunPacket response = new StunPacket(responseMessage, sender);
-                                    ctx.writeAndFlush(response);
-                                    //save
-                                    StringAttr vipAttr = (StringAttr) request.getAttrs().get(AttrType.VIP);
-                                    String vip = vipAttr.getData();
-                                    StringAttr encryptKeyAttr = (StringAttr) request.getAttrs().get(AttrType.EncryptKey);
-                                    String publicKey = encryptKeyAttr.getData();
-                                    RelayNode node = new RelayNode(sender, System.currentTimeMillis());
-                                    SecretKey secretKey = Ecdh.generateAESKey(ecdhKeyPair.getPrivate(), Hex.decode(publicKey));
-                                    node.setSecretKey(secretKey);
-                                    node.setRelayAddress(sender);
-                                    channelMap.put(vip, node);
-                                } else if (MessageType.Transfer.equals(request.getMessageType())) {
-                                    StringAttr srcVIPAttr = (StringAttr) request.getAttrs().get(AttrType.SrcVIP);
-                                    StringAttr dstVIPAttr = (StringAttr) request.getAttrs().get(AttrType.DstVIP);
-                                    RelayNode srcNode = channelMap.get(srcVIPAttr.getData());
-                                    if (null == srcNode) {
-                                        return;
-                                    }
-                                    RelayNode dstNode = channelMap.get(dstVIPAttr.getData());
-                                    if (null == dstNode) {
-                                        return;
-                                    }
-                                    //resp
-                                    BytesAttr dataAttr = (BytesAttr) request.getAttrs().get(AttrType.Data);
-                                    byte[] bytes = Ecdh.decryptAES(dataAttr.getData(), srcNode.getSecretKey());
-                                    bytes = Ecdh.encryptAES(bytes, dstNode.getSecretKey());
-                                    StunMessage message = new StunMessage(MessageType.Transfer);
-                                    message.getAttrs().put(AttrType.Data, new BytesAttr(bytes));
-                                    StunPacket response = new StunPacket(message, dstNode.getRelayAddress());
-                                    ctx.writeAndFlush(response);
-                                } else {
-                                    ctx.fireChannelRead(packet.retain());
-                                }
+                                process(ctx, packet);
                             }
                         });
                     }
@@ -133,17 +73,52 @@ public class RelayServer implements InitializingBean {
         channel = bootstrap.bind(local).sync().channel();
     }
 
-    @NoArgsConstructor
-    @Data
+    private void process(ChannelHandlerContext ctx, StunPacket packet) {
+        InetSocketAddress sender = packet.sender();
+        StunMessage request = packet.content();
+        if (MessageType.BindRelayRequest.equals(request.getMessageType())) {
+            //parse
+            StringAttr relayTokenAttr = (StringAttr) request.getAttrs().get(AttrType.RelayToken);
+            String relayToken = relayTokenAttr.getData();
+            channelMap.put(relayToken, new RelayNode(sender));
+            //resp
+            StunMessage responseMessage = new StunMessage(MessageType.BindRelayResponse, request.getTranId());
+            StunPacket response = new StunPacket(responseMessage, sender);
+            ctx.writeAndFlush(response);
+        } else if (MessageType.Transfer.equals(request.getMessageType())) {
+            //parse
+            StringAttr relayTokenAttr = (StringAttr) request.getAttrs().get(AttrType.RelayToken);
+            String relayToken = relayTokenAttr.getData();
+            RelayNode node = channelMap.get(relayToken);
+            if (null == node) {
+                return;
+            }
+            //resp
+            BytesAttr dataAttr = (BytesAttr) request.getAttrs().get(AttrType.Data);
+            StunMessage message = new StunMessage(MessageType.Transfer);
+            message.getAttrs().put(AttrType.Data, dataAttr);
+            StunPacket response = new StunPacket(message, node.getTargetAddress());
+            ctx.writeAndFlush(response);
+        } else {
+            ctx.fireChannelRead(packet.retain());
+        }
+    }
+
     public static class RelayNode {
 
-        private InetSocketAddress relayAddress;
-        private long lastTime;
-        private SecretKey secretKey;
+        private InetSocketAddress targetAddress;
+        private long lastTime = System.currentTimeMillis();
 
-        public RelayNode(InetSocketAddress relayAddress, long lastTime) {
-            this.relayAddress = relayAddress;
-            this.lastTime = lastTime;
+        public InetSocketAddress getTargetAddress() {
+            return targetAddress;
+        }
+
+        public long getLastTime() {
+            return lastTime;
+        }
+
+        public RelayNode(InetSocketAddress targetAddress) {
+            this.targetAddress = targetAddress;
         }
     }
 }

@@ -1,12 +1,14 @@
 package io.jaspercloud.sdwan.node.support;
 
+import com.google.protobuf.ByteString;
 import io.jaspercloud.sdwan.ByteBufUtil;
 import io.jaspercloud.sdwan.NetworkInterfaceInfo;
 import io.jaspercloud.sdwan.NetworkInterfaceUtil;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
-import io.jaspercloud.sdwan.node.support.transporter.Transporter;
-import io.jaspercloud.sdwan.stun.*;
+import io.jaspercloud.sdwan.node.support.route.RouteManager;
+import io.jaspercloud.sdwan.node.support.tunnel.RelayManager;
+import io.jaspercloud.sdwan.stun.MappingAddress;
 import io.jaspercloud.sdwan.tun.Ipv4Packet;
 import io.jaspercloud.sdwan.tun.TunAddress;
 import io.jaspercloud.sdwan.tun.TunChannel;
@@ -16,16 +18,12 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 
-import java.net.SocketException;
-import java.util.List;
+import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 @Slf4j
 public class TunEngine implements InitializingBean, DisposableBean, Runnable {
@@ -34,14 +32,10 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
 
     private SDWanNodeProperties properties;
     private SDWanNode sdWanNode;
-    private Transporter transporter;
-    private PunchingManager punchingManager;
-    private RelayClient relayClient;
-    private SDArpManager sdArpManager;
+    private MappingManager mappingManager;
+    private RouteManager routeManager;
+    private RelayManager relayManager;
 
-    private AtomicReference<List<SDWanProtos.Route>> routeCache = new AtomicReference<>();
-
-    private NetworkInterfaceInfo interfaceInfo;
     private TunChannel tunChannel;
 
     public TunChannel getTunChannel() {
@@ -50,35 +44,19 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
 
     public TunEngine(SDWanNodeProperties properties,
                      SDWanNode sdWanNode,
-                     Transporter transporter,
-                     PunchingManager punchingManager,
-                     RelayClient relayClient,
-                     SDArpManager sdArpManager) {
+                     MappingManager mappingManager,
+                     RouteManager routeManager,
+                     RelayManager relayManager) {
         this.properties = properties;
         this.sdWanNode = sdWanNode;
-        this.transporter = transporter;
-        this.punchingManager = punchingManager;
-        this.relayClient = relayClient;
-        this.sdArpManager = sdArpManager;
+        this.mappingManager = mappingManager;
+        this.routeManager = routeManager;
+        this.relayManager = relayManager;
     }
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(properties.getLocalIP());
-        if (null == interfaceInfo) {
-            throw new ProcessException("not found localIP");
-        }
         tunChannel = bootTun();
-        transporter.bind(tunChannel);
-        sdWanNode.addDataHandler(new SDWanDataHandler<SDWanProtos.RouteList>() {
-            @Override
-            public void onData(ChannelHandlerContext ctx, SDWanProtos.RouteList msg) throws Exception {
-                TunAddress tunAddress = (TunAddress) tunChannel.localAddress();
-                String localVIP = tunAddress.getVip();
-                List<SDWanProtos.Route> routeList = msg.getRouteList();
-                updateRoutes(localVIP, routeList);
-            }
-        });
         Thread thread = new Thread(this, "tun-device");
         thread.start();
     }
@@ -92,10 +70,11 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
     public void run() {
         while (true) {
             try {
-                CheckResult checkResult = punchingManager.getCheckResult();
+                MappingAddress mappingAddress = mappingManager.getMappingAddress();
+                String relayToken = relayManager.getToken();
                 SDWanProtos.RegResp regResp;
                 try {
-                    regResp = sdWanNode.regist(interfaceInfo, checkResult, 5000);
+                    regResp = sdWanNode.regist(mappingAddress, relayToken);
                 } catch (TimeoutException e) {
                     throw new ProcessException("sdWANNode.regist timeout");
                 } catch (ExecutionException e) {
@@ -112,12 +91,11 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                 } else if (SDWanProtos.MessageCode.SysError_VALUE == regResp.getCode()) {
                     throw new ProcessException("server error");
                 }
-                relayClient.setLocalVIP(regResp.getVip());
                 //配置地址
                 tunChannel.setAddress(regResp.getVip(), regResp.getMaskBits());
                 log.info("tunAddress: {}/{}", regResp.getVip(), regResp.getMaskBits());
                 //配置路由
-                addRoutes(regResp.getVip(), regResp.getRouteList().getRouteList());
+                routeManager.initRoute(tunChannel);
                 log.info("TunEngine started");
                 //wait closed reconnect
                 sdWanNode.getChannel().closeFuture().sync();
@@ -135,6 +113,8 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
     }
 
     private TunChannel bootTun() throws Exception {
+        InetSocketAddress localAddress = (InetSocketAddress) sdWanNode.getChannel().localAddress();
+        NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(localAddress.getHostString());
         DefaultEventLoopGroup eventLoopGroup = new DefaultEventLoopGroup();
         Bootstrap bootstrap = new Bootstrap()
                 .group(eventLoopGroup)
@@ -163,64 +143,11 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
         String localVIP = tunAddress.getVip();
         Ipv4Packet ipv4Packet = Ipv4Packet.decodeMark(msg);
         byte[] data = ByteBufUtil.toBytes(msg);
-        sdArpManager.sdArp(sdWanNode, ipv4Packet)
-                .whenComplete((sdArpResp, sdArpThrowable) -> {
-                    if (null != sdArpThrowable) {
-                        log.error("sdArpTimeout: {}", ipv4Packet.getDstIP());
-                        return;
-                    }
-                    if (null == sdArpResp) {
-                        return;
-                    }
-                    punchingManager.getPublicAddress(localVIP, ipv4Packet, sdArpResp)
-                            .whenComplete(((address, addressThrowable) -> {
-                                if (null != addressThrowable) {
-                                    log.error("getPublicAddressTimeout: {}", ipv4Packet.getDstIP());
-                                    return;
-                                }
-                                if (properties.getRelayServer().equals(address)) {
-                                    //对称网络
-                                    StunPacket relayPacket = relayClient.createRelayPacket(localVIP, sdArpResp.getVip(), data);
-                                    ctx.fireChannelRead(relayPacket);
-                                } else {
-                                    StunMessage message = new StunMessage(MessageType.Transfer);
-                                    message.getAttrs().put(AttrType.Data, new BytesAttr(data));
-                                    StunPacket request = new StunPacket(message, address);
-                                    ctx.fireChannelRead(request);
-                                }
-                            }));
-                });
-    }
-
-    private void addRoutes(String vip, List<SDWanProtos.Route> routeList) throws SocketException {
-        NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(vip);
-        routeList = routeList.stream()
-                .filter(e -> !StringUtils.equals(e.getNexthop(), vip))
-                .collect(Collectors.toList());
-        routeList.forEach(route -> {
-            try {
-                log.info("addRoute: {} -> {}", route.getDestination(), vip);
-                tunChannel.addRoute(interfaceInfo, route.getDestination(), vip);
-            } catch (Exception e) {
-                log.error(e.getMessage(), e);
-            }
-        });
-        routeCache.set(routeList);
-    }
-
-    private void updateRoutes(String vip, List<SDWanProtos.Route> routeList) throws SocketException {
-        NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(vip);
-        List<SDWanProtos.Route> currentList = routeCache.get();
-        if (null != currentList) {
-            currentList.forEach(route -> {
-                try {
-                    log.info("delRoute: {} -> {}", route.getDestination(), vip);
-                    tunChannel.delRoute(interfaceInfo, route.getDestination(), vip);
-                } catch (Exception e) {
-                    log.error(e.getMessage(), e);
-                }
-            });
-        }
-        addRoutes(vip, routeList);
+        SDWanProtos.IpPacket ipPacket = SDWanProtos.IpPacket.newBuilder()
+                .setSrcIP(ipv4Packet.getSrcIP())
+                .setDstIP(ipv4Packet.getDstIP())
+                .setPayload(ByteString.copyFrom(data))
+                .build();
+        routeManager.route(localVIP, ipPacket);
     }
 }

@@ -107,7 +107,7 @@ public class Cidr {
         int count = (int) Math.pow(2, 32 - maskBits) - 1;
         int maxAddr = minAddr + count;
         int checkAddr = IPUtil.ip2int(ip);
-        boolean contains = checkAddr > minAddr && checkAddr < maxAddr;
+        boolean contains = checkAddr >= minAddr && checkAddr <= maxAddr;
         return contains;
     }
 

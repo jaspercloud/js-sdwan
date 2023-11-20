@@ -26,6 +26,12 @@ public class StunDecoder extends MessageToMessageDecoder<DatagramPacket> {
             int l = attrs.readUnsignedShort();
             ByteBuf v = attrs.readSlice(l);
             AttrType attrType = AttrType.valueOf(t);
+            if (null == attrType) {
+                continue;
+            }
+            if (attrType.getCompatibleCode() > 0) {
+                attrType = AttrType.valueOf(attrType.getCompatibleCode());
+            }
             Attr attr = attrType.getDecode().decode(v);
             message.getAttrs().put(attrType, attr);
         }

@@ -1,6 +1,5 @@
 package io.jaspercloud.sdwan.tun.linux;
 
-import io.jaspercloud.sdwan.NetworkInterfaceInfo;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.tun.CheckInvoke;
 import io.jaspercloud.sdwan.tun.ProcessUtil;
@@ -14,13 +13,12 @@ import java.io.*;
 public class LinuxTunDevice extends TunDevice {
 
     private String ethName;
-
     private int fd;
     private int mtu = 65535;
     private Timeval timeval;
     private boolean closing = false;
 
-    public LinuxTunDevice(String ethName, String tunName, String type, String guid) {
+    public LinuxTunDevice(String tunName, String ethName, String type, String guid) {
         super(tunName, type, guid);
         this.ethName = ethName;
     }
@@ -116,27 +114,6 @@ public class LinuxTunDevice extends TunDevice {
         byte[] bytes = new byte[msg.readableBytes()];
         msg.readBytes(bytes);
         NativeLinuxApi.write(fd, bytes, bytes.length);
-    }
-
-    @Override
-    public void addRoute(NetworkInterfaceInfo interfaceInfo, String route, String ip) throws Exception {
-        {
-            String cmd = String.format("ip route delete %s via %s", route, ip);
-            int code = ProcessUtil.exec(cmd);
-            CheckInvoke.check(code, 0, 2);
-        }
-        {
-            String cmd = String.format("ip route add %s via %s dev %s", route, ip, interfaceInfo.getName());
-            int code = ProcessUtil.exec(cmd);
-            CheckInvoke.check(code, 0);
-        }
-    }
-
-    @Override
-    public void delRoute(NetworkInterfaceInfo interfaceInfo, String route, String ip) throws Exception {
-        String cmd = String.format("ip route delete %s", route);
-        int code = ProcessUtil.exec(cmd);
-        CheckInvoke.check(code, 0, 2);
     }
 
     @Override

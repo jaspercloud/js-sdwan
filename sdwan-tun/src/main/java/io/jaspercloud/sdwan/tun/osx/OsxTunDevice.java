@@ -3,7 +3,6 @@ package io.jaspercloud.sdwan.tun.osx;
 import com.sun.jna.Native;
 import com.sun.jna.ptr.IntByReference;
 import io.jaspercloud.sdwan.Cidr;
-import io.jaspercloud.sdwan.NetworkInterfaceInfo;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.tun.CheckInvoke;
 import io.jaspercloud.sdwan.tun.ProcessUtil;
@@ -15,15 +14,12 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 
 public class OsxTunDevice extends TunDevice {
 
-    private String ethName;
-
     private int fd;
     private int mtu = 65535;
     private boolean closing = false;
 
-    public OsxTunDevice(String ethName, String tunName, String type, String guid) {
+    public OsxTunDevice(String tunName, String type, String guid) {
         super(tunName, type, guid);
-        this.ethName = ethName;
     }
 
     @Override
@@ -62,7 +58,7 @@ public class OsxTunDevice extends TunDevice {
         this.mtu = mtu;
     }
 
-    private String getEthName() {
+    public String getEthName() {
         SockName sockName = new SockName();
         IntByReference sockNameLen = new IntByReference(SockName.LENGTH);
         NativeOsxApi.getsockopt(fd, NativeOsxApi.SYSPROTO_CONTROL, NativeOsxApi.UTUN_OPT_IFNAME, sockName, sockNameLen);
@@ -96,29 +92,6 @@ public class OsxTunDevice extends TunDevice {
         byte[] bytes = new byte[msg.readableBytes()];
         msg.readBytes(bytes);
         NativeOsxApi.write(fd, bytes, bytes.length);
-    }
-
-    @Override
-    public void addRoute(NetworkInterfaceInfo interfaceInfo, String route, String ip) throws Exception {
-        String deviceName = getEthName();
-        {
-            String cmd = String.format("route -n delete -net %s -interface %s", route, deviceName);
-            int code = ProcessUtil.exec(cmd);
-            CheckInvoke.check(code, 0, 2);
-        }
-        {
-            String cmd = String.format("route -n add -net %s -interface %s", route, deviceName);
-            int code = ProcessUtil.exec(cmd);
-            CheckInvoke.check(code, 0);
-        }
-    }
-
-    @Override
-    public void delRoute(NetworkInterfaceInfo interfaceInfo, String route, String ip) throws Exception {
-        String deviceName = getEthName();
-        String cmd = String.format("route -n delete -net %s -interface %s", route, deviceName);
-        int code = ProcessUtil.exec(cmd);
-        CheckInvoke.check(code, 0, 2);
     }
 
     @Override

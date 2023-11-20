@@ -7,17 +7,32 @@ enum MessageCode {
   SysError = 1;
   NotEnough = 2;
   VipBound = 3;
-  NotFoundSDArp = 4;
+  NotFound = 4;
 }
 
 enum MsgTypeCode {
-  HeartType = 1;
-  RegReqType = 2;
-  RegRespType = 3;
-  SDArpReqType = 4;
-  SDArpRespType = 5;
-  RefreshRouteList = 6;
-  PunchingType = 7;
+  //req/resp
+  RegReqType = 1;
+  RegRespType = 2;
+  RouteListReqType = 3;
+  RouteListRespType = 4;
+  NodeInfoReqType = 5;
+  NodeInfoRespType = 6;
+  PunchReqType = 7;
+  PunchRespType = 8;
+  CheckRelayTokenReqType = 9;
+  CheckRelayTokenRespType = 10;
+  //
+  HeartType = 101;
+  RefreshRouteListType = 102;
+  PushPunchType = 103;
+}
+
+enum MappingTypeCode {
+  FullCone = 1;
+  RestrictedCone = 2;
+  PortRestrictedCone = 3;
+  Symmetric = 4;
 }
 
 message Message {
@@ -40,30 +55,27 @@ message RegReq {
   required NodeTypeCode nodeType = 1;
   required string macAddress = 2;
   required SocketAddress internalAddr = 3;
-  required string stunMapping = 4;
-  required string stunFiltering = 5;
-  optional SocketAddress publicAddr = 6;
+  required MappingTypeCode mappingType = 6;
+  optional SocketAddress publicAddr = 4;
+  required string relayToken = 5;
 }
 
 message RegResp {
   required int32 code = 1;
   optional string vip = 2;
   optional int32 maskBits = 3;
-  optional RouteList routeList = 4;
 }
 
-message SDArpReq {
-  required string ip = 1;
+message NodeInfoReq {
+  required string vip = 1;
 }
 
-message SDArpResp {
+message NodeInfoResp {
   required int32 code = 1;
   optional string vip = 2;
   optional SocketAddress internalAddr = 3;
-  optional string stunMapping = 4;
-  optional string stunFiltering = 5;
-  optional SocketAddress publicAddr = 6;
-  optional int32 ttl = 7;
+  optional MappingTypeCode mappingType = 4;
+  optional SocketAddress publicAddr = 5;
 }
 
 message RouteList {
@@ -75,9 +87,45 @@ message Route {
   required string nexthop = 2 ;
 }
 
-message Punching {
+message PunchReq {
+  required string tranId = 1;
+  required SocketAddress srcAddr = 2;
+  required SocketAddress dstAddr = 3;
+}
+
+message PunchResp {
+  required int32 code = 1;
+  required SocketAddress addr = 2;
+}
+
+message PushPunch {
+  required string tranId = 1;
+  required string vip = 2;
+  required SocketAddress publicAddr = 3;
+}
+
+message CheckRelayTokenReq {
+  required string token = 1;
+}
+
+message CheckRelayTokenResp {
+  required int32 code = 1;
+}
+
+message IpPacket {
+  required string srcIP = 1;
+  required string dstIP = 2;
+  required bytes payload = 3;
+}
+
+message RoutePacket {
   required string srcVIP = 1;
   required string dstVIP = 2;
-  required SocketAddress srcAddr = 3;
-  required string tranId = 4;
+  required IpPacket payload = 3;
+}
+
+message P2pPacket {
+  required string srcIP = 1;
+  required string dstIP = 2;
+  required RoutePacket payload = 3;
 }

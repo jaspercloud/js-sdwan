@@ -1,6 +1,5 @@
 package io.jaspercloud.sdwan.tun;
 
-import io.jaspercloud.sdwan.NetworkInterfaceInfo;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 
@@ -53,7 +52,4 @@ public abstract class TunDevice {
 
     public abstract void writePacket(ByteBufAllocator alloc, ByteBuf msg);
 
-    public abstract void addRoute(NetworkInterfaceInfo interfaceInfo, String route, String ip) throws Exception;
-
-    public abstract void delRoute(NetworkInterfaceInfo interfaceInfo, String route, String ip) throws Exception;
 }

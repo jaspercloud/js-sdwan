@@ -1,7 +1,6 @@
 package io.jaspercloud.sdwan.tun.windows;
 
 import com.sun.jna.*;
-import io.jaspercloud.sdwan.NetworkInterfaceInfo;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.tun.CheckInvoke;
 import io.jaspercloud.sdwan.tun.ProcessUtil;
@@ -84,27 +83,6 @@ public class WinTunDevice extends TunDevice {
         Pointer packetPointer = NativeWinTunApi.WintunAllocateSendPacket(session, bytes.length);
         packetPointer.write(0, bytes, 0, bytes.length);
         NativeWinTunApi.WintunSendPacket(session, packetPointer);
-    }
-
-    @Override
-    public void addRoute(NetworkInterfaceInfo interfaceInfo, String route, String ip) throws Exception {
-        {
-            String cmd = String.format("route delete %s %s", route, ip);
-            int code = ProcessUtil.exec(cmd);
-            CheckInvoke.check(code, 0);
-        }
-        {
-            String cmd = String.format("route add %s %s if %s", route, ip, interfaceInfo.getIndex());
-            int code = ProcessUtil.exec(cmd);
-            CheckInvoke.check(code, 0);
-        }
-    }
-
-    @Override
-    public void delRoute(NetworkInterfaceInfo interfaceInfo, String route, String ip) throws Exception {
-        String cmd = String.format("route delete %s", route);
-        int code = ProcessUtil.exec(cmd);
-        CheckInvoke.check(code, 0);
     }
 
     @Override

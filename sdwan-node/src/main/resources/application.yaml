@@ -7,4 +7,3 @@ sdwan:
     # address
     stunServer: stun.miwifi.com:3478
     relayServer: 127.0.0.1:8082
-    localIP: 127.0.0.1

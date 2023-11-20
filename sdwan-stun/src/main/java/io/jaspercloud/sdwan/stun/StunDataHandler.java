@@ -18,5 +18,5 @@ public abstract class StunDataHandler<I> {
         onData(ctx, (I) msg);
     }
 
-    public abstract void onData(ChannelHandlerContext ctx, I msg);
+    protected abstract void onData(ChannelHandlerContext ctx, I msg);
 }

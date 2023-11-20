@@ -1,13 +1,13 @@
 package io.jaspercloud.sdwan.service;
 
 import io.jaspercloud.sdwan.Cidr;
-import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.model.Node;
+import io.jaspercloud.sdwan.config.SDWanControllerProperties;
 import io.jaspercloud.sdwan.controller.param.RouteDTO;
+import io.jaspercloud.sdwan.core.proto.SDWanProtos;
+import io.jaspercloud.sdwan.exception.ProcessCodeException;
+import io.jaspercloud.sdwan.model.Node;
 import io.jaspercloud.sdwan.repository.NodeRepository;
 import io.jaspercloud.sdwan.repository.RouteRepository;
-import io.jaspercloud.sdwan.exception.ProcessCodeException;
-import io.jaspercloud.sdwan.config.SDWanControllerProperties;
 import io.jaspercloud.sdwan.support.AttributeKeys;
 import io.jaspercloud.sdwan.support.NodeType;
 import io.netty.channel.Channel;
@@ -67,9 +67,9 @@ public class SDWanControllerService implements InitializingBean {
                 node.setMacAddress(regReq.getMacAddress());
                 node.setNodeType(NodeType.valueOf(regReq.getNodeType().getNumber()));
                 node.setInternalAddress(new InetSocketAddress(regReq.getInternalAddr().getIp(), regReq.getInternalAddr().getPort()));
-                node.setStunMapping(regReq.getStunMapping());
-                node.setStunFiltering(regReq.getStunFiltering());
+                node.setMappingType(regReq.getMappingType().name());
                 node.setPublicAddress(new InetSocketAddress(regReq.getPublicAddr().getIp(), regReq.getPublicAddr().getPort()));
+                node.setRelayToken(regReq.getRelayToken());
                 if (SDWanProtos.NodeTypeCode.MeshType.equals(regReq.getNodeType())) {
                     List<RouteDTO> routeList = configService.getRouteList();
                     for (RouteDTO route : routeList) {
@@ -81,31 +81,20 @@ public class SDWanControllerService implements InitializingBean {
                 }
                 bindVip(regReq, channel, node);
                 AttributeKeys.node(channel).set(node);
-                log.info("reg: nodeType={}, macAddr={}, vip={}, publicAddr={}, mapping={}, filtering={}",
+                log.info("reg: nodeType={}, macAddr={}, vip={}, mappingType={}, publicAddr={}, relayToken={}",
                         node.getNodeType(),
                         node.getMacAddress(),
                         node.getVip(),
+                        node.getMappingType(),
                         node.getPublicAddress(),
-                        node.getStunMapping(),
-                        node.getStunFiltering());
+                        node.getRelayToken());
             }
             String vip = node.getVip();
             nodeManager.addChannel(vip, channel);
-            List<SDWanProtos.Route> routes = configService.getRouteList()
-                    .stream()
-                    .map(e -> SDWanProtos.Route.newBuilder()
-                            .setDestination(e.getDestination())
-                            .setNexthop(e.getNexthop())
-                            .build())
-                    .collect(Collectors.toList());
-            SDWanProtos.RouteList routeList = SDWanProtos.RouteList.newBuilder()
-                    .addAllRoute(routes)
-                    .build();
             SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
                     .setCode(SDWanProtos.MessageCode.Success_VALUE)
                     .setVip(vip)
                     .setMaskBits(ipPool.getMaskBits())
-                    .setRouteList(routeList)
                     .build();
             SDWanProtos.Message response = request.toBuilder()
                     .setType(SDWanProtos.MsgTypeCode.RegRespType)
@@ -135,46 +124,46 @@ public class SDWanControllerService implements InitializingBean {
         }
     }
 
-    public SDWanProtos.SDArpResp sdArp(Channel channel, SDWanProtos.Message request) {
-        try {
-            SDWanProtos.SDArpReq nodeArpReq = SDWanProtos.SDArpReq.parseFrom(request.getData());
-            String ip = nodeArpReq.getIp();
-            Channel targetChannel = findNodeByIP(ip);
-            log.debug("sdArp: ip={}, findNode={}", ip, null != targetChannel);
-            if (null == targetChannel) {
-                SDWanProtos.SDArpResp arpResp = SDWanProtos.SDArpResp.newBuilder()
-                        .setCode(SDWanProtos.MessageCode.NotFoundSDArp_VALUE)
-                        .build();
-                return arpResp;
-            }
-            Node node = AttributeKeys.node(targetChannel).get();
-            String vip = node.getVip();
-            log.debug("sdArp: ip={}, vip={}", ip, vip);
-            SDWanProtos.SDArpResp.Builder sdArpBuilder = SDWanProtos.SDArpResp.newBuilder()
-                    .setCode(SDWanProtos.MessageCode.Success_VALUE)
-                    .setVip(vip)
-                    .setInternalAddr(SDWanProtos.SocketAddress.newBuilder()
-                            .setIp(node.getInternalAddress().getHostString())
-                            .setPort(node.getInternalAddress().getPort())
-                            .build())
-                    .setStunMapping(node.getStunMapping())
-                    .setStunFiltering(node.getStunFiltering())
-                    .setTtl(properties.getSdArpTTL());
-            if (null != node.getPublicAddress()) {
-                sdArpBuilder.setPublicAddr(SDWanProtos.SocketAddress.newBuilder()
-                        .setIp(node.getPublicAddress().getHostString())
-                        .setPort(node.getPublicAddress().getPort())
-                        .build());
-            }
-            SDWanProtos.SDArpResp arpResp = sdArpBuilder.build();
-            return arpResp;
-        } catch (Exception e) {
-            SDWanProtos.SDArpResp arpResp = SDWanProtos.SDArpResp.newBuilder()
-                    .setCode(SDWanProtos.MessageCode.SysError_VALUE)
-                    .build();
-            return arpResp;
-        }
-    }
+//    public SDWanProtos.SDArpResp sdArp(Channel channel, SDWanProtos.Message request) {
+//        try {
+//            SDWanProtos.SDArpReq nodeArpReq = SDWanProtos.SDArpReq.parseFrom(request.getData());
+//            String ip = nodeArpReq.getIp();
+//            Channel targetChannel = findNodeByIP(ip);
+//            log.debug("sdArp: ip={}, findNode={}", ip, null != targetChannel);
+//            if (null == targetChannel) {
+//                SDWanProtos.SDArpResp arpResp = SDWanProtos.SDArpResp.newBuilder()
+//                        .setCode(SDWanProtos.MessageCode.NotFoundSDArp_VALUE)
+//                        .build();
+//                return arpResp;
+//            }
+//            Node node = AttributeKeys.node(targetChannel).get();
+//            String vip = node.getVip();
+//            log.debug("sdArp: ip={}, vip={}", ip, vip);
+//            SDWanProtos.SDArpResp.Builder sdArpBuilder = SDWanProtos.SDArpResp.newBuilder()
+//                    .setCode(SDWanProtos.MessageCode.Success_VALUE)
+//                    .setVip(vip)
+//                    .setInternalAddr(SDWanProtos.SocketAddress.newBuilder()
+//                            .setIp(node.getInternalAddress().getHostString())
+//                            .setPort(node.getInternalAddress().getPort())
+//                            .build())
+//                    .setStunMapping(node.getStunMapping())
+//                    .setStunFiltering(node.getStunFiltering())
+//                    .setTtl(properties.getSdArpTTL());
+//            if (null != node.getPublicAddress()) {
+//                sdArpBuilder.setPublicAddr(SDWanProtos.SocketAddress.newBuilder()
+//                        .setIp(node.getPublicAddress().getHostString())
+//                        .setPort(node.getPublicAddress().getPort())
+//                        .build());
+//            }
+//            SDWanProtos.SDArpResp arpResp = sdArpBuilder.build();
+//            return arpResp;
+//        } catch (Exception e) {
+//            SDWanProtos.SDArpResp arpResp = SDWanProtos.SDArpResp.newBuilder()
+//                    .setCode(SDWanProtos.MessageCode.SysError_VALUE)
+//                    .build();
+//            return arpResp;
+//        }
+//    }
 
     public Channel findNodeByIP(String ip) {
         for (Map.Entry<String, AtomicReference<Channel>> entry : bindIPMap.entrySet()) {
@@ -251,5 +240,69 @@ public class SDWanControllerService implements InitializingBean {
             }
         }
         return null;
+    }
+
+    public void processRouteList(Channel channel, SDWanProtos.Message request) {
+        Map<Long, Node> nodeMap = nodeRepository.getMeshNodeList()
+                .stream().collect(Collectors.toMap(e -> e.getId(), e -> e));
+        List<SDWanProtos.Route> routes = routeRepository.queryList()
+                .stream()
+                .map(e -> {
+                    Node node = nodeMap.get(e.getMeshId());
+                    SDWanProtos.Route route = SDWanProtos.Route.newBuilder()
+                            .setDestination(e.getDestination())
+                            .setNexthop(node.getVip())
+                            .build();
+                    return route;
+                })
+                .collect(Collectors.toList());
+        SDWanProtos.RouteList routeList = SDWanProtos.RouteList.newBuilder()
+                .addAllRoute(routes)
+                .build();
+        SDWanProtos.Message resp = request.toBuilder()
+                .setType(SDWanProtos.MsgTypeCode.RouteListRespType)
+                .setData(routeList.toByteString())
+                .build();
+        channel.writeAndFlush(resp);
+    }
+
+    public void processNodeInfo(Channel channel, SDWanProtos.Message request) {
+        try {
+            SDWanProtos.NodeInfoReq nodeInfoReq = SDWanProtos.NodeInfoReq.parseFrom(request.getData());
+            Node onlineNode = nodeManager.getNodeMap().get(nodeInfoReq.getVip());
+            SDWanProtos.NodeInfoResp.Builder builder = SDWanProtos.NodeInfoResp.newBuilder();
+            if (null != onlineNode) {
+                builder.setCode(0)
+                        .setVip(onlineNode.getVip())
+                        .setInternalAddr(SDWanProtos.SocketAddress.newBuilder()
+                                .setIp(onlineNode.getInternalAddress().getHostString())
+                                .setPort(onlineNode.getInternalAddress().getPort())
+                                .build())
+                        .setMappingType(SDWanProtos.MappingTypeCode.valueOf(onlineNode.getMappingType()))
+                        .setPublicAddr(SDWanProtos.SocketAddress.newBuilder()
+                                .setIp(onlineNode.getPublicAddress().getHostString())
+                                .setPort(onlineNode.getPublicAddress().getPort())
+                                .build())
+                        .build();
+            } else {
+                builder.setCode(SDWanProtos.MessageCode.NotFound_VALUE);
+            }
+            SDWanProtos.NodeInfoResp nodeInfoResp = builder.build();
+            SDWanProtos.Message resp = request.toBuilder()
+                    .setType(SDWanProtos.MsgTypeCode.NodeInfoRespType)
+                    .setData(nodeInfoResp.toByteString())
+                    .build();
+            channel.writeAndFlush(resp);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            SDWanProtos.NodeInfoResp nodeInfoResp = SDWanProtos.NodeInfoResp.newBuilder()
+                    .setCode(SDWanProtos.MessageCode.SysError_VALUE)
+                    .build();
+            SDWanProtos.Message resp = request.toBuilder()
+                    .setType(SDWanProtos.MsgTypeCode.NodeInfoRespType)
+                    .setData(nodeInfoResp.toByteString())
+                    .build();
+            channel.writeAndFlush(resp);
+        }
     }
 }

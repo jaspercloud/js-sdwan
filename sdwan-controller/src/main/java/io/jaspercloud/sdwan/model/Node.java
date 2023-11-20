@@ -1,8 +1,8 @@
 package io.jaspercloud.sdwan.model;
 
 import io.jaspercloud.sdwan.Cidr;
-import io.jaspercloud.sdwan.support.ErrorCode;
 import io.jaspercloud.sdwan.exception.ProcessCodeException;
+import io.jaspercloud.sdwan.support.ErrorCode;
 import io.jaspercloud.sdwan.support.MacAddressUtil;
 import io.jaspercloud.sdwan.support.NodeType;
 import lombok.Data;
@@ -21,10 +21,10 @@ public class Node {
     private String macAddress;
     private String remark;
 
-    private String stunMapping;
-    private String stunFiltering;
+    private String mappingType;
     private InetSocketAddress internalAddress;
     private InetSocketAddress publicAddress;
+    private String relayToken;
     private List<Cidr> routeList = new ArrayList<>();
 
     public void setVip(String vip) {
@@ -33,7 +33,6 @@ public class Node {
         }
         this.vip = vip;
     }
-
 
     public void setMacAddress(String macAddress) {
         if (!MacAddressUtil.check(macAddress)) {

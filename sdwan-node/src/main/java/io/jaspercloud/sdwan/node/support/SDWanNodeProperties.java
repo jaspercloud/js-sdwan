@@ -15,7 +15,6 @@ public class SDWanNodeProperties {
     private Integer mtu;
     private InetSocketAddress stunServer;
     private InetSocketAddress relayServer;
-    private String localIP;
 
     public void setControllerServer(String controllerServer) {
         this.controllerServer = parseAddress(controllerServer);

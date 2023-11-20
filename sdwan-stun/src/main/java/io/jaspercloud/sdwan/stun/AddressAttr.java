@@ -4,6 +4,8 @@ import io.jaspercloud.sdwan.IPUtil;
 import io.netty.buffer.ByteBuf;
 import lombok.Data;
 
+import java.net.InetSocketAddress;
+
 @Data
 public class AddressAttr extends Attr {
 
@@ -20,6 +22,11 @@ public class AddressAttr extends Attr {
         this.family = family;
         this.ip = ip;
         this.port = port;
+    }
+
+    public InetSocketAddress getAddress() {
+        InetSocketAddress address = new InetSocketAddress(ip, port);
+        return address;
     }
 
     @Override

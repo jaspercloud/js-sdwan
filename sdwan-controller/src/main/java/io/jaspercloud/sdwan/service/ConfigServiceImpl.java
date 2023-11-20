@@ -1,16 +1,16 @@
 package io.jaspercloud.sdwan.service;
 
 import io.jaspercloud.sdwan.Cidr;
-import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.model.Node;
+import io.jaspercloud.sdwan.config.SDWanControllerProperties;
 import io.jaspercloud.sdwan.controller.param.NodeDTO;
-import io.jaspercloud.sdwan.model.Route;
 import io.jaspercloud.sdwan.controller.param.RouteDTO;
-import io.jaspercloud.sdwan.repository.NodeRepository;
-import io.jaspercloud.sdwan.repository.RouteRepository;
+import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.CidrParseException;
 import io.jaspercloud.sdwan.exception.ProcessCodeException;
-import io.jaspercloud.sdwan.config.SDWanControllerProperties;
+import io.jaspercloud.sdwan.model.Node;
+import io.jaspercloud.sdwan.model.Route;
+import io.jaspercloud.sdwan.repository.NodeRepository;
+import io.jaspercloud.sdwan.repository.RouteRepository;
 import io.jaspercloud.sdwan.support.ErrorCode;
 import io.jaspercloud.sdwan.support.NodeType;
 import io.jaspercloud.sdwan.support.RelayServer;
@@ -115,7 +115,7 @@ public class ConfigServiceImpl implements ConfigService {
                 .build();
         SDWanProtos.Message response = SDWanProtos.Message.newBuilder()
                 .setReqId(UUID.randomUUID().toString())
-                .setType(SDWanProtos.MsgTypeCode.RefreshRouteList)
+                .setType(SDWanProtos.MsgTypeCode.RefreshRouteListType)
                 .setData(routeList.toByteString())
                 .build();
         List<Channel> channelList = nodeManager.getChannelList();
@@ -198,13 +198,12 @@ public class ConfigServiceImpl implements ConfigService {
             Node node = onlineMap.get(e.getVip());
             nodeDTO.setOnline(null != node);
             if (null != node) {
-                nodeDTO.setMapping(node.getStunMapping());
-                nodeDTO.setFiltering(node.getStunFiltering());
+                nodeDTO.setMappingType(node.getMappingType());
                 nodeDTO.setMappingAddress(node.getPublicAddress());
-            }
-            RelayServer.RelayNode relayNode = relayNodeMap.get(e.getVip());
-            if (null != relayNode) {
-                nodeDTO.setRelayAddress(relayNode.getRelayAddress());
+                RelayServer.RelayNode relayNode = relayNodeMap.get(node.getRelayToken());
+                if (null != relayNode) {
+                    nodeDTO.setRelayAddress(relayNode.getTargetAddress());
+                }
             }
             return nodeDTO;
         }).collect(Collectors.toList());
