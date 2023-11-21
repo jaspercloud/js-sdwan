@@ -139,9 +139,16 @@ public class P2pManager implements InitializingBean {
                         throw new ProcessException("offer error: " + code);
                     }
                     UriComponents components = UriComponentsBuilder.fromUriString(result.getAddress()).build();
-                    InetSocketAddress address = new InetSocketAddress(components.getHost(), components.getPort());
-                    DataTunnel dataTunnel = new P2pDataTunnel(stunClient, address);
-                    tunnelMap.put(address, dataTunnel);
+                    DataTunnel dataTunnel;
+                    if (AddressType.RELAY.equals(components.getScheme())) {
+                        InetSocketAddress address = new InetSocketAddress(components.getHost(), components.getPort());
+                        dataTunnel = new RelayDataTunnel(stunClient, address, components.getQueryParams().getFirst("token"));
+                        tunnelMap.put(address, dataTunnel);
+                    } else {
+                        InetSocketAddress address = new InetSocketAddress(components.getHost(), components.getPort());
+                        dataTunnel = new P2pDataTunnel(stunClient, address);
+                        tunnelMap.put(address, dataTunnel);
+                    }
                     return dataTunnel;
                 });
     }
