@@ -1,9 +1,6 @@
 package io.jaspercloud.sdwan.node.config;
 
-import io.jaspercloud.sdwan.node.support.MappingManager;
-import io.jaspercloud.sdwan.node.support.SDWanNode;
-import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
-import io.jaspercloud.sdwan.node.support.TunEngine;
+import io.jaspercloud.sdwan.node.support.*;
 import io.jaspercloud.sdwan.node.support.route.LinuxRouteManager;
 import io.jaspercloud.sdwan.node.support.route.OsxRouteManager;
 import io.jaspercloud.sdwan.node.support.route.RouteManager;
@@ -23,7 +20,7 @@ public class AppConfig {
 
     @Bean
     public StunClient stunClient() throws Exception {
-        return new StunClient();
+        return new StunClient(0);
     }
 
     @Bean
@@ -38,18 +35,26 @@ public class AppConfig {
     }
 
     @Bean
-    public RelayManager relayManager(SDWanNodeProperties properties,
-                                     SDWanNode sdWanNode,
-                                     StunClient stunClient) {
-        return new RelayManager(properties, sdWanNode, stunClient);
+    public RelayClient relayClient(SDWanNodeProperties properties,
+                                   StunClient stunClient) {
+        return new RelayClient(properties, stunClient);
     }
 
     @Bean
-    public TunnelManager tunnelManager(SDWanNode sdWanNode,
+    public RelayManager relayManager(SDWanNodeProperties properties,
+                                     SDWanNode sdWanNode,
+                                     RelayClient relayClient) {
+        return new RelayManager(properties, sdWanNode, relayClient);
+    }
+
+    @Bean
+    public TunnelManager tunnelManager(SDWanNodeProperties properties,
+                                       SDWanNode sdWanNode,
+                                       StunClient stunClient,
                                        MappingManager mappingManager,
                                        P2pManager p2pManager,
                                        RelayManager relayManager) {
-        return new TunnelManager(sdWanNode, mappingManager, p2pManager, relayManager);
+        return new TunnelManager(properties, sdWanNode, stunClient, mappingManager, p2pManager, relayManager);
     }
 
     @Bean

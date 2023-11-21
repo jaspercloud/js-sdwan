@@ -4,7 +4,6 @@ import com.google.protobuf.ByteString;
 import io.jaspercloud.sdwan.*;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
-import io.jaspercloud.sdwan.stun.MappingAddress;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
@@ -31,12 +30,12 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
 
     private SDWanNodeProperties properties;
     private Bootstrap bootstrap;
-    private Channel channel;
+    private Channel localChannel;
 
     private List<SDWanDataHandler> handlerList = new ArrayList<>();
 
     public Channel getChannel() {
-        return channel;
+        return localChannel;
     }
 
     public void addDataHandler(SDWanDataHandler handler) {
@@ -88,14 +87,17 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                             @Override
                             protected void channelRead0(ChannelHandlerContext ctx, SDWanProtos.Message request) throws Exception {
                                 switch (request.getType().getNumber()) {
+                                    case SDWanProtos.MsgTypeCode.P2pOfferType_VALUE: {
+                                        ctx.fireChannelRead(request);
+                                        break;
+                                    }
+                                    case SDWanProtos.MsgTypeCode.P2pAnswerType_VALUE: {
+                                        AsyncTask.completeTask(request.getReqId(), request);
+                                        break;
+                                    }
                                     case SDWanProtos.MsgTypeCode.RefreshRouteListType_VALUE: {
                                         SDWanProtos.RouteList routeList = SDWanProtos.RouteList.parseFrom(request.getData());
                                         ctx.fireChannelRead(routeList);
-                                        break;
-                                    }
-                                    case SDWanProtos.MsgTypeCode.PushPunchType_VALUE: {
-                                        SDWanProtos.PushPunch pushPunch = SDWanProtos.PushPunch.parseFrom(request.getData());
-                                        ctx.fireChannelRead(pushPunch);
                                         break;
                                     }
                                     default: {
@@ -116,29 +118,29 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                     }
                 });
         InetSocketAddress address = properties.getControllerServer();
-        channel = bootstrap.connect(address).syncUninterruptibly().channel();
+        localChannel = bootstrap.connect(address).syncUninterruptibly().channel();
         Thread thread = new Thread(this, "sdwan-node");
         thread.start();
     }
 
     @Override
     public void destroy() throws Exception {
-        if (null == channel) {
+        if (null == localChannel) {
             return;
         }
-        channel.close();
+        localChannel.close();
     }
 
     @Override
     public void run() {
         while (true) {
             try {
-                if (null == channel || !channel.isActive()) {
+                if (null == localChannel || !localChannel.isActive()) {
                     InetSocketAddress address = properties.getControllerServer();
-                    channel = bootstrap.connect(address).syncUninterruptibly().channel();
+                    localChannel = bootstrap.connect(address).syncUninterruptibly().channel();
                 }
                 log.info("SDWanNode started");
-                channel.closeFuture().sync();
+                localChannel.closeFuture().sync();
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
             }
@@ -151,21 +153,21 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
     }
 
     public SDWanProtos.Message invokeSync(SDWanProtos.Message request) throws Exception {
-        if (!channel.isActive()) {
+        if (!localChannel.isActive()) {
             throw new ProcessException("channel closed");
         }
         CompletableFuture<SDWanProtos.Message> future = AsyncTask.waitTask(request.getReqId(), 3000);
-        channel.writeAndFlush(request);
+        localChannel.writeAndFlush(request);
         SDWanProtos.Message response = future.get();
         return response;
     }
 
     public CompletableFuture<SDWanProtos.Message> invokeAsync(SDWanProtos.Message request) {
-        if (!channel.isActive()) {
+        if (!localChannel.isActive()) {
             throw new ProcessException("channel closed");
         }
         CompletableFuture<SDWanProtos.Message> future = AsyncTask.waitTask(request.getReqId(), 3000);
-        channel.writeAndFlush(request);
+        localChannel.writeAndFlush(request);
         return future;
     }
 
@@ -186,34 +188,25 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                 });
     }
 
-    public SDWanProtos.RegResp regist(MappingAddress mappingAddress, String relayToken) throws Exception {
-        InetSocketAddress localAddress = (InetSocketAddress) channel.localAddress();
+    public SDWanProtos.RegResp regist(List<String> addressList) throws Exception {
+        InetSocketAddress localAddress = (InetSocketAddress) localChannel.localAddress();
         NetworkInterfaceInfo networkInterfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(localAddress.getHostString());
         String hardwareAddress = networkInterfaceInfo.getHardwareAddress();
-        SDWanProtos.SocketAddress internalAddr = SDWanProtos.SocketAddress.newBuilder()
-                .setIp(localAddress.getHostString())
-                .setPort(localAddress.getPort())
-                .build();
+        return regist(hardwareAddress, addressList);
+    }
+
+    public SDWanProtos.RegResp regist(String hardwareAddress, List<String> addressList) throws Exception {
         SDWanProtos.NodeTypeCode nodeTypeCode;
         if ("linux".equalsIgnoreCase(System.getProperty("os.name"))) {
             nodeTypeCode = SDWanProtos.NodeTypeCode.MeshType;
         } else {
             nodeTypeCode = SDWanProtos.NodeTypeCode.SimpleType;
         }
-        SDWanProtos.RegReq.Builder regReqBuilder = SDWanProtos.RegReq.newBuilder()
+        SDWanProtos.RegReq regReq = SDWanProtos.RegReq.newBuilder()
                 .setMacAddress(hardwareAddress)
                 .setNodeType(nodeTypeCode)
-                .setInternalAddr(internalAddr)
-                .setMappingType(mappingAddress.getMappingType())
-                .setRelayToken(relayToken);
-        if (null != mappingAddress.getMappingAddress()) {
-            SDWanProtos.SocketAddress publicAddrProto = SDWanProtos.SocketAddress.newBuilder()
-                    .setIp(mappingAddress.getMappingAddress().getHostString())
-                    .setPort(mappingAddress.getMappingAddress().getPort())
-                    .build();
-            regReqBuilder.setPublicAddr(publicAddrProto);
-        }
-        SDWanProtos.RegReq regReq = regReqBuilder.build();
+                .addAllAddressList(addressList)
+                .build();
         SDWanProtos.Message request = SDWanProtos.Message.newBuilder()
                 .setReqId(UUID.randomUUID().toString())
                 .setType(SDWanProtos.MsgTypeCode.RegReqType)
@@ -280,26 +273,27 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
 //    }
 
     public CompletableFuture<Boolean> checkRelayToken(String relayToken) {
-        SDWanProtos.CheckRelayTokenReq tokenReq = SDWanProtos.CheckRelayTokenReq.newBuilder()
-                .setToken(relayToken)
-                .build();
-        SDWanProtos.Message req = SDWanProtos.Message.newBuilder()
-                .setReqId(UUID.randomUUID().toString())
-                .setType(SDWanProtos.MsgTypeCode.CheckRelayTokenReqType)
-                .setData(tokenReq.toByteString())
-                .build();
-        return invokeAsync(req)
-                .thenApply(resp -> {
-                    try {
-                        SDWanProtos.CheckRelayTokenResp checkRelayTokenResp = SDWanProtos.CheckRelayTokenResp.parseFrom(resp.getData());
-                        if (SDWanProtos.MessageCode.Success_VALUE != checkRelayTokenResp.getCode()) {
-                            return false;
-                        }
-                        return true;
-                    } catch (Exception e) {
-                        throw new ProcessException(e.getMessage(), e);
-                    }
-                });
+//        SDWanProtos.CheckRelayTokenReq tokenReq = SDWanProtos.CheckRelayTokenReq.newBuilder()
+//                .setToken(relayToken)
+//                .build();
+//        SDWanProtos.Message req = SDWanProtos.Message.newBuilder()
+//                .setReqId(UUID.randomUUID().toString())
+//                .setType(SDWanProtos.MsgTypeCode.CheckRelayTokenReqType)
+//                .setData(tokenReq.toByteString())
+//                .build();
+//        return invokeAsync(req)
+//                .thenApply(resp -> {
+//                    try {
+//                        SDWanProtos.CheckRelayTokenResp checkRelayTokenResp = SDWanProtos.CheckRelayTokenResp.parseFrom(resp.getData());
+//                        if (SDWanProtos.MessageCode.Success_VALUE != checkRelayTokenResp.getCode()) {
+//                            return false;
+//                        }
+//                        return true;
+//                    } catch (Exception e) {
+//                        throw new ProcessException(e.getMessage(), e);
+//                    }
+//                });
+        return null;
     }
 
     public CompletableFuture<SDWanProtos.NodeInfoResp> queryNodeInfo(String vip) {
@@ -316,6 +310,28 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                     try {
                         SDWanProtos.NodeInfoResp nodeInfo = SDWanProtos.NodeInfoResp.parseFrom(resp.getData());
                         return nodeInfo;
+                    } catch (Exception e) {
+                        throw new ProcessException(e.getMessage(), e);
+                    }
+                });
+    }
+
+    public CompletableFuture<SDWanProtos.P2pAnswer> offer(String srcVIP, String dstVIP, List<String> addressList) {
+        SDWanProtos.P2pOffer p2pOffer = SDWanProtos.P2pOffer.newBuilder()
+                .setSrcVIP(srcVIP)
+                .setDstVIP(dstVIP)
+                .addAllAddressList(addressList)
+                .build();
+        SDWanProtos.Message req = SDWanProtos.Message.newBuilder()
+                .setReqId(UUID.randomUUID().toString())
+                .setType(SDWanProtos.MsgTypeCode.P2pOfferType)
+                .setData(p2pOffer.toByteString())
+                .build();
+        return invokeAsync(req)
+                .thenApply(resp -> {
+                    try {
+                        SDWanProtos.P2pAnswer p2pAnswer = SDWanProtos.P2pAnswer.parseFrom(resp.getData());
+                        return p2pAnswer;
                     } catch (Exception e) {
                         throw new ProcessException(e.getMessage(), e);
                     }

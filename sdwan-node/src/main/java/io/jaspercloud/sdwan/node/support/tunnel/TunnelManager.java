@@ -4,8 +4,9 @@ import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.node.support.MappingManager;
 import io.jaspercloud.sdwan.node.support.SDWanNode;
+import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
+import io.jaspercloud.sdwan.stun.StunClient;
 
-import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,13 +14,17 @@ import java.util.concurrent.ConcurrentHashMap;
 public class TunnelManager {
 
     private Map<String, PeerConnection> connectionMap = new ConcurrentHashMap<>();
+    private SDWanNodeProperties properties;
     private SDWanNode sdWanNode;
+    private StunClient stunClient;
     private MappingManager mappingManager;
     private P2pManager p2pManager;
     private RelayManager relayManager;
 
-    public TunnelManager(SDWanNode sdWanNode, MappingManager mappingManager, P2pManager p2pManager, RelayManager relayManager) {
+    public TunnelManager(SDWanNodeProperties properties, SDWanNode sdWanNode, StunClient stunClient, MappingManager mappingManager, P2pManager p2pManager, RelayManager relayManager) {
+        this.properties = properties;
         this.sdWanNode = sdWanNode;
+        this.stunClient = stunClient;
         this.mappingManager = mappingManager;
         this.p2pManager = p2pManager;
         this.relayManager = relayManager;
@@ -43,13 +48,11 @@ public class TunnelManager {
                     }
                     PeerConnection.Config config = new PeerConnection.Config();
                     config.setSdWanNode(sdWanNode);
+                    config.setStunClient(stunClient);
+                    config.setMappingManager(mappingManager);
                     config.setP2pManager(p2pManager);
                     config.setRelayManager(relayManager);
-                    config.setSrcInternalAddr((InetSocketAddress) sdWanNode.getChannel().localAddress());
-                    config.setDstInternalAddr(config.getDstInternalAddr());
-                    config.setSrcPublicAddr(mappingManager.getMappingAddress().getMappingAddress());
-                    config.setDstPublicAddr(config.getDstPublicAddr());
-                    config.setRelayToken(config.getRelayToken());
+                    config.setAddressList(resp.getAddressListList());
                     PeerConnection.create(config)
                             .whenComplete((connection, connectionError) -> {
                                 if (null != connectionError) {

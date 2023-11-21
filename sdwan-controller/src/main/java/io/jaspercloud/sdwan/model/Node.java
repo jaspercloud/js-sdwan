@@ -8,7 +8,6 @@ import io.jaspercloud.sdwan.support.NodeType;
 import lombok.Data;
 import sun.net.util.IPAddressUtil;
 
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,10 +20,7 @@ public class Node {
     private String macAddress;
     private String remark;
 
-    private String mappingType;
-    private InetSocketAddress internalAddress;
-    private InetSocketAddress publicAddress;
-    private String relayToken;
+    private List<String> addressList;
     private List<Cidr> routeList = new ArrayList<>();
 
     public void setVip(String vip) {

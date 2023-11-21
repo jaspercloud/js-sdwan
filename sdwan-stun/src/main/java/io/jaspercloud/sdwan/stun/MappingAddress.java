@@ -8,12 +8,10 @@ import java.net.InetSocketAddress;
 @Data
 public class MappingAddress {
 
-    private int localPort;
     private SDWanProtos.MappingTypeCode mappingType;
     private InetSocketAddress mappingAddress;
 
-    public MappingAddress(int localPort, SDWanProtos.MappingTypeCode mappingType, InetSocketAddress mappingAddress) {
-        this.localPort = localPort;
+    public MappingAddress(SDWanProtos.MappingTypeCode mappingType, InetSocketAddress mappingAddress) {
         this.mappingType = mappingType;
         this.mappingAddress = mappingAddress;
     }

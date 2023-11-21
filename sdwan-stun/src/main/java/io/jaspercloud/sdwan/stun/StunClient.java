@@ -8,6 +8,7 @@ import io.netty.channel.*;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
+import sun.net.util.IPAddressUtil;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -17,11 +18,20 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 public class StunClient implements InitializingBean {
 
-    private Channel channel;
+    private int port;
+    private Channel localChannel;
     private List<StunDataHandler> dataHandlerList = new ArrayList<>();
 
     public Channel getChannel() {
-        return channel;
+        return localChannel;
+    }
+
+    public StunClient() {
+        this(0);
+    }
+
+    public StunClient(int port) {
+        this.port = port;
     }
 
     public void addStunDataHandler(StunDataHandler handler) {
@@ -43,11 +53,11 @@ public class StunClient implements InitializingBean {
                         pipeline.addLast("StunClient:stunProcess", new SimpleChannelInboundHandler<StunPacket>() {
                             @Override
                             protected void channelRead0(ChannelHandlerContext ctx, StunPacket packet) throws Exception {
-                                Channel channel = ctx.channel();
-                                InetSocketAddress sender = packet.sender();
                                 StunMessage request = packet.content();
                                 if (MessageType.Heart.equals(request.getMessageType())) {
                                     AsyncTask.completeTask(request.getTranId(), packet);
+                                } else if (MessageType.BindRequest.equals(request.getMessageType())) {
+                                    processBindRequest(ctx, packet);
                                 } else if (MessageType.BindResponse.equals(request.getMessageType())) {
                                     AsyncTask.completeTask(request.getTranId(), packet);
                                 } else if (MessageType.BindRelayResponse.equals(request.getMessageType())) {
@@ -61,8 +71,25 @@ public class StunClient implements InitializingBean {
                         });
                     }
                 });
-        InetSocketAddress localAddress = new InetSocketAddress("0.0.0.0", 0);
-        channel = bootstrap.bind(localAddress).sync().channel();
+        InetSocketAddress localAddress = new InetSocketAddress("0.0.0.0", port);
+        localChannel = bootstrap.bind(localAddress).sync().channel();
+    }
+
+    private void processBindRequest(ChannelHandlerContext ctx, StunPacket request) {
+        Channel channel = ctx.channel();
+        InetSocketAddress sender = request.sender();
+        ProtoFamily protoFamily;
+        if (IPAddressUtil.isIPv4LiteralAddress(sender.getHostString())) {
+            protoFamily = ProtoFamily.IPv4;
+        } else if (IPAddressUtil.isIPv6LiteralAddress(sender.getHostString())) {
+            protoFamily = ProtoFamily.IPv6;
+        } else {
+            throw new UnsupportedOperationException();
+        }
+        StunMessage stunMessage = new StunMessage(MessageType.BindResponse, request.content().getTranId());
+        stunMessage.setAttr(AttrType.MappedAddress, new AddressAttr(protoFamily, sender.getHostString(), sender.getPort()));
+        StunPacket response = new StunPacket(stunMessage, request.sender());
+        channel.writeAndFlush(response);
     }
 
     //    public CompletableFuture<StunPacket> sendPunchingBind(StunPacket request, long timeout) {
@@ -80,13 +107,13 @@ public class StunClient implements InitializingBean {
 
     public StunPacket invokeSync(StunPacket request) throws Exception {
         CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), 500);
-        channel.writeAndFlush(request);
+        localChannel.writeAndFlush(request);
         return future.get();
     }
 
     public CompletableFuture<StunPacket> invokeAsync(StunPacket request) {
         CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), 500);
-        channel.writeAndFlush(request);
+        localChannel.writeAndFlush(request);
         return future;
     }
 
@@ -115,6 +142,6 @@ public class StunClient implements InitializingBean {
 
     public void send(InetSocketAddress address, StunMessage message) {
         StunPacket request = new StunPacket(message, address);
-        channel.writeAndFlush(request);
+        localChannel.writeAndFlush(request);
     }
 }

@@ -38,6 +38,14 @@ public class SDWanProcessHandler extends SimpleChannelInboundHandler<SDWanProtos
                 controllerService.processNodeInfo(channel, request);
                 break;
             }
+            case SDWanProtos.MsgTypeCode.P2pOfferType_VALUE: {
+                controllerService.processP2pOffer(channel, request);
+                break;
+            }
+            case SDWanProtos.MsgTypeCode.P2pAnswerType_VALUE: {
+                controllerService.processP2pAnswer(channel, request);
+                break;
+            }
         }
     }
 

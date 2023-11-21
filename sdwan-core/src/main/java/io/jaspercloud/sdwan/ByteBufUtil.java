@@ -1,7 +1,10 @@
 package io.jaspercloud.sdwan;
 
+import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
+
+import java.net.InetSocketAddress;
 
 public class ByteBufUtil {
 
@@ -31,5 +34,17 @@ public class ByteBufUtil {
         ByteBuf byteBuf = DEFAULT.heapBuffer();
         byteBuf.writeBytes(bytes);
         return byteBuf;
+    }
+
+    public static InetSocketAddress parseSocketAddress(SDWanProtos.SocketAddress address) {
+        return new InetSocketAddress(address.getIp(), address.getPort());
+    }
+
+    public static SDWanProtos.SocketAddress toSocketAddress(InetSocketAddress address) {
+        SDWanProtos.SocketAddress socketAddress = SDWanProtos.SocketAddress.newBuilder()
+                .setIp(address.getHostString())
+                .setPort(address.getPort())
+                .build();
+        return socketAddress;
     }
 }

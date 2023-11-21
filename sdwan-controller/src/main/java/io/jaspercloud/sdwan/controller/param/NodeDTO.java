@@ -3,7 +3,7 @@ package io.jaspercloud.sdwan.controller.param;
 import io.jaspercloud.sdwan.support.NodeType;
 import lombok.Data;
 
-import java.net.InetSocketAddress;
+import java.util.List;
 
 @Data
 public class NodeDTO {
@@ -13,8 +13,6 @@ public class NodeDTO {
     private String vip;
     private String macAddress;
     private String remark;
-    private String mappingType;
-    private InetSocketAddress mappingAddress;
-    private InetSocketAddress relayAddress;
+    private List<String> addressList;
     private Boolean online;
 }

@@ -70,35 +70,35 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
     public void run() {
         while (true) {
             try {
-                MappingAddress mappingAddress = mappingManager.getMappingAddress();
-                String relayToken = relayManager.getToken();
-                SDWanProtos.RegResp regResp;
-                try {
-                    regResp = sdWanNode.regist(mappingAddress, relayToken);
-                } catch (TimeoutException e) {
-                    throw new ProcessException("sdWANNode.regist timeout");
-                } catch (ExecutionException e) {
-                    Throwable cause = e.getCause();
-                    if (cause instanceof TimeoutException) {
-                        throw new ProcessException("sdWANNode.regist timeout");
-                    }
-                    throw e;
-                }
-                if (SDWanProtos.MessageCode.NotEnough_VALUE == regResp.getCode()) {
-                    throw new ProcessException("no more vip");
-                } else if (SDWanProtos.MessageCode.VipBound_VALUE == regResp.getCode()) {
-                    throw new ProcessException("vip bound");
-                } else if (SDWanProtos.MessageCode.SysError_VALUE == regResp.getCode()) {
-                    throw new ProcessException("server error");
-                }
-                //配置地址
-                tunChannel.setAddress(regResp.getVip(), regResp.getMaskBits());
-                log.info("tunAddress: {}/{}", regResp.getVip(), regResp.getMaskBits());
-                //配置路由
-                routeManager.initRoute(tunChannel);
-                log.info("TunEngine started");
-                //wait closed reconnect
-                sdWanNode.getChannel().closeFuture().sync();
+//                MappingAddress mappingAddress = mappingManager.getMappingAddress();
+//                String relayToken = relayManager.getToken();
+//                SDWanProtos.RegResp regResp;
+//                try {
+//                    regResp = sdWanNode.regist(mappingAddress, relayToken);
+//                } catch (TimeoutException e) {
+//                    throw new ProcessException("sdWANNode.regist timeout");
+//                } catch (ExecutionException e) {
+//                    Throwable cause = e.getCause();
+//                    if (cause instanceof TimeoutException) {
+//                        throw new ProcessException("sdWANNode.regist timeout");
+//                    }
+//                    throw e;
+//                }
+//                if (SDWanProtos.MessageCode.NotEnough_VALUE == regResp.getCode()) {
+//                    throw new ProcessException("no more vip");
+//                } else if (SDWanProtos.MessageCode.VipBound_VALUE == regResp.getCode()) {
+//                    throw new ProcessException("vip bound");
+//                } else if (SDWanProtos.MessageCode.SysError_VALUE == regResp.getCode()) {
+//                    throw new ProcessException("server error");
+//                }
+//                //配置地址
+//                tunChannel.setAddress(regResp.getVip(), regResp.getMaskBits());
+//                log.info("tunAddress: {}/{}", regResp.getVip(), regResp.getMaskBits());
+//                //配置路由
+//                routeManager.initRoute(tunChannel);
+//                log.info("TunEngine started");
+//                //wait closed reconnect
+//                sdWanNode.getChannel().closeFuture().sync();
             } catch (ProcessException e) {
                 log.error(e.getMessage(), e);
             } catch (Exception e) {

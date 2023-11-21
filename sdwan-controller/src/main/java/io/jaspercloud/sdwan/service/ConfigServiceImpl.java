@@ -186,7 +186,6 @@ public class ConfigServiceImpl implements ConfigService {
     @Override
     public List<NodeDTO> getNodeList() {
         Map<String, Node> onlineMap = nodeManager.getNodeMap();
-        Map<String, RelayServer.RelayNode> relayNodeMap = relayServer.getNodeMap();
         List<Node> nodeList = nodeRepository.queryList();
         List<NodeDTO> resultList = nodeList.stream().map(e -> {
             NodeDTO nodeDTO = new NodeDTO();
@@ -198,12 +197,7 @@ public class ConfigServiceImpl implements ConfigService {
             Node node = onlineMap.get(e.getVip());
             nodeDTO.setOnline(null != node);
             if (null != node) {
-                nodeDTO.setMappingType(node.getMappingType());
-                nodeDTO.setMappingAddress(node.getPublicAddress());
-                RelayServer.RelayNode relayNode = relayNodeMap.get(node.getRelayToken());
-                if (null != relayNode) {
-                    nodeDTO.setRelayAddress(relayNode.getTargetAddress());
-                }
+                nodeDTO.setAddressList(node.getAddressList());
             }
             return nodeDTO;
         }).collect(Collectors.toList());

@@ -54,25 +54,24 @@ public class MappingManager implements InitializingBean, Runnable {
 
     private MappingAddress check(InetSocketAddress remote) throws Exception {
         StunPacket response = stunClient.sendBind(remote).get();
-        int localPort = response.recipient().getPort();
         Map<AttrType, Attr> attrs = response.content().getAttrs();
         AddressAttr changedAddressAttr = (AddressAttr) attrs.get(AttrType.ChangedAddress);
         InetSocketAddress changedAddress = changedAddressAttr.getAddress();
         AddressAttr mappedAddressAttr = (AddressAttr) attrs.get(AttrType.MappedAddress);
         InetSocketAddress mappedAddress1 = mappedAddressAttr.getAddress();
         if (null != (response = testChangeBind(remote, true, true))) {
-            return new MappingAddress(localPort, SDWanProtos.MappingTypeCode.FullCone, mappedAddress1);
+            return new MappingAddress(SDWanProtos.MappingTypeCode.FullCone, mappedAddress1);
         } else if (null != (response = testChangeBind(remote, false, true))) {
-            return new MappingAddress(localPort, SDWanProtos.MappingTypeCode.RestrictedCone, mappedAddress1);
+            return new MappingAddress(SDWanProtos.MappingTypeCode.RestrictedCone, mappedAddress1);
         }
         response = stunClient.sendBind(changedAddress).get();
         attrs = response.content().getAttrs();
         mappedAddressAttr = (AddressAttr) attrs.get(AttrType.MappedAddress);
         InetSocketAddress mappedAddress2 = mappedAddressAttr.getAddress();
         if (Objects.equals(mappedAddress1, mappedAddress2)) {
-            return new MappingAddress(localPort, SDWanProtos.MappingTypeCode.PortRestrictedCone, mappedAddress1);
+            return new MappingAddress(SDWanProtos.MappingTypeCode.PortRestrictedCone, mappedAddress1);
         } else {
-            return new MappingAddress(localPort, SDWanProtos.MappingTypeCode.Symmetric, mappedAddress1);
+            return new MappingAddress(SDWanProtos.MappingTypeCode.Symmetric, mappedAddress1);
         }
     }
 

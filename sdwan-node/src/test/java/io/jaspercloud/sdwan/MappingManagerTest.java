@@ -11,7 +11,7 @@ public class MappingManagerTest {
     public static void main(String[] args) throws Exception {
         SDWanNodeProperties properties = new SDWanNodeProperties();
         properties.setStunServer("stun.miwifi.com:3478");
-        StunClient stunClient = new StunClient();
+        StunClient stunClient = new StunClient(0);
         stunClient.afterPropertiesSet();
         MappingManager mappingManager = new MappingManager(properties, stunClient);
         mappingManager.afterPropertiesSet();

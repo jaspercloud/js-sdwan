@@ -18,10 +18,8 @@ enum MsgTypeCode {
   RouteListRespType = 4;
   NodeInfoReqType = 5;
   NodeInfoRespType = 6;
-  PunchReqType = 7;
-  PunchRespType = 8;
-  CheckRelayTokenReqType = 9;
-  CheckRelayTokenRespType = 10;
+  P2pOfferType = 7;
+  P2pAnswerType = 8;
   //
   HeartType = 101;
   RefreshRouteListType = 102;
@@ -54,10 +52,7 @@ message SocketAddress {
 message RegReq {
   required NodeTypeCode nodeType = 1;
   required string macAddress = 2;
-  required SocketAddress internalAddr = 3;
-  required MappingTypeCode mappingType = 6;
-  optional SocketAddress publicAddr = 4;
-  required string relayToken = 5;
+  repeated string addressList = 3;
 }
 
 message RegResp {
@@ -73,9 +68,7 @@ message NodeInfoReq {
 message NodeInfoResp {
   required int32 code = 1;
   optional string vip = 2;
-  optional SocketAddress internalAddr = 3;
-  optional MappingTypeCode mappingType = 4;
-  optional SocketAddress publicAddr = 5;
+  repeated string addressList = 3;
 }
 
 message RouteList {
@@ -85,31 +78,6 @@ message RouteList {
 message Route {
   required string destination = 1;
   required string nexthop = 2 ;
-}
-
-message PunchReq {
-  required string tranId = 1;
-  required SocketAddress srcAddr = 2;
-  required SocketAddress dstAddr = 3;
-}
-
-message PunchResp {
-  required int32 code = 1;
-  required SocketAddress addr = 2;
-}
-
-message PushPunch {
-  required string tranId = 1;
-  required string vip = 2;
-  required SocketAddress publicAddr = 3;
-}
-
-message CheckRelayTokenReq {
-  required string token = 1;
-}
-
-message CheckRelayTokenResp {
-  required int32 code = 1;
 }
 
 message IpPacket {
@@ -128,4 +96,17 @@ message P2pPacket {
   required string srcIP = 1;
   required string dstIP = 2;
   required RoutePacket payload = 3;
+}
+
+message P2pOffer {
+  required string srcVIP = 1;
+  required string dstVIP = 2;
+  repeated string addressList = 3;
+}
+
+message P2pAnswer {
+  required int32 code = 1;
+  optional string srcVIP = 2;
+  optional string dstVIP = 3;
+  optional string address = 4;
 }

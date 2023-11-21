@@ -19,7 +19,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import java.net.InetSocketAddress;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -66,10 +66,7 @@ public class SDWanControllerService implements InitializingBean {
                 node = new Node();
                 node.setMacAddress(regReq.getMacAddress());
                 node.setNodeType(NodeType.valueOf(regReq.getNodeType().getNumber()));
-                node.setInternalAddress(new InetSocketAddress(regReq.getInternalAddr().getIp(), regReq.getInternalAddr().getPort()));
-                node.setMappingType(regReq.getMappingType().name());
-                node.setPublicAddress(new InetSocketAddress(regReq.getPublicAddr().getIp(), regReq.getPublicAddr().getPort()));
-                node.setRelayToken(regReq.getRelayToken());
+                node.setAddressList(regReq.getAddressListList());
                 if (SDWanProtos.NodeTypeCode.MeshType.equals(regReq.getNodeType())) {
                     List<RouteDTO> routeList = configService.getRouteList();
                     for (RouteDTO route : routeList) {
@@ -81,13 +78,11 @@ public class SDWanControllerService implements InitializingBean {
                 }
                 bindVip(regReq, channel, node);
                 AttributeKeys.node(channel).set(node);
-                log.info("reg: nodeType={}, macAddr={}, vip={}, mappingType={}, publicAddr={}, relayToken={}",
+                log.info("reg: nodeType={}, macAddr={}, vip={}, addressList={}",
                         node.getNodeType(),
                         node.getMacAddress(),
                         node.getVip(),
-                        node.getMappingType(),
-                        node.getPublicAddress(),
-                        node.getRelayToken());
+                        StringUtils.join(node.getAddressList()));
             }
             String vip = node.getVip();
             nodeManager.addChannel(vip, channel);
@@ -270,24 +265,11 @@ public class SDWanControllerService implements InitializingBean {
         try {
             SDWanProtos.NodeInfoReq nodeInfoReq = SDWanProtos.NodeInfoReq.parseFrom(request.getData());
             Node onlineNode = nodeManager.getNodeMap().get(nodeInfoReq.getVip());
-            SDWanProtos.NodeInfoResp.Builder builder = SDWanProtos.NodeInfoResp.newBuilder();
-            if (null != onlineNode) {
-                builder.setCode(0)
-                        .setVip(onlineNode.getVip())
-                        .setInternalAddr(SDWanProtos.SocketAddress.newBuilder()
-                                .setIp(onlineNode.getInternalAddress().getHostString())
-                                .setPort(onlineNode.getInternalAddress().getPort())
-                                .build())
-                        .setMappingType(SDWanProtos.MappingTypeCode.valueOf(onlineNode.getMappingType()))
-                        .setPublicAddr(SDWanProtos.SocketAddress.newBuilder()
-                                .setIp(onlineNode.getPublicAddress().getHostString())
-                                .setPort(onlineNode.getPublicAddress().getPort())
-                                .build())
-                        .build();
-            } else {
-                builder.setCode(SDWanProtos.MessageCode.NotFound_VALUE);
-            }
-            SDWanProtos.NodeInfoResp nodeInfoResp = builder.build();
+            SDWanProtos.NodeInfoResp nodeInfoResp = SDWanProtos.NodeInfoResp.newBuilder()
+                    .setCode(0)
+                    .setVip(nodeInfoReq.getVip())
+                    .addAllAddressList(null != onlineNode ? onlineNode.getAddressList() : Collections.emptyList())
+                    .build();
             SDWanProtos.Message resp = request.toBuilder()
                     .setType(SDWanProtos.MsgTypeCode.NodeInfoRespType)
                     .setData(nodeInfoResp.toByteString())
@@ -301,6 +283,60 @@ public class SDWanControllerService implements InitializingBean {
             SDWanProtos.Message resp = request.toBuilder()
                     .setType(SDWanProtos.MsgTypeCode.NodeInfoRespType)
                     .setData(nodeInfoResp.toByteString())
+                    .build();
+            channel.writeAndFlush(resp);
+        }
+    }
+
+    public void processP2pOffer(Channel channel, SDWanProtos.Message request) {
+        try {
+            SDWanProtos.P2pOffer p2pOffer = SDWanProtos.P2pOffer.parseFrom(request.getData());
+            Channel targetChannel = nodeManager.getChannel(p2pOffer.getDstVIP());
+            if (null == targetChannel) {
+                SDWanProtos.P2pAnswer p2pAnswer = SDWanProtos.P2pAnswer.newBuilder()
+                        .setCode(SDWanProtos.MessageCode.NotFound_VALUE)
+                        .build();
+                SDWanProtos.Message resp = request.toBuilder()
+                        .setType(SDWanProtos.MsgTypeCode.P2pAnswerType)
+                        .setData(p2pAnswer.toByteString())
+                        .build();
+                channel.writeAndFlush(resp);
+                return;
+            }
+            targetChannel.writeAndFlush(request);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            SDWanProtos.P2pAnswer p2pAnswer = SDWanProtos.P2pAnswer.newBuilder()
+                    .setCode(SDWanProtos.MessageCode.SysError_VALUE)
+                    .build();
+            SDWanProtos.Message resp = request.toBuilder()
+                    .setType(SDWanProtos.MsgTypeCode.P2pAnswerType)
+                    .setData(p2pAnswer.toByteString())
+                    .build();
+            channel.writeAndFlush(resp);
+        }
+    }
+
+    public void processP2pAnswer(Channel channel, SDWanProtos.Message request) {
+        try {
+            SDWanProtos.P2pAnswer p2pAnswer = SDWanProtos.P2pAnswer.parseFrom(request.getData());
+            Channel targetChannel = nodeManager.getChannel(p2pAnswer.getDstVIP());
+            if (null == targetChannel) {
+                return;
+            }
+            SDWanProtos.Message resp = request.toBuilder()
+                    .setType(SDWanProtos.MsgTypeCode.P2pAnswerType)
+                    .setData(p2pAnswer.toByteString())
+                    .build();
+            targetChannel.writeAndFlush(resp);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            SDWanProtos.P2pAnswer p2pAnswer = SDWanProtos.P2pAnswer.newBuilder()
+                    .setCode(SDWanProtos.MessageCode.SysError_VALUE)
+                    .build();
+            SDWanProtos.Message resp = request.toBuilder()
+                    .setType(SDWanProtos.MsgTypeCode.P2pAnswerType)
+                    .setData(p2pAnswer.toByteString())
                     .build();
             channel.writeAndFlush(resp);
         }

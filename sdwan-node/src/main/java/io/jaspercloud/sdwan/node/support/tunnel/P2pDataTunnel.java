@@ -9,13 +9,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 @Slf4j
-public class PunchDataTunnel implements DataTunnel {
+public class P2pDataTunnel implements DataTunnel {
 
     private StunClient stunClient;
     private InetSocketAddress address;
     private CompletableFuture<Void> closeFuture = new CompletableFuture<>();
 
-    public PunchDataTunnel(StunClient stunClient, InetSocketAddress address) {
+    public P2pDataTunnel(StunClient stunClient, InetSocketAddress address) {
         this.stunClient = stunClient;
         this.address = address;
     }

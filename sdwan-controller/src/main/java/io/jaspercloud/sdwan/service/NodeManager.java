@@ -13,6 +13,10 @@ public class NodeManager {
 
     private Map<String, Channel> channelMap = new ConcurrentHashMap<>();
 
+    public Channel getChannel(String vip) {
+        return channelMap.get(vip);
+    }
+
     public List<Channel> getChannelList() {
         return Collections.unmodifiableList(new ArrayList<>(channelMap.values()));
     }

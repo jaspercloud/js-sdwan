@@ -4,13 +4,12 @@ import io.jaspercloud.sdwan.stun.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 
-import java.net.InetSocketAddress;
 import java.util.UUID;
 
 @Slf4j
 public class RelayClient implements InitializingBean {
 
-    private InetSocketAddress relayServerAddress;
+    private SDWanNodeProperties properties;
     private StunClient stunClient;
     private String relayToken = UUID.randomUUID().toString();
 
@@ -18,9 +17,13 @@ public class RelayClient implements InitializingBean {
         return relayToken;
     }
 
-    public RelayClient(InetSocketAddress relayServerAddress, StunClient stunClient) {
-        this.relayServerAddress = relayServerAddress;
+    public RelayClient(SDWanNodeProperties properties, StunClient stunClient) {
+        this.properties = properties;
         this.stunClient = stunClient;
+    }
+
+    public void addStunDataHandler(StunDataHandler<StunMessage> handler) {
+        stunClient.addStunDataHandler(handler);
     }
 
     @Override
@@ -44,10 +47,10 @@ public class RelayClient implements InitializingBean {
     private void bind() throws Exception {
         StunMessage req = new StunMessage(MessageType.BindRelayRequest);
         req.setAttr(AttrType.RelayToken, new StringAttr(relayToken));
-        stunClient.invokeSync(new StunPacket(req, relayServerAddress));
+        stunClient.invokeSync(new StunPacket(req, properties.getRelayServer()));
     }
 
     public void send(StunMessage message) {
-        stunClient.send(relayServerAddress, message);
+        stunClient.send(properties.getRelayServer(), message);
     }
 }
