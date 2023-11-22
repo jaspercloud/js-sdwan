@@ -9,7 +9,12 @@ import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
 import io.jaspercloud.sdwan.node.support.detection.AddressType;
 import io.jaspercloud.sdwan.node.support.detection.DetectionInfo;
 import io.jaspercloud.sdwan.node.support.detection.P2pDetection;
-import io.jaspercloud.sdwan.stun.*;
+import io.jaspercloud.sdwan.stun.AttrType;
+import io.jaspercloud.sdwan.stun.BytesAttr;
+import io.jaspercloud.sdwan.stun.MessageType;
+import io.jaspercloud.sdwan.stun.StunClient;
+import io.jaspercloud.sdwan.stun.StunDataHandler;
+import io.jaspercloud.sdwan.stun.StunMessage;
 import io.netty.channel.ChannelHandlerContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
@@ -17,7 +22,11 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.InetSocketAddress;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -30,10 +39,10 @@ public class P2pManager implements InitializingBean {
     private StunClient stunClient;
     private Map<String, DataTunnel> tunnelMap = new ConcurrentHashMap<>();
     private Map<String, P2pDetection> detectionMap = new HashMap<>();
-    private List<P2pDataHandler> dataHandlerList = new ArrayList<>();
+    private List<TunnelDataHandler> tunnelDataHandlerList = new ArrayList<>();
 
-    public void addP2pDataHandler(P2pDataHandler handler) {
-        dataHandlerList.add(handler);
+    public void addTunnelDataHandler(TunnelDataHandler handler) {
+        tunnelDataHandlerList.add(handler);
     }
 
     public void addP2pDetection(P2pDetection detection) {
@@ -60,7 +69,7 @@ public class P2pManager implements InitializingBean {
                         SDWanProtos.P2pPacket p2pPacket = SDWanProtos.P2pPacket.parseFrom(data);
                         SDWanProtos.RoutePacket routePacket = p2pPacket.getPayload();
                         DataTunnel dataTunnel = tunnelMap.get(p2pPacket.getSrcAddress());
-                        for (P2pDataHandler handler : dataHandlerList) {
+                        for (TunnelDataHandler handler : tunnelDataHandlerList) {
                             handler.onData(dataTunnel, routePacket);
                         }
                     }

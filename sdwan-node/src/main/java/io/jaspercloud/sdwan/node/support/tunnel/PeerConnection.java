@@ -13,6 +13,10 @@ public class PeerConnection {
         this.dataTunnel = dataTunnel;
     }
 
+    public static PeerConnection create(DataTunnel dataTunnel) {
+        return new PeerConnection(dataTunnel);
+    }
+
     public static CompletableFuture<PeerConnection> create(P2pManager p2pManager,
                                                            String srcVIP,
                                                            String dstVIP,

@@ -15,7 +15,9 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,6 +33,12 @@ public class TunnelManager implements InitializingBean {
     private MappingManager mappingManager;
     private P2pManager p2pManager;
 
+    private List<ConnectionDataHandler> connectionDataHandlerList = new ArrayList<>();
+
+    public void addConnectionDataHandler(ConnectionDataHandler handler) {
+        connectionDataHandlerList.add(handler);
+    }
+
     public TunnelManager(SDWanNodeProperties properties, SDWanNode sdWanNode, StunClient stunClient, RelayClient relayClient, MappingManager mappingManager, P2pManager p2pManager) {
         this.properties = properties;
         this.sdWanNode = sdWanNode;
@@ -42,10 +50,18 @@ public class TunnelManager implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        p2pManager.addP2pDataHandler(new P2pDataHandler() {
+        p2pManager.addTunnelDataHandler(new TunnelDataHandler() {
             @Override
             public void onData(DataTunnel dataTunnel, SDWanProtos.RoutePacket routePacket) {
-
+                PeerConnection connection = connectionMap.get(routePacket.getDstVIP());
+                if (null == connection) {
+                    connection = PeerConnection.create(dataTunnel);
+                    connectionMap.put(routePacket.getDstVIP(), connection);
+                }
+                SDWanProtos.IpPacket ipPacket = routePacket.getPayload();
+                for (ConnectionDataHandler handler : connectionDataHandlerList) {
+                    handler.onData(connection, ipPacket);
+                }
             }
         });
     }
