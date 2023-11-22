@@ -17,11 +17,7 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -62,9 +58,10 @@ public class P2pManager implements InitializingBean {
                         BytesAttr dataAttr = msg.getAttr(AttrType.Data);
                         byte[] data = dataAttr.getData();
                         SDWanProtos.P2pPacket p2pPacket = SDWanProtos.P2pPacket.parseFrom(data);
+                        SDWanProtos.RoutePacket routePacket = p2pPacket.getPayload();
                         DataTunnel dataTunnel = tunnelMap.get(p2pPacket.getSrcAddress());
                         for (P2pDataHandler handler : dataHandlerList) {
-                            handler.onData(dataTunnel, p2pPacket);
+                            handler.onData(dataTunnel, routePacket);
                         }
                     }
                 } catch (Exception e) {

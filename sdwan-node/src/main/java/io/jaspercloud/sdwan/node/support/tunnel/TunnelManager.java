@@ -42,7 +42,12 @@ public class TunnelManager implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
+        p2pManager.addP2pDataHandler(new P2pDataHandler() {
+            @Override
+            public void onData(DataTunnel dataTunnel, SDWanProtos.RoutePacket routePacket) {
 
+            }
+        });
     }
 
     public CompletableFuture<PeerConnection> getConnection(String srcVIP, String dstVIP) {
