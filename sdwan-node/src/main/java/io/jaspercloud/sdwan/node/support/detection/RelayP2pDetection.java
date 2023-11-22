@@ -20,15 +20,15 @@ public class RelayP2pDetection implements P2pDetection {
     }
 
     @Override
-    public CompletableFuture<String> detection(String uri) {
+    public CompletableFuture<DetectionInfo> detection(String uri) {
         InetSocketAddress relayAddress = relayClient.getRelayAddress();
         String relayToken = relayClient.getRelayToken();
-        String targetUri = UriComponentsBuilder.newInstance()
+        String selfUri = UriComponentsBuilder.newInstance()
                 .scheme(AddressType.RELAY)
                 .host(relayAddress.getHostString())
                 .port(relayAddress.getPort())
                 .queryParam("token", relayToken)
                 .build().toString();
-        return CompletableFuture.completedFuture(targetUri);
+        return CompletableFuture.completedFuture(new DetectionInfo(selfUri, uri));
     }
 }

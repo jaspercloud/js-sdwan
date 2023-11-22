@@ -23,17 +23,18 @@ public class HostP2pDetection implements P2pDetection {
     }
 
     @Override
-    public CompletableFuture<String> detection(String uri) {
+    public CompletableFuture<DetectionInfo> detection(String uri) {
         UriComponents components = UriComponentsBuilder.fromUriString(uri).build();
         return stunClient.sendBind(new InetSocketAddress(components.getHost(), components.getPort()))
                 .thenApply(resp -> {
                     AddressAttr addressAttr = resp.content().getAttr(AttrType.MappedAddress);
                     InetSocketAddress address = addressAttr.getAddress();
-                    return UriComponentsBuilder.newInstance()
+                    String selfUri = UriComponentsBuilder.newInstance()
                             .scheme(AddressType.PRFLX)
                             .host(address.getHostString())
                             .port(address.getPort())
                             .build().toString();
+                    return new DetectionInfo(selfUri, uri);
                 });
     }
 }

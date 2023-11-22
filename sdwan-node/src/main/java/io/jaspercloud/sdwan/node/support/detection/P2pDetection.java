@@ -6,5 +6,5 @@ public interface P2pDetection {
 
     String type();
 
-    CompletableFuture<String> detection(String uri);
+    CompletableFuture<DetectionInfo> detection(String uri);
 }
