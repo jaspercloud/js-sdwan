@@ -93,8 +93,8 @@ message RoutePacket {
 }
 
 message P2pPacket {
-  required string srcIP = 1;
-  required string dstIP = 2;
+  required string srcAddress = 1;
+  required string dstAddress = 2;
   required RoutePacket payload = 3;
 }
 
@@ -108,5 +108,6 @@ message P2pAnswer {
   required int32 code = 1;
   optional string srcVIP = 2;
   optional string dstVIP = 3;
-  optional string address = 4;
+  optional string srcAddress = 4;
+  optional string dstAddress = 5;
 }

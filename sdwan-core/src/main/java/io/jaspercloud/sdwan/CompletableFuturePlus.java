@@ -9,8 +9,8 @@ public final class CompletableFuturePlus {
 
     }
 
-    public static CompletableFuture<String> onException(CompletableFuture<String> last, Supplier<CompletableFuture<String>> supplier) {
-        CompletableFuture<String> future = new CompletableFuture<>();
+    public static <T> CompletableFuture<T> onException(CompletableFuture<T> last, Supplier<CompletableFuture<T>> supplier) {
+        CompletableFuture<T> future = new CompletableFuture<>();
         last.whenComplete((result1, error1) -> {
             if (null == error1) {
                 future.complete(result1);

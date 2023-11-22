@@ -1,9 +1,16 @@
 package io.jaspercloud.sdwan.node.support;
 
-import io.jaspercloud.sdwan.stun.*;
+import io.jaspercloud.sdwan.stun.AttrType;
+import io.jaspercloud.sdwan.stun.MessageType;
+import io.jaspercloud.sdwan.stun.StringAttr;
+import io.jaspercloud.sdwan.stun.StunClient;
+import io.jaspercloud.sdwan.stun.StunDataHandler;
+import io.jaspercloud.sdwan.stun.StunMessage;
+import io.jaspercloud.sdwan.stun.StunPacket;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 
+import java.net.InetSocketAddress;
 import java.util.UUID;
 
 @Slf4j
@@ -12,6 +19,10 @@ public class RelayClient implements InitializingBean {
     private SDWanNodeProperties properties;
     private StunClient stunClient;
     private String relayToken = UUID.randomUUID().toString();
+
+    public InetSocketAddress getRelayAddress() {
+        return properties.getRelayServer();
+    }
 
     public String getRelayToken() {
         return relayToken;
