@@ -22,6 +22,7 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -38,6 +39,11 @@ public class P2pManager implements InitializingBean {
     private StunClient stunClient;
     private Map<String, DataTunnel> tunnelMap = new ConcurrentHashMap<>();
     private Map<String, P2pDetection> detectionMap = new HashMap<>();
+    private List<P2pDataHandler> dataHandlerList = new ArrayList<>();
+
+    public void addP2pDataHandler(P2pDataHandler handler) {
+        dataHandlerList.add(handler);
+    }
 
     public void addP2pDetection(P2pDetection detection) {
         detectionMap.put(detection.type(), detection);
@@ -61,6 +67,10 @@ public class P2pManager implements InitializingBean {
                         BytesAttr dataAttr = msg.getAttr(AttrType.Data);
                         byte[] data = dataAttr.getData();
                         SDWanProtos.P2pPacket p2pPacket = SDWanProtos.P2pPacket.parseFrom(data);
+                        DataTunnel dataTunnel = tunnelMap.get(p2pPacket.getSrcAddress());
+                        for (P2pDataHandler handler : dataHandlerList) {
+                            handler.onData(dataTunnel, p2pPacket);
+                        }
                     }
                 } catch (Exception e) {
                     log.error(e.getMessage(), e);
