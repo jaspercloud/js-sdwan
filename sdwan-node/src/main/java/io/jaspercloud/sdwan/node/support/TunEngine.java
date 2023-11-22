@@ -21,6 +21,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -179,6 +180,10 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
     private void processReadTun(ChannelHandlerContext ctx, ByteBuf msg) {
         TunAddress tunAddress = (TunAddress) ctx.channel().localAddress();
         String localVIP = tunAddress.getVip();
+        if (StringUtils.isEmpty(localVIP)) {
+            //init
+            return;
+        }
         Ipv4Packet ipv4Packet = Ipv4Packet.decodeMark(msg);
         System.out.println(String.format("read: src=%s, dst=%s", ipv4Packet.getSrcIP(), ipv4Packet.getDstIP()));
         byte[] data = ByteBufUtil.toBytes(msg);
