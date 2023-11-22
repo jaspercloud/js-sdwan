@@ -5,12 +5,15 @@ import io.jaspercloud.sdwan.Cidr;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.node.support.SDWanNode;
 import io.jaspercloud.sdwan.node.support.tunnel.TunnelManager;
+import io.jaspercloud.sdwan.tun.TunAddress;
 import io.jaspercloud.sdwan.tun.TunChannel;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 public abstract class RouteManager {
 
@@ -54,8 +57,14 @@ public abstract class RouteManager {
                 .build();
         SDWanProtos.Message resp = sdWanNode.invokeAsync(req).get();
         SDWanProtos.RouteList routeList = SDWanProtos.RouteList.parseFrom(resp.getData());
-        doUpdateRouteList(tunChannel, cache.get(), routeList.getRouteList());
-        cache.set(routeList.getRouteList());
+        TunAddress tunAddress = (TunAddress) tunChannel.localAddress();
+        String vip = tunAddress.getVip();
+        List<SDWanProtos.Route> newList = routeList.getRouteList()
+                .stream()
+                .filter(e -> !StringUtils.equals(e.getNexthop(), vip))
+                .collect(Collectors.toList());
+        doUpdateRouteList(tunChannel, cache.get(), newList);
+        cache.set(newList);
     }
 
     protected abstract void doUpdateRouteList(TunChannel tunChannel, List<SDWanProtos.Route> oldList, List<SDWanProtos.Route> newList) throws Exception;
