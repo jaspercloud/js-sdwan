@@ -34,7 +34,7 @@ public class StunClient implements InitializingBean {
         this.port = port;
     }
 
-    public void addStunDataHandler(StunDataHandler handler) {
+    public void addDataHandler(StunDataHandler handler) {
         dataHandlerList.add(handler);
     }
 
@@ -91,19 +91,6 @@ public class StunClient implements InitializingBean {
         StunPacket response = new StunPacket(stunMessage, request.sender());
         channel.writeAndFlush(response);
     }
-
-    //    public CompletableFuture<StunPacket> sendPunchingBind(StunPacket request, long timeout) {
-//        StunMessage stunMessage = request.content();
-//        CompletableFuture<StunPacket> future = AsyncTask.waitTask(stunMessage.getTranId(), timeout);
-//        channel.writeAndFlush(request);
-//        return future;
-//    }
-//
-//    public CompletableFuture<StunPacket> sendBind(StunPacket request, long timeout) {
-//        CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), timeout);
-//        channel.writeAndFlush(request);
-//        return future;
-//    }
 
     public StunPacket invokeSync(StunPacket request) throws Exception {
         CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), 500);

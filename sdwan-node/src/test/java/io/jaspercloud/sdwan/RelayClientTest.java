@@ -1,14 +1,5 @@
 package io.jaspercloud.sdwan;
 
-import com.google.protobuf.ByteString;
-import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.node.support.RelayClient;
-import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
-import io.jaspercloud.sdwan.stun.*;
-
-import java.net.InetSocketAddress;
-import java.util.concurrent.CountDownLatch;
-
 public class RelayClientTest {
 
     public static void main(String[] args) throws Exception {

@@ -1,7 +1,6 @@
 package io.jaspercloud.sdwan.node.support.transporter;
 
 import io.jaspercloud.sdwan.ByteBufUtil;
-import io.jaspercloud.sdwan.node.support.StunChannelInboundHandler;
 import io.jaspercloud.sdwan.stun.*;
 import io.jaspercloud.sdwan.tun.Ipv4Packet;
 import io.jaspercloud.sdwan.tun.TunChannel;

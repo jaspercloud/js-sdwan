@@ -3,18 +3,13 @@ package io.jaspercloud.sdwan.node.support.tunnel;
 import io.jaspercloud.sdwan.CompletableFuturePlus;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
-import io.jaspercloud.sdwan.node.support.SDWanDataHandler;
-import io.jaspercloud.sdwan.node.support.SDWanNode;
+import io.jaspercloud.sdwan.node.support.node.SDWanDataHandler;
+import io.jaspercloud.sdwan.node.support.node.SDWanNode;
 import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
 import io.jaspercloud.sdwan.node.support.detection.AddressType;
 import io.jaspercloud.sdwan.node.support.detection.DetectionInfo;
 import io.jaspercloud.sdwan.node.support.detection.P2pDetection;
-import io.jaspercloud.sdwan.stun.AttrType;
-import io.jaspercloud.sdwan.stun.BytesAttr;
-import io.jaspercloud.sdwan.stun.MessageType;
-import io.jaspercloud.sdwan.stun.StunClient;
-import io.jaspercloud.sdwan.stun.StunDataHandler;
-import io.jaspercloud.sdwan.stun.StunMessage;
+import io.jaspercloud.sdwan.stun.*;
 import io.netty.channel.ChannelHandlerContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
@@ -22,11 +17,7 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -41,7 +32,7 @@ public class P2pManager implements InitializingBean {
     private Map<String, P2pDetection> detectionMap = new HashMap<>();
     private List<TunnelDataHandler> tunnelDataHandlerList = new ArrayList<>();
 
-    public void addTunnelDataHandler(TunnelDataHandler handler) {
+    public void addDataHandler(TunnelDataHandler handler) {
         tunnelDataHandlerList.add(handler);
     }
 
@@ -59,7 +50,7 @@ public class P2pManager implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        stunClient.addStunDataHandler(new StunDataHandler<StunMessage>() {
+        stunClient.addDataHandler(new StunDataHandler<StunMessage>() {
             @Override
             protected void onData(ChannelHandlerContext ctx, StunMessage msg) {
                 try {
@@ -78,7 +69,7 @@ public class P2pManager implements InitializingBean {
                 }
             }
         });
-        sdWanNode.addDataHandler(new SDWanDataHandler<SDWanProtos.Message>() {
+        sdWanNode.addDataHandler(new SDWanDataHandler() {
             @Override
             public void onData(ChannelHandlerContext ctx, SDWanProtos.Message msg) {
                 try {

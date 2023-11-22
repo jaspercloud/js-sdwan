@@ -8,6 +8,7 @@ import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 
 import java.net.InetSocketAddress;
@@ -17,10 +18,10 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
-public class RelayServer implements InitializingBean {
+public class RelayServer implements InitializingBean, DisposableBean {
 
     private SDWanRelayProperties properties;
-    private Channel channel;
+    private Channel localChannel;
     private Map<String, RelayNode> channelMap = new ConcurrentHashMap<>();
 
     public Map<String, RelayNode> getNodeMap() {
@@ -60,9 +61,9 @@ public class RelayServer implements InitializingBean {
                     @Override
                     protected void initChannel(Channel ch) throws Exception {
                         ChannelPipeline pipeline = ch.pipeline();
-                        pipeline.addLast("StunClient:stunEncoder", new StunEncoder());
-                        pipeline.addLast("StunClient:stunDecoder", new StunDecoder());
-                        pipeline.addLast("StunClient:stunProcess", new SimpleChannelInboundHandler<StunPacket>() {
+                        pipeline.addLast("RelayServer:stunEncoder", new StunEncoder());
+                        pipeline.addLast("RelayServer:stunDecoder", new StunDecoder());
+                        pipeline.addLast("RelayServer:stunProcess", new SimpleChannelInboundHandler<StunPacket>() {
                             @Override
                             protected void channelRead0(ChannelHandlerContext ctx, StunPacket packet) throws Exception {
                                 process(ctx, packet);
@@ -70,38 +71,57 @@ public class RelayServer implements InitializingBean {
                         });
                     }
                 });
-        channel = bootstrap.bind(local).sync().channel();
+        localChannel = bootstrap.bind(local).sync().channel();
+    }
+
+    @Override
+    public void destroy() throws Exception {
+        if (null == localChannel) {
+            return;
+        }
+        localChannel.close();
     }
 
     private void process(ChannelHandlerContext ctx, StunPacket packet) {
-        InetSocketAddress sender = packet.sender();
         StunMessage request = packet.content();
         if (MessageType.BindRelayRequest.equals(request.getMessageType())) {
-            //parse
-            StringAttr relayTokenAttr = (StringAttr) request.getAttrs().get(AttrType.RelayToken);
-            String relayToken = relayTokenAttr.getData();
-            channelMap.put(relayToken, new RelayNode(sender));
-            //resp
-            StunMessage responseMessage = new StunMessage(MessageType.BindRelayResponse, request.getTranId());
-            StunPacket response = new StunPacket(responseMessage, sender);
-            ctx.writeAndFlush(response);
+            processBindRelay(ctx, packet);
         } else if (MessageType.Transfer.equals(request.getMessageType())) {
-            //parse
-            StringAttr relayTokenAttr = (StringAttr) request.getAttrs().get(AttrType.RelayToken);
-            String relayToken = relayTokenAttr.getData();
-            RelayNode node = channelMap.get(relayToken);
-            if (null == node) {
-                return;
-            }
-            //resp
-            BytesAttr dataAttr = (BytesAttr) request.getAttrs().get(AttrType.Data);
-            StunMessage message = new StunMessage(MessageType.Transfer);
-            message.getAttrs().put(AttrType.Data, dataAttr);
-            StunPacket response = new StunPacket(message, node.getTargetAddress());
-            ctx.writeAndFlush(response);
+            processTransfer(ctx, packet);
         } else {
             ctx.fireChannelRead(packet.retain());
         }
+    }
+
+    private void processBindRelay(ChannelHandlerContext ctx, StunPacket packet) {
+        InetSocketAddress sender = packet.sender();
+        StunMessage request = packet.content();
+        //parse
+        StringAttr relayTokenAttr = (StringAttr) request.getAttrs().get(AttrType.RelayToken);
+        String relayToken = relayTokenAttr.getData();
+        channelMap.put(relayToken, new RelayNode(sender));
+        //resp
+        StunMessage responseMessage = new StunMessage(MessageType.BindRelayResponse, request.getTranId());
+        StunPacket response = new StunPacket(responseMessage, sender);
+        ctx.writeAndFlush(response);
+    }
+
+    private void processTransfer(ChannelHandlerContext ctx, StunPacket packet) {
+        InetSocketAddress sender = packet.sender();
+        StunMessage request = packet.content();
+        //parse
+        StringAttr relayTokenAttr = (StringAttr) request.getAttrs().get(AttrType.RelayToken);
+        String relayToken = relayTokenAttr.getData();
+        RelayNode node = channelMap.get(relayToken);
+        if (null == node) {
+            return;
+        }
+        //resp
+        BytesAttr dataAttr = (BytesAttr) request.getAttrs().get(AttrType.Data);
+        StunMessage message = new StunMessage(MessageType.Transfer);
+        message.getAttrs().put(AttrType.Data, dataAttr);
+        StunPacket response = new StunPacket(message, node.getTargetAddress());
+        ctx.writeAndFlush(response);
     }
 
     public static class RelayNode {

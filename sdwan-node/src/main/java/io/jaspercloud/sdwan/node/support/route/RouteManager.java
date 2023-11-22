@@ -3,8 +3,8 @@ package io.jaspercloud.sdwan.node.support.route;
 import com.google.protobuf.ByteString;
 import io.jaspercloud.sdwan.Cidr;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.node.support.SDWanNode;
-import io.jaspercloud.sdwan.node.support.tunnel.TunnelManager;
+import io.jaspercloud.sdwan.node.support.node.SDWanNode;
+import io.jaspercloud.sdwan.node.support.connection.ConnectionManager;
 import io.jaspercloud.sdwan.tun.TunAddress;
 import io.jaspercloud.sdwan.tun.TunChannel;
 import org.apache.commons.lang3.StringUtils;
@@ -20,11 +20,11 @@ public abstract class RouteManager {
     protected AtomicReference<List<SDWanProtos.Route>> cache = new AtomicReference<>(Collections.emptyList());
 
     private SDWanNode sdWanNode;
-    private TunnelManager tunnelManager;
+    private ConnectionManager connectionManager;
 
-    public RouteManager(SDWanNode sdWanNode, TunnelManager tunnelManager) {
+    public RouteManager(SDWanNode sdWanNode, ConnectionManager connectionManager) {
         this.sdWanNode = sdWanNode;
-        this.tunnelManager = tunnelManager;
+        this.connectionManager = connectionManager;
     }
 
     public void route(String localVIP, SDWanProtos.IpPacket ipPacket) {
@@ -35,14 +35,14 @@ public abstract class RouteManager {
                     .setDstVIP(route.getNexthop())
                     .setPayload(ipPacket)
                     .build();
-            tunnelManager.send(routePacket);
+            connectionManager.send(routePacket);
         } else {
             SDWanProtos.RoutePacket routePacket = SDWanProtos.RoutePacket.newBuilder()
                     .setSrcVIP(localVIP)
                     .setDstVIP(ipPacket.getDstIP())
                     .setPayload(ipPacket)
                     .build();
-            tunnelManager.send(routePacket);
+            connectionManager.send(routePacket);
         }
     }
 

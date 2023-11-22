@@ -1,12 +1,8 @@
-package io.jaspercloud.sdwan.node.support;
+package io.jaspercloud.sdwan.node.support.node;
 
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.stun.AddressAttr;
-import io.jaspercloud.sdwan.stun.Attr;
-import io.jaspercloud.sdwan.stun.AttrType;
-import io.jaspercloud.sdwan.stun.MappingAddress;
-import io.jaspercloud.sdwan.stun.StunClient;
-import io.jaspercloud.sdwan.stun.StunPacket;
+import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
+import io.jaspercloud.sdwan.stun.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 

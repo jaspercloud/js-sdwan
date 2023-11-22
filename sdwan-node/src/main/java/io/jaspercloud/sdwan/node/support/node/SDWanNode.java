@@ -1,22 +1,13 @@
-package io.jaspercloud.sdwan.node.support;
+package io.jaspercloud.sdwan.node.support.node;
 
 import com.google.protobuf.ByteString;
-import io.jaspercloud.sdwan.AsyncTask;
-import io.jaspercloud.sdwan.LogHandler;
-import io.jaspercloud.sdwan.NetworkInterfaceInfo;
-import io.jaspercloud.sdwan.NetworkInterfaceUtil;
-import io.jaspercloud.sdwan.NioEventLoopFactory;
+import io.jaspercloud.sdwan.*;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
+import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.protobuf.ProtobufDecoder;
@@ -72,7 +63,7 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                         pipeline.addLast(new ProtobufDecoder(SDWanProtos.Message.getDefaultInstance()));
                         pipeline.addLast(new ProtobufVarint32LengthFieldPrepender());
                         pipeline.addLast(new ProtobufEncoder());
-                        pipeline.addLast("SDWanNode:message", new SimpleChannelInboundHandler<SDWanProtos.Message>() {
+                        pipeline.addLast("SDWanNode:heart", new ChannelInboundHandlerAdapter() {
 
                             private ScheduledFuture<?> heartScheduledFuture;
 
@@ -93,6 +84,8 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                                 super.channelInactive(ctx);
                                 heartScheduledFuture.cancel(true);
                             }
+                        });
+                        pipeline.addLast("SDWanNode:message", new SimpleChannelInboundHandler<SDWanProtos.Message>() {
 
                             @Override
                             protected void channelRead0(ChannelHandlerContext ctx, SDWanProtos.Message request) throws Exception {
@@ -117,11 +110,12 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                                 }
                             }
                         });
-                        pipeline.addLast("SDWanNode:receive", new ChannelInboundHandlerAdapter() {
+                        pipeline.addLast("SDWanNode:dataHandler", new SimpleChannelInboundHandler<SDWanProtos.Message>() {
+
                             @Override
-                            public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                            public void channelRead0(ChannelHandlerContext ctx, SDWanProtos.Message request) throws Exception {
                                 for (SDWanDataHandler handler : handlerList) {
-                                    handler.receive(ctx, msg);
+                                    handler.onData(ctx, request);
                                 }
                             }
                         });

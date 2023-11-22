@@ -1,6 +1,6 @@
 package io.jaspercloud.sdwan.node.support.detection;
 
-import io.jaspercloud.sdwan.node.support.RelayClient;
+import io.jaspercloud.sdwan.node.support.node.RelayClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.InetSocketAddress;

@@ -6,10 +6,13 @@ import io.jaspercloud.sdwan.NetworkInterfaceInfo;
 import io.jaspercloud.sdwan.NetworkInterfaceUtil;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
+import io.jaspercloud.sdwan.node.support.node.MappingManager;
+import io.jaspercloud.sdwan.node.support.node.RelayClient;
+import io.jaspercloud.sdwan.node.support.node.SDWanNode;
 import io.jaspercloud.sdwan.node.support.route.RouteManager;
-import io.jaspercloud.sdwan.node.support.tunnel.ConnectionDataHandler;
-import io.jaspercloud.sdwan.node.support.tunnel.PeerConnection;
-import io.jaspercloud.sdwan.node.support.tunnel.TunnelManager;
+import io.jaspercloud.sdwan.node.support.connection.ConnectionDataHandler;
+import io.jaspercloud.sdwan.node.support.connection.PeerConnection;
+import io.jaspercloud.sdwan.node.support.connection.ConnectionManager;
 import io.jaspercloud.sdwan.stun.MappingAddress;
 import io.jaspercloud.sdwan.stun.StunClient;
 import io.jaspercloud.sdwan.tun.Ipv4Packet;
@@ -42,7 +45,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
     private RelayClient relayClient;
     private MappingManager mappingManager;
     private RouteManager routeManager;
-    private TunnelManager tunnelManager;
+    private ConnectionManager connectionManager;
 
     private TunChannel tunChannel;
 
@@ -56,20 +59,20 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                      RelayClient relayClient,
                      MappingManager mappingManager,
                      RouteManager routeManager,
-                     TunnelManager tunnelManager) {
+                     ConnectionManager connectionManager) {
         this.properties = properties;
         this.sdWanNode = sdWanNode;
         this.stunClient = stunClient;
         this.relayClient = relayClient;
         this.mappingManager = mappingManager;
         this.routeManager = routeManager;
-        this.tunnelManager = tunnelManager;
+        this.connectionManager = connectionManager;
     }
 
     @Override
     public void afterPropertiesSet() throws Exception {
         tunChannel = bootTun();
-        tunnelManager.addConnectionDataHandler(new ConnectionDataHandler() {
+        connectionManager.addConnectionDataHandler(new ConnectionDataHandler() {
             @Override
             public void onData(PeerConnection connection, SDWanProtos.IpPacket packet) {
                 processWriteTun(tunChannel, packet);

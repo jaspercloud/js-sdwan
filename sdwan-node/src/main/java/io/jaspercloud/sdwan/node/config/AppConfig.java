@@ -2,12 +2,15 @@ package io.jaspercloud.sdwan.node.config;
 
 import io.jaspercloud.sdwan.node.support.*;
 import io.jaspercloud.sdwan.node.support.detection.*;
+import io.jaspercloud.sdwan.node.support.node.MappingManager;
+import io.jaspercloud.sdwan.node.support.node.RelayClient;
+import io.jaspercloud.sdwan.node.support.node.SDWanNode;
 import io.jaspercloud.sdwan.node.support.route.LinuxRouteManager;
 import io.jaspercloud.sdwan.node.support.route.OsxRouteManager;
 import io.jaspercloud.sdwan.node.support.route.RouteManager;
 import io.jaspercloud.sdwan.node.support.route.WindowsRouteManager;
 import io.jaspercloud.sdwan.node.support.tunnel.P2pManager;
-import io.jaspercloud.sdwan.node.support.tunnel.TunnelManager;
+import io.jaspercloud.sdwan.node.support.connection.ConnectionManager;
 import io.jaspercloud.sdwan.stun.StunClient;
 import io.netty.util.internal.PlatformDependent;
 import org.springframework.beans.factory.ObjectProvider;
@@ -44,25 +47,25 @@ public class AppConfig {
     }
 
     @Bean
-    public TunnelManager tunnelManager(SDWanNodeProperties properties,
-                                       SDWanNode sdWanNode,
-                                       StunClient stunClient,
-                                       RelayClient relayClient,
-                                       MappingManager mappingManager,
-                                       P2pManager p2pManager) {
-        return new TunnelManager(properties, sdWanNode, stunClient, relayClient, mappingManager, p2pManager);
+    public ConnectionManager tunnelManager(SDWanNodeProperties properties,
+                                           SDWanNode sdWanNode,
+                                           StunClient stunClient,
+                                           RelayClient relayClient,
+                                           MappingManager mappingManager,
+                                           P2pManager p2pManager) {
+        return new ConnectionManager(properties, sdWanNode, stunClient, relayClient, mappingManager, p2pManager);
     }
 
     @Bean
     public RouteManager routeManager(SDWanNode sdWanNode,
-                                     TunnelManager tunnelManager) {
+                                     ConnectionManager connectionManager) {
         RouteManager routeManager;
         if (PlatformDependent.isOsx()) {
-            routeManager = new OsxRouteManager(sdWanNode, tunnelManager);
+            routeManager = new OsxRouteManager(sdWanNode, connectionManager);
         } else if (PlatformDependent.isWindows()) {
-            routeManager = new WindowsRouteManager(sdWanNode, tunnelManager);
+            routeManager = new WindowsRouteManager(sdWanNode, connectionManager);
         } else {
-            routeManager = new LinuxRouteManager(sdWanNode, tunnelManager);
+            routeManager = new LinuxRouteManager(sdWanNode, connectionManager);
         }
         return routeManager;
     }
@@ -107,7 +110,7 @@ public class AppConfig {
                                RelayClient relayClient,
                                MappingManager mappingManager,
                                RouteManager routeManager,
-                               TunnelManager tunnelManager) {
-        return new TunEngine(properties, sdWanNode, stunClient, relayClient, mappingManager, routeManager, tunnelManager);
+                               ConnectionManager connectionManager) {
+        return new TunEngine(properties, sdWanNode, stunClient, relayClient, mappingManager, routeManager, connectionManager);
     }
 }

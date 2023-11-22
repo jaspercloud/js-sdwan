@@ -2,6 +2,7 @@ package io.jaspercloud.sdwan.config;
 
 import io.jaspercloud.sdwan.service.NodeManager;
 import io.jaspercloud.sdwan.service.SDWanControllerService;
+import io.jaspercloud.sdwan.service.SDWanSignalService;
 import io.jaspercloud.sdwan.support.*;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -47,8 +48,9 @@ public class AppConfig {
     }
 
     @Bean
-    public SDWanProcessHandler processHandler(SDWanControllerService controllerService) {
-        return new SDWanProcessHandler(controllerService);
+    public SDWanProcessHandler processHandler(SDWanControllerService controllerService,
+                                              SDWanSignalService sdWanSignalService) {
+        return new SDWanProcessHandler(controllerService, sdWanSignalService);
     }
 
     @Bean

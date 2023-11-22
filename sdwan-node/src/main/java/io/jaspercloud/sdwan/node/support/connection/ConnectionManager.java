@@ -1,11 +1,14 @@
-package io.jaspercloud.sdwan.node.support.tunnel;
+package io.jaspercloud.sdwan.node.support.connection;
 
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
-import io.jaspercloud.sdwan.node.support.MappingManager;
-import io.jaspercloud.sdwan.node.support.RelayClient;
-import io.jaspercloud.sdwan.node.support.SDWanNode;
 import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
+import io.jaspercloud.sdwan.node.support.node.MappingManager;
+import io.jaspercloud.sdwan.node.support.node.RelayClient;
+import io.jaspercloud.sdwan.node.support.node.SDWanNode;
+import io.jaspercloud.sdwan.node.support.tunnel.DataTunnel;
+import io.jaspercloud.sdwan.node.support.tunnel.P2pManager;
+import io.jaspercloud.sdwan.node.support.tunnel.TunnelDataHandler;
 import io.jaspercloud.sdwan.stun.AddressAttr;
 import io.jaspercloud.sdwan.stun.AttrType;
 import io.jaspercloud.sdwan.stun.MappingAddress;
@@ -23,7 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-public class TunnelManager implements InitializingBean {
+public class ConnectionManager implements InitializingBean {
 
     private Map<String, PeerConnection> connectionMap = new ConcurrentHashMap<>();
     private SDWanNodeProperties properties;
@@ -39,7 +42,7 @@ public class TunnelManager implements InitializingBean {
         connectionDataHandlerList.add(handler);
     }
 
-    public TunnelManager(SDWanNodeProperties properties, SDWanNode sdWanNode, StunClient stunClient, RelayClient relayClient, MappingManager mappingManager, P2pManager p2pManager) {
+    public ConnectionManager(SDWanNodeProperties properties, SDWanNode sdWanNode, StunClient stunClient, RelayClient relayClient, MappingManager mappingManager, P2pManager p2pManager) {
         this.properties = properties;
         this.sdWanNode = sdWanNode;
         this.stunClient = stunClient;
@@ -50,7 +53,7 @@ public class TunnelManager implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        p2pManager.addTunnelDataHandler(new TunnelDataHandler() {
+        p2pManager.addDataHandler(new TunnelDataHandler() {
             @Override
             public void onData(DataTunnel dataTunnel, SDWanProtos.RoutePacket routePacket) {
                 PeerConnection connection = connectionMap.get(routePacket.getDstVIP());

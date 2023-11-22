@@ -1,6 +1,6 @@
 package io.jaspercloud.sdwan;
 
-import io.jaspercloud.sdwan.node.support.MappingManager;
+import io.jaspercloud.sdwan.node.support.node.MappingManager;
 import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
 import io.jaspercloud.sdwan.stun.StunClient;
 

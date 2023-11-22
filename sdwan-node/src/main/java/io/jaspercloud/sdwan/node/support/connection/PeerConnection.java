@@ -1,6 +1,8 @@
-package io.jaspercloud.sdwan.node.support.tunnel;
+package io.jaspercloud.sdwan.node.support.connection;
 
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
+import io.jaspercloud.sdwan.node.support.tunnel.DataTunnel;
+import io.jaspercloud.sdwan.node.support.tunnel.P2pManager;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;

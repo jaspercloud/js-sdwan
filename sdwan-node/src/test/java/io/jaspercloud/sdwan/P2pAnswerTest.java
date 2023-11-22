@@ -2,18 +2,18 @@ package io.jaspercloud.sdwan;
 
 
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.node.support.MappingManager;
-import io.jaspercloud.sdwan.node.support.RelayClient;
-import io.jaspercloud.sdwan.node.support.SDWanNode;
+import io.jaspercloud.sdwan.node.support.node.MappingManager;
+import io.jaspercloud.sdwan.node.support.node.RelayClient;
+import io.jaspercloud.sdwan.node.support.node.SDWanNode;
 import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
 import io.jaspercloud.sdwan.node.support.detection.HostP2pDetection;
 import io.jaspercloud.sdwan.node.support.detection.PrflxP2pDetection;
 import io.jaspercloud.sdwan.node.support.detection.RelayP2pDetection;
 import io.jaspercloud.sdwan.node.support.detection.SrflxP2pDetection;
-import io.jaspercloud.sdwan.node.support.tunnel.ConnectionDataHandler;
+import io.jaspercloud.sdwan.node.support.connection.ConnectionDataHandler;
 import io.jaspercloud.sdwan.node.support.tunnel.P2pManager;
-import io.jaspercloud.sdwan.node.support.tunnel.PeerConnection;
-import io.jaspercloud.sdwan.node.support.tunnel.TunnelManager;
+import io.jaspercloud.sdwan.node.support.connection.PeerConnection;
+import io.jaspercloud.sdwan.node.support.connection.ConnectionManager;
 import io.jaspercloud.sdwan.stun.MappingAddress;
 import io.jaspercloud.sdwan.stun.StunClient;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -51,14 +51,14 @@ public class P2pAnswerTest {
         p2pManager.addP2pDetection(new PrflxP2pDetection(stunClient));
         p2pManager.addP2pDetection(new RelayP2pDetection(relayClient));
         p2pManager.afterPropertiesSet();
-        TunnelManager tunnelManager = new TunnelManager(properties, sdWanNode, stunClient, relayClient, mappingManager, p2pManager);
-        tunnelManager.addConnectionDataHandler(new ConnectionDataHandler() {
+        ConnectionManager connectionManager = new ConnectionManager(properties, sdWanNode, stunClient, relayClient, mappingManager, p2pManager);
+        connectionManager.addConnectionDataHandler(new ConnectionDataHandler() {
             @Override
             public void onData(PeerConnection connection, SDWanProtos.IpPacket packet) {
                 System.out.println();
             }
         });
-        tunnelManager.afterPropertiesSet();
+        connectionManager.afterPropertiesSet();
         //address
         String host = UriComponentsBuilder.newInstance()
                 .scheme("host")
