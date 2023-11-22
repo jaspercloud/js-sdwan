@@ -1,10 +1,6 @@
 package io.jaspercloud.sdwan.node.config;
 
-import io.jaspercloud.sdwan.node.support.MappingManager;
-import io.jaspercloud.sdwan.node.support.RelayClient;
-import io.jaspercloud.sdwan.node.support.SDWanNode;
-import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
-import io.jaspercloud.sdwan.node.support.TunEngine;
+import io.jaspercloud.sdwan.node.support.*;
 import io.jaspercloud.sdwan.node.support.route.LinuxRouteManager;
 import io.jaspercloud.sdwan.node.support.route.OsxRouteManager;
 import io.jaspercloud.sdwan.node.support.route.RouteManager;
@@ -77,8 +73,10 @@ public class AppConfig {
     @Bean
     public TunEngine tunEngine(SDWanNodeProperties properties,
                                SDWanNode sdWanNode,
+                               StunClient stunClient,
+                               RelayClient relayClient,
                                MappingManager mappingManager,
                                RouteManager routeManager) {
-        return new TunEngine(properties, sdWanNode, mappingManager, routeManager);
+        return new TunEngine(properties, sdWanNode, stunClient, relayClient, mappingManager, routeManager);
     }
 }
