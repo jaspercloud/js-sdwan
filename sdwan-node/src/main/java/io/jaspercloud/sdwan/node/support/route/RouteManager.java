@@ -67,6 +67,7 @@ public abstract class RouteManager {
         String vip = tunAddress.getVip();
         List<SDWanProtos.Route> newList = routeList.getRouteList()
                 .stream()
+                .filter(e -> !StringUtils.equals(e.getNexthop(), vip))
                 .collect(Collectors.toList());
         doUpdateRouteList(tunChannel, cache.get(), newList);
         cache.set(newList);
