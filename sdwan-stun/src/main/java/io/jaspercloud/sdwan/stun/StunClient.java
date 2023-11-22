@@ -54,7 +54,10 @@ public class StunClient implements InitializingBean {
                             @Override
                             protected void channelRead0(ChannelHandlerContext ctx, StunPacket packet) throws Exception {
                                 StunMessage request = packet.content();
+                                InetSocketAddress sender = packet.sender();
                                 if (MessageType.Heart.equals(request.getMessageType())) {
+                                    StunPacket response = new StunPacket(request, sender);
+                                    ctx.writeAndFlush(response);
                                     AsyncTask.completeTask(request.getTranId(), packet);
                                 } else if (MessageType.BindRequest.equals(request.getMessageType())) {
                                     processBindRequest(ctx, packet);

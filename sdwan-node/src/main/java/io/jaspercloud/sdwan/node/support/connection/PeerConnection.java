@@ -6,13 +6,25 @@ import io.jaspercloud.sdwan.node.support.tunnel.P2pManager;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 public class PeerConnection {
 
     private DataTunnel dataTunnel;
+    private CompletableFuture<Void> closeFuture = new CompletableFuture<>();
+
+    public void addCloseListener(Consumer<PeerConnection> consumer) {
+        closeFuture.thenAccept(v -> {
+            consumer.accept(this);
+        });
+    }
 
     private PeerConnection(DataTunnel dataTunnel) {
         this.dataTunnel = dataTunnel;
+    }
+
+    public void close() {
+        closeFuture.complete(null);
     }
 
     public static PeerConnection create(DataTunnel dataTunnel) {
@@ -25,7 +37,14 @@ public class PeerConnection {
                                                            List<String> addressList) {
         return p2pManager.create(srcVIP, dstVIP, addressList)
                 .thenApply(tunnel -> {
-                    return new PeerConnection(tunnel);
+                    PeerConnection connection = new PeerConnection(tunnel);
+                    tunnel.addCloseListener(new Consumer<DataTunnel>() {
+                        @Override
+                        public void accept(DataTunnel dataTunnel) {
+                            connection.close();
+                        }
+                    });
+                    return connection;
                 });
     }
 

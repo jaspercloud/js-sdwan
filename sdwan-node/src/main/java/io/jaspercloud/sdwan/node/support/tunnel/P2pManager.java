@@ -3,12 +3,12 @@ package io.jaspercloud.sdwan.node.support.tunnel;
 import io.jaspercloud.sdwan.CompletableFuturePlus;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
-import io.jaspercloud.sdwan.node.support.node.SDWanDataHandler;
-import io.jaspercloud.sdwan.node.support.node.SDWanNode;
 import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
 import io.jaspercloud.sdwan.node.support.detection.AddressType;
 import io.jaspercloud.sdwan.node.support.detection.DetectionInfo;
 import io.jaspercloud.sdwan.node.support.detection.P2pDetection;
+import io.jaspercloud.sdwan.node.support.node.SDWanDataHandler;
+import io.jaspercloud.sdwan.node.support.node.SDWanNode;
 import io.jaspercloud.sdwan.stun.*;
 import io.netty.channel.ChannelHandlerContext;
 import lombok.extern.slf4j.Slf4j;
@@ -104,10 +104,12 @@ public class P2pManager implements InitializingBean {
                                 }
                                 UriComponents components = UriComponentsBuilder.fromUriString(info.getDstAddress()).build();
                                 if (AddressType.RELAY.equals(components.getScheme())) {
+                                    System.out.println("onData RelayDataTunnel");
                                     InetSocketAddress address = new InetSocketAddress(components.getHost(), components.getPort());
                                     DataTunnel dataTunnel = new RelayDataTunnel(stunClient, info, address, components.getQueryParams().getFirst("token"));
                                     tunnelMap.put(info.getDstAddress(), dataTunnel);
                                 } else {
+                                    System.out.println("onData P2pDataTunnel");
                                     InetSocketAddress address = new InetSocketAddress(components.getHost(), components.getPort());
                                     DataTunnel dataTunnel = new P2pDataTunnel(stunClient, info, address);
                                     tunnelMap.put(info.getDstAddress(), dataTunnel);
@@ -143,6 +145,7 @@ public class P2pManager implements InitializingBean {
                                 if (null == throwable) {
                                     return;
                                 }
+                                dataTunnel.close();
                                 tunnelMap.remove(uri);
                                 log.error("punchingHeartTimout: {}", uri);
                             });
@@ -169,10 +172,12 @@ public class P2pManager implements InitializingBean {
                     UriComponents components = UriComponentsBuilder.fromUriString(info.getDstAddress()).build();
                     DataTunnel dataTunnel;
                     if (AddressType.RELAY.equals(components.getScheme())) {
+                        System.out.println("offer RelayDataTunnel");
                         InetSocketAddress address = new InetSocketAddress(components.getHost(), components.getPort());
                         dataTunnel = new RelayDataTunnel(stunClient, info, address, components.getQueryParams().getFirst("token"));
                         tunnelMap.put(info.getDstAddress(), dataTunnel);
                     } else {
+                        System.out.println("offer P2pDataTunnel");
                         InetSocketAddress address = new InetSocketAddress(components.getHost(), components.getPort());
                         dataTunnel = new P2pDataTunnel(stunClient, info, address);
                         tunnelMap.put(info.getDstAddress(), dataTunnel);

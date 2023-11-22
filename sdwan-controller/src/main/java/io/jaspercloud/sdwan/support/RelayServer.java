@@ -84,7 +84,11 @@ public class RelayServer implements InitializingBean, DisposableBean {
 
     private void process(ChannelHandlerContext ctx, StunPacket packet) {
         StunMessage request = packet.content();
-        if (MessageType.BindRelayRequest.equals(request.getMessageType())) {
+        InetSocketAddress sender = packet.sender();
+        if (MessageType.Heart.equals(request.getMessageType())) {
+            StunPacket response = new StunPacket(request, sender);
+            ctx.writeAndFlush(response);
+        } else if (MessageType.BindRelayRequest.equals(request.getMessageType())) {
             processBindRelay(ctx, packet);
         } else if (MessageType.Transfer.equals(request.getMessageType())) {
             processTransfer(ctx, packet);

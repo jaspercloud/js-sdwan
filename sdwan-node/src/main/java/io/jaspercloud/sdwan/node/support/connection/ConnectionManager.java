@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class ConnectionManager implements InitializingBean {
@@ -132,6 +133,12 @@ public class ConnectionManager implements InitializingBean {
                                                 future.completeExceptionally(connectionError);
                                                 return;
                                             }
+                                            connection.addCloseListener(new Consumer<PeerConnection>() {
+                                                @Override
+                                                public void accept(PeerConnection peerConnection) {
+                                                    connectionMap.remove(dstVIP);
+                                                }
+                                            });
                                             connectionMap.put(dstVIP, connection);
                                             future.complete(connection);
                                         });
