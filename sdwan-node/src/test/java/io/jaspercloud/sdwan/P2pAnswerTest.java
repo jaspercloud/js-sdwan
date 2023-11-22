@@ -11,6 +11,7 @@ import io.jaspercloud.sdwan.node.support.detection.PrflxP2pDetection;
 import io.jaspercloud.sdwan.node.support.detection.RelayP2pDetection;
 import io.jaspercloud.sdwan.node.support.detection.SrflxP2pDetection;
 import io.jaspercloud.sdwan.node.support.tunnel.P2pManager;
+import io.jaspercloud.sdwan.node.support.tunnel.TunnelManager;
 import io.jaspercloud.sdwan.stun.MappingAddress;
 import io.jaspercloud.sdwan.stun.StunClient;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -46,8 +47,10 @@ public class P2pAnswerTest {
         p2pManager.addP2pDetection(new HostP2pDetection(stunClient));
         p2pManager.addP2pDetection(new SrflxP2pDetection(stunClient));
         p2pManager.addP2pDetection(new PrflxP2pDetection(stunClient));
-        p2pManager.addP2pDetection(new RelayP2pDetection());
+        p2pManager.addP2pDetection(new RelayP2pDetection(relayClient));
         p2pManager.afterPropertiesSet();
+        TunnelManager tunnelManager = new TunnelManager(properties, sdWanNode, stunClient, relayClient, mappingManager, p2pManager);
+        tunnelManager.afterPropertiesSet();
         //address
         String host = UriComponentsBuilder.newInstance()
                 .scheme("host")

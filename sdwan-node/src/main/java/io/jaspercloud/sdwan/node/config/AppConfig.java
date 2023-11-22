@@ -51,10 +51,10 @@ public class AppConfig {
     public TunnelManager tunnelManager(SDWanNodeProperties properties,
                                        SDWanNode sdWanNode,
                                        StunClient stunClient,
+                                       RelayClient relayClient,
                                        MappingManager mappingManager,
-                                       P2pManager p2pManager,
-                                       RelayManager relayManager) {
-        return new TunnelManager(properties, sdWanNode, stunClient, mappingManager, p2pManager, relayManager);
+                                       P2pManager p2pManager) {
+        return new TunnelManager(properties, sdWanNode, stunClient, relayClient, mappingManager, p2pManager);
     }
 
     @Bean

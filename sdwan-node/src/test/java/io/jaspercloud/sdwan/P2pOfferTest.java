@@ -1,6 +1,7 @@
 package io.jaspercloud.sdwan;
 
 
+import com.google.protobuf.ByteString;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.node.support.MappingManager;
 import io.jaspercloud.sdwan.node.support.RelayClient;
@@ -10,25 +11,23 @@ import io.jaspercloud.sdwan.node.support.detection.HostP2pDetection;
 import io.jaspercloud.sdwan.node.support.detection.PrflxP2pDetection;
 import io.jaspercloud.sdwan.node.support.detection.RelayP2pDetection;
 import io.jaspercloud.sdwan.node.support.detection.SrflxP2pDetection;
-import io.jaspercloud.sdwan.node.support.tunnel.DataTunnel;
 import io.jaspercloud.sdwan.node.support.tunnel.P2pManager;
-import io.jaspercloud.sdwan.stun.*;
-import org.springframework.web.util.UriComponents;
+import io.jaspercloud.sdwan.node.support.tunnel.PeerConnection;
+import io.jaspercloud.sdwan.node.support.tunnel.TunnelManager;
+import io.jaspercloud.sdwan.stun.MappingAddress;
+import io.jaspercloud.sdwan.stun.StunClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.InetSocketAddress;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 public class P2pOfferTest {
 
     public static void main(String[] args) throws Exception {
         SDWanNodeProperties properties = new SDWanNodeProperties();
-        properties.setControllerServer("192.222.0.66:51002");
+        properties.setControllerServer("astute333.tpddns.cn:51002");
         properties.setStunServer("stun.miwifi.com:3478");
-        properties.setRelayServer("192.222.0.66:51003");
+        properties.setRelayServer("astute333.tpddns.cn:51003");
         //sdWanNode
         SDWanNode sdWanNode = new SDWanNode(properties);
         sdWanNode.afterPropertiesSet();
@@ -49,8 +48,10 @@ public class P2pOfferTest {
         p2pManager.addP2pDetection(new HostP2pDetection(stunClient));
         p2pManager.addP2pDetection(new SrflxP2pDetection(stunClient));
         p2pManager.addP2pDetection(new PrflxP2pDetection(stunClient));
-        p2pManager.addP2pDetection(new RelayP2pDetection());
+        p2pManager.addP2pDetection(new RelayP2pDetection(relayClient));
         p2pManager.afterPropertiesSet();
+        TunnelManager tunnelManager = new TunnelManager(properties, sdWanNode, stunClient, relayClient, mappingManager, p2pManager);
+        tunnelManager.afterPropertiesSet();
         //address
         String host = UriComponentsBuilder.newInstance()
                 .scheme("host")
@@ -71,26 +72,19 @@ public class P2pOfferTest {
                 .build().toString();
         SDWanProtos.RegResp regResp = sdWanNode.regist("fa:50:03:01:f8:01", Arrays.asList(host, srflx, relay));
         String vip = regResp.getVip();
-        SDWanProtos.NodeInfoResp nodeInfoResp = sdWanNode.queryNodeInfo("10.1.13.254").get();
-        Map<String, UriComponents> uriComponentsMap = nodeInfoResp.getAddressListList().stream()
-                .map(uri -> UriComponentsBuilder.fromUriString(uri).build())
-                .collect(Collectors.toMap(e -> e.getScheme(), e -> e));
-        List<String> list;
-        try {
-            UriComponents components = uriComponentsMap.get("srflx");
-            StunPacket stunPacket = stunClient.sendBind(new InetSocketAddress(components.getHost(), components.getPort())).get();
-            AddressAttr mappedAddressAttr = stunPacket.content().getAttr(AttrType.MappedAddress);
-            InetSocketAddress punchAddress = mappedAddressAttr.getAddress();
-            String prflx = UriComponentsBuilder.newInstance()
-                    .scheme("prflx")
-                    .host(punchAddress.getHostString())
-                    .port(punchAddress.getPort())
-                    .build().toString();
-            list = Arrays.asList(host, srflx, prflx, relay);
-        } catch (Exception e) {
-            list = Arrays.asList(host, srflx, relay);
-        }
-        DataTunnel dataTunnel = p2pManager.create(vip, nodeInfoResp.getVip(), list).get();
+        SDWanProtos.IpPacket ipPacket = SDWanProtos.IpPacket.newBuilder()
+                .setSrcIP("1")
+                .setDstIP("2")
+                .setPayload(ByteString.EMPTY)
+                .build();
+        SDWanProtos.RoutePacket routePacket = SDWanProtos.RoutePacket.newBuilder()
+                .setSrcVIP(vip)
+                .setDstVIP("10.1.13.254")
+                .setPayload(ipPacket)
+                .build();
+        PeerConnection peerConnection = tunnelManager.getConnection(routePacket.getSrcVIP(), routePacket.getDstVIP()).get();
+        peerConnection.send(routePacket);
+        System.out.println("send");
         System.out.println();
     }
 }
