@@ -71,8 +71,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
         tunnelManager.addConnectionDataHandler(new ConnectionDataHandler() {
             @Override
             public void onData(PeerConnection connection, SDWanProtos.IpPacket packet) {
-                byte[] data = packet.getPayload().toByteArray();
-                tunChannel.writeAndFlush(ByteBufUtil.toByteBuf(data));
+                processWriteTun(tunChannel, packet);
             }
         });
         Thread thread = new Thread(this, "tun-device");
@@ -188,5 +187,10 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                 .setPayload(ByteString.copyFrom(data))
                 .build();
         routeManager.route(localVIP, ipPacket);
+    }
+
+    private void processWriteTun(TunChannel tunChannel, SDWanProtos.IpPacket ipPacket) {
+        byte[] data = ipPacket.getPayload().toByteArray();
+        tunChannel.writeAndFlush(ByteBufUtil.toByteBuf(data));
     }
 }
