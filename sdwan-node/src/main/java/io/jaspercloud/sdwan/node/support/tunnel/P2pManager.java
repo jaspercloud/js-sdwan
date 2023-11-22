@@ -1,6 +1,6 @@
 package io.jaspercloud.sdwan.node.support.tunnel;
 
-import io.jaspercloud.sdwan.CompletableFuturePlus;
+import io.jaspercloud.sdwan.CompletableFutures;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
@@ -86,7 +86,7 @@ public class P2pManager implements InitializingBean {
                             while (iterator.hasNext()) {
                                 UriComponents next = iterator.next();
                                 P2pDetection detection = detectionMap.get(next.getScheme());
-                                future = CompletableFuturePlus.onException(future, () -> {
+                                future = CompletableFutures.onException(future, () -> {
                                     return detection.detection(next.toUriString());
                                 });
                             }

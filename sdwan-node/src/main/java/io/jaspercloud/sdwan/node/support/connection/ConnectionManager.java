@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 
 public class ConnectionManager implements InitializingBean {
 
-    private Map<String, PeerConnection> connectionMap = new ConcurrentHashMap<>();
+    private Map<String, CompletableFuture<PeerConnection>> connectionMap = new ConcurrentHashMap<>();
     private SDWanNodeProperties properties;
     private SDWanNode sdWanNode;
     private StunClient stunClient;
@@ -57,94 +57,94 @@ public class ConnectionManager implements InitializingBean {
         p2pManager.addDataHandler(new TunnelDataHandler() {
             @Override
             public void onData(DataTunnel dataTunnel, SDWanProtos.RoutePacket routePacket) {
-                PeerConnection connection = connectionMap.get(routePacket.getDstVIP());
-                if (null == connection) {
-                    connection = PeerConnection.create(dataTunnel);
-                    connectionMap.put(routePacket.getDstVIP(), connection);
-                }
-                SDWanProtos.IpPacket ipPacket = routePacket.getPayload();
-                for (ConnectionDataHandler handler : connectionDataHandlerList) {
-                    handler.onData(connection, ipPacket);
-                }
+                CompletableFuture<PeerConnection> future = connectionMap.computeIfAbsent(routePacket.getDstVIP(), key -> {
+                    return CompletableFuture.completedFuture(PeerConnection.create(dataTunnel));
+                });
+                future.whenComplete((connection, throwable) -> {
+                    if (null != throwable) {
+                        return;
+                    }
+                    SDWanProtos.IpPacket ipPacket = routePacket.getPayload();
+                    for (ConnectionDataHandler handler : connectionDataHandlerList) {
+                        handler.onData(connection, ipPacket);
+                    }
+                });
             }
         });
     }
 
     public CompletableFuture<PeerConnection> getConnection(String srcVIP, String dstVIP) {
-        PeerConnection target = connectionMap.get(dstVIP);
-        if (null != target) {
-            return CompletableFuture.completedFuture(target);
-        }
-        CompletableFuture future = new CompletableFuture();
-        sdWanNode.queryNodeInfo(dstVIP)
-                .whenComplete((resp, nodeInfoError) -> {
-                    if (null != nodeInfoError) {
-                        future.completeExceptionally(nodeInfoError);
-                        return;
+        CompletableFuture<PeerConnection> result = connectionMap.computeIfAbsent(dstVIP, key -> {
+            return sdWanNode.queryNodeInfo(dstVIP)
+                    .thenApply(nodeInfo -> {
+                        if (SDWanProtos.MessageCode.Success_VALUE != nodeInfo.getCode()) {
+                            throw new ProcessException("query nodeInfo error");
+                        }
+                        return sendBind(nodeInfo, srcVIP, dstVIP);
+                    })
+                    .thenCompose(f -> f);
+        });
+        return result;
+    }
+
+    private CompletableFuture<PeerConnection> sendBind(SDWanProtos.NodeInfoResp nodeInfo, String srcVIP, String dstVIP) {
+        //address
+        InetSocketAddress sdWanNodeLocalAddress = (InetSocketAddress) sdWanNode.getChannel().localAddress();
+        InetSocketAddress stunClientLocalAddress = (InetSocketAddress) stunClient.getChannel().localAddress();
+        String host = UriComponentsBuilder.newInstance()
+                .scheme("host")
+                .host(sdWanNodeLocalAddress.getHostString())
+                .port(stunClientLocalAddress.getPort())
+                .build().toString();
+        MappingAddress mappingAddress = mappingManager.getMappingAddress();
+        String srflx = UriComponentsBuilder.newInstance()
+                .scheme("srflx")
+                .host(mappingAddress.getMappingAddress().getHostString())
+                .port(mappingAddress.getMappingAddress().getPort())
+                .queryParam("mappingType", mappingAddress.getMappingType().name())
+                .build().toString();
+        String relay = UriComponentsBuilder.newInstance()
+                .scheme("relay")
+                .host(properties.getRelayServer().getHostString())
+                .port(properties.getRelayServer().getPort())
+                .queryParam("token", relayClient.getRelayToken())
+                .build().toString();
+        //try target bind
+        Map<String, UriComponents> uriComponentsMap = nodeInfo.getAddressListList().stream()
+                .map(uri -> UriComponentsBuilder.fromUriString(uri).build())
+                .collect(Collectors.toMap(e -> e.getScheme(), e -> e));
+        UriComponents components = uriComponentsMap.get("srflx");
+        return stunClient.sendBind(new InetSocketAddress(components.getHost(), components.getPort()))
+                .handle((bindResp, bindError) -> {
+                    if (null != bindError) {
+                        return Arrays.asList(host, srflx, relay);
                     }
-                    if (SDWanProtos.MessageCode.Success_VALUE != resp.getCode()) {
-                        future.completeExceptionally(new ProcessException("query nodeInfo error"));
-                        return;
-                    }
-                    //address
-                    InetSocketAddress sdWanNodeLocalAddress = (InetSocketAddress) sdWanNode.getChannel().localAddress();
-                    InetSocketAddress stunClientLocalAddress = (InetSocketAddress) stunClient.getChannel().localAddress();
-                    String host = UriComponentsBuilder.newInstance()
-                            .scheme("host")
-                            .host(sdWanNodeLocalAddress.getHostString())
-                            .port(stunClientLocalAddress.getPort())
+                    AddressAttr mappedAddressAttr = bindResp.content().getAttr(AttrType.MappedAddress);
+                    InetSocketAddress punchAddress = mappedAddressAttr.getAddress();
+                    String prflx = UriComponentsBuilder.newInstance()
+                            .scheme("prflx")
+                            .host(punchAddress.getHostString())
+                            .port(punchAddress.getPort())
                             .build().toString();
-                    MappingAddress mappingAddress = mappingManager.getMappingAddress();
-                    String srflx = UriComponentsBuilder.newInstance()
-                            .scheme("srflx")
-                            .host(mappingAddress.getMappingAddress().getHostString())
-                            .port(mappingAddress.getMappingAddress().getPort())
-                            .queryParam("mappingType", mappingAddress.getMappingType().name())
-                            .build().toString();
-                    String relay = UriComponentsBuilder.newInstance()
-                            .scheme("relay")
-                            .host(properties.getRelayServer().getHostString())
-                            .port(properties.getRelayServer().getPort())
-                            .queryParam("token", relayClient.getRelayToken())
-                            .build().toString();
-                    //try target bind
-                    Map<String, UriComponents> uriComponentsMap = resp.getAddressListList().stream()
-                            .map(uri -> UriComponentsBuilder.fromUriString(uri).build())
-                            .collect(Collectors.toMap(e -> e.getScheme(), e -> e));
-                    UriComponents components = uriComponentsMap.get("srflx");
-                    stunClient.sendBind(new InetSocketAddress(components.getHost(), components.getPort()))
-                            .handle((bindResp, bindError) -> {
-                                if (null != bindError) {
-                                    return Arrays.asList(host, srflx, relay);
-                                }
-                                AddressAttr mappedAddressAttr = bindResp.content().getAttr(AttrType.MappedAddress);
-                                InetSocketAddress punchAddress = mappedAddressAttr.getAddress();
-                                String prflx = UriComponentsBuilder.newInstance()
-                                        .scheme("prflx")
-                                        .host(punchAddress.getHostString())
-                                        .port(punchAddress.getPort())
-                                        .build().toString();
-                                return Arrays.asList(host, srflx, prflx, relay);
-                            })
-                            .thenAccept(addressList -> {
-                                PeerConnection.create(p2pManager, srcVIP, dstVIP, addressList)
-                                        .whenComplete((connection, connectionError) -> {
-                                            if (null != connectionError) {
-                                                future.completeExceptionally(connectionError);
-                                                return;
-                                            }
-                                            connection.addCloseListener(new Consumer<PeerConnection>() {
-                                                @Override
-                                                public void accept(PeerConnection peerConnection) {
-                                                    connectionMap.remove(dstVIP);
-                                                }
-                                            });
-                                            connectionMap.put(dstVIP, connection);
-                                            future.complete(connection);
-                                        });
-                            });
+                    return Arrays.asList(host, srflx, prflx, relay);
+                })
+                .thenApply(addressList -> {
+                    return createConnection(srcVIP, dstVIP, addressList);
+                })
+                .thenCompose(f -> f);
+    }
+
+    private CompletableFuture<PeerConnection> createConnection(String srcVIP, String dstVIP, List<String> addressList) {
+        return PeerConnection.create(p2pManager, srcVIP, dstVIP, addressList)
+                .thenApply(connection -> {
+                    connection.addCloseListener(new Consumer<PeerConnection>() {
+                        @Override
+                        public void accept(PeerConnection peerConnection) {
+                            connectionMap.remove(dstVIP);
+                        }
+                    });
+                    return connection;
                 });
-        return future;
     }
 
     public void send(SDWanProtos.RoutePacket routePacket) {
