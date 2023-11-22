@@ -10,7 +10,9 @@ import io.jaspercloud.sdwan.node.support.detection.HostP2pDetection;
 import io.jaspercloud.sdwan.node.support.detection.PrflxP2pDetection;
 import io.jaspercloud.sdwan.node.support.detection.RelayP2pDetection;
 import io.jaspercloud.sdwan.node.support.detection.SrflxP2pDetection;
+import io.jaspercloud.sdwan.node.support.tunnel.ConnectionDataHandler;
 import io.jaspercloud.sdwan.node.support.tunnel.P2pManager;
+import io.jaspercloud.sdwan.node.support.tunnel.PeerConnection;
 import io.jaspercloud.sdwan.node.support.tunnel.TunnelManager;
 import io.jaspercloud.sdwan.stun.MappingAddress;
 import io.jaspercloud.sdwan.stun.StunClient;
@@ -50,6 +52,12 @@ public class P2pAnswerTest {
         p2pManager.addP2pDetection(new RelayP2pDetection(relayClient));
         p2pManager.afterPropertiesSet();
         TunnelManager tunnelManager = new TunnelManager(properties, sdWanNode, stunClient, relayClient, mappingManager, p2pManager);
+        tunnelManager.addConnectionDataHandler(new ConnectionDataHandler() {
+            @Override
+            public void onData(PeerConnection connection, SDWanProtos.IpPacket packet) {
+                System.out.println();
+            }
+        });
         tunnelManager.afterPropertiesSet();
         //address
         String host = UriComponentsBuilder.newInstance()

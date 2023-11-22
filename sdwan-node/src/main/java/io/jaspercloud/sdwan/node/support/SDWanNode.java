@@ -1,12 +1,22 @@
 package io.jaspercloud.sdwan.node.support;
 
 import com.google.protobuf.ByteString;
-import io.jaspercloud.sdwan.*;
+import io.jaspercloud.sdwan.AsyncTask;
+import io.jaspercloud.sdwan.LogHandler;
+import io.jaspercloud.sdwan.NetworkInterfaceInfo;
+import io.jaspercloud.sdwan.NetworkInterfaceUtil;
+import io.jaspercloud.sdwan.NioEventLoopFactory;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.protobuf.ProtobufDecoder;
@@ -152,16 +162,6 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
         }
     }
 
-    public SDWanProtos.Message invokeSync(SDWanProtos.Message request) throws Exception {
-        if (!localChannel.isActive()) {
-            throw new ProcessException("channel closed");
-        }
-        CompletableFuture<SDWanProtos.Message> future = AsyncTask.waitTask(request.getReqId(), 3000);
-        localChannel.writeAndFlush(request);
-        SDWanProtos.Message response = future.get();
-        return response;
-    }
-
     public CompletableFuture<SDWanProtos.Message> invokeAsync(SDWanProtos.Message request) {
         if (!localChannel.isActive()) {
             throw new ProcessException("channel closed");
@@ -212,88 +212,9 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                 .setType(SDWanProtos.MsgTypeCode.RegReqType)
                 .setData(regReq.toByteString())
                 .build();
-        SDWanProtos.Message response = invokeSync(request);
+        SDWanProtos.Message response = invokeAsync(request).get();
         SDWanProtos.RegResp regResp = SDWanProtos.RegResp.parseFrom(response.getData());
         return regResp;
-    }
-
-//    public CompletableFuture<SDWanProtos.SDArpResp> sdArp(String ip) {
-//        SDWanProtos.SDArpReq nodeArpReq = SDWanProtos.SDArpReq.newBuilder()
-//                .setIp(ip)
-//                .build();
-//        SDWanProtos.Message request = SDWanProtos.Message.newBuilder()
-//                .setReqId(UUID.randomUUID().toString())
-//                .setType(SDWanProtos.MsgTypeCode.SDArpReqType)
-//                .setData(nodeArpReq.toByteString())
-//                .build();
-//        return invokeAsync(request)
-//                .thenApply(resp -> {
-//                    try {
-//                        SDWanProtos.SDArpResp sdArpResp = SDWanProtos.SDArpResp.parseFrom(resp.getData());
-//                        return sdArpResp;
-//                    } catch (Exception e) {
-//                        throw new ProcessException(e.getMessage(), e);
-//                    }
-//                });
-//    }
-//
-//    public CompletableFuture<InetSocketAddress> punch(InetSocketAddress srcAddr, InetSocketAddress dstAddr) {
-//        SDWanProtos.PunchReq punchReq = SDWanProtos.PunchReq.newBuilder()
-//                .setTranId(UUID.randomUUID().toString())
-//                .setSrcAddr(SDWanProtos.SocketAddress.newBuilder()
-//                        .setIp(srcAddr.getHostString())
-//                        .setPort(srcAddr.getPort())
-//                        .build())
-//                .setDstAddr(SDWanProtos.SocketAddress.newBuilder()
-//                        .setIp(dstAddr.getHostString())
-//                        .setPort(dstAddr.getPort())
-//                        .build())
-//                .build();
-//        SDWanProtos.Message req = SDWanProtos.Message.newBuilder()
-//                .setReqId(UUID.randomUUID().toString())
-//                .setType(SDWanProtos.MsgTypeCode.PunchReqType)
-//                .setData(punchReq.toByteString())
-//                .build();
-//        return invokeAsync(req)
-//                .thenApply(resp -> {
-//                    try {
-//                        SDWanProtos.PunchResp punchResp = SDWanProtos.PunchResp.parseFrom(resp.getData());
-//                        if (SDWanProtos.MessageCode.Success_VALUE != punchResp.getCode()) {
-//                            throw new ProcessException("punch error");
-//                        }
-//                        SDWanProtos.SocketAddress addr = punchResp.getAddr();
-//                        InetSocketAddress socketAddress = new InetSocketAddress(addr.getIp(), addr.getPort());
-//                        return socketAddress;
-//                    } catch (ProcessException e) {
-//                        throw e;
-//                    } catch (Exception e) {
-//                        throw new ProcessException(e.getMessage(), e);
-//                    }
-//                });
-//    }
-
-    public CompletableFuture<Boolean> checkRelayToken(String relayToken) {
-//        SDWanProtos.CheckRelayTokenReq tokenReq = SDWanProtos.CheckRelayTokenReq.newBuilder()
-//                .setToken(relayToken)
-//                .build();
-//        SDWanProtos.Message req = SDWanProtos.Message.newBuilder()
-//                .setReqId(UUID.randomUUID().toString())
-//                .setType(SDWanProtos.MsgTypeCode.CheckRelayTokenReqType)
-//                .setData(tokenReq.toByteString())
-//                .build();
-//        return invokeAsync(req)
-//                .thenApply(resp -> {
-//                    try {
-//                        SDWanProtos.CheckRelayTokenResp checkRelayTokenResp = SDWanProtos.CheckRelayTokenResp.parseFrom(resp.getData());
-//                        if (SDWanProtos.MessageCode.Success_VALUE != checkRelayTokenResp.getCode()) {
-//                            return false;
-//                        }
-//                        return true;
-//                    } catch (Exception e) {
-//                        throw new ProcessException(e.getMessage(), e);
-//                    }
-//                });
-        return null;
     }
 
     public CompletableFuture<SDWanProtos.NodeInfoResp> queryNodeInfo(String vip) {

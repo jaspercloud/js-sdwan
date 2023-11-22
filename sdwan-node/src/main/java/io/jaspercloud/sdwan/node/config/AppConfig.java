@@ -1,12 +1,15 @@
 package io.jaspercloud.sdwan.node.config;
 
-import io.jaspercloud.sdwan.node.support.*;
+import io.jaspercloud.sdwan.node.support.MappingManager;
+import io.jaspercloud.sdwan.node.support.RelayClient;
+import io.jaspercloud.sdwan.node.support.SDWanNode;
+import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
+import io.jaspercloud.sdwan.node.support.TunEngine;
 import io.jaspercloud.sdwan.node.support.route.LinuxRouteManager;
 import io.jaspercloud.sdwan.node.support.route.OsxRouteManager;
 import io.jaspercloud.sdwan.node.support.route.RouteManager;
 import io.jaspercloud.sdwan.node.support.route.WindowsRouteManager;
 import io.jaspercloud.sdwan.node.support.tunnel.P2pManager;
-import io.jaspercloud.sdwan.node.support.tunnel.RelayManager;
 import io.jaspercloud.sdwan.node.support.tunnel.TunnelManager;
 import io.jaspercloud.sdwan.stun.StunClient;
 import io.netty.util.internal.PlatformDependent;
@@ -38,13 +41,6 @@ public class AppConfig {
     public RelayClient relayClient(SDWanNodeProperties properties,
                                    StunClient stunClient) {
         return new RelayClient(properties, stunClient);
-    }
-
-    @Bean
-    public RelayManager relayManager(SDWanNodeProperties properties,
-                                     SDWanNode sdWanNode,
-                                     RelayClient relayClient) {
-        return new RelayManager(properties, sdWanNode, relayClient);
     }
 
     @Bean
@@ -82,8 +78,7 @@ public class AppConfig {
     public TunEngine tunEngine(SDWanNodeProperties properties,
                                SDWanNode sdWanNode,
                                MappingManager mappingManager,
-                               RouteManager routeManager,
-                               RelayManager relayManager) {
-        return new TunEngine(properties, sdWanNode, mappingManager, routeManager, relayManager);
+                               RouteManager routeManager) {
+        return new TunEngine(properties, sdWanNode, mappingManager, routeManager);
     }
 }
