@@ -17,6 +17,11 @@ public final class Iptables {
         int code = ProcessUtil.exec(cmd);
     }
 
+    public static void addNatRule(String ethName) throws IOException, InterruptedException {
+        String cmd = String.format("iptables -t nat -A POSTROUTING -o %s -j MASQUERADE", ethName);
+        int code = ProcessUtil.exec(cmd);
+    }
+
     public static boolean queryFilterRule(String tunName, String ethName) throws IOException, InterruptedException {
         String cmd = "iptables -t filter -L FORWARD -n -v";
         List<String> list = ProcessUtil.query(cmd);
@@ -28,16 +33,6 @@ public final class Iptables {
         return false;
     }
 
-    public static void deleteFilterRule(String tunName, String ethName) throws IOException, InterruptedException {
-        String cmd = String.format("iptables -t filter -D FORWARD -i %s -o %s -j ACCEPT", tunName, ethName);
-        int code = ProcessUtil.exec(cmd);
-    }
-
-    public static void addNatRule(String ethName) throws IOException, InterruptedException {
-        String cmd = String.format("iptables -t nat -A POSTROUTING -o %s -j MASQUERADE", ethName);
-        int code = ProcessUtil.exec(cmd);
-    }
-
     public static boolean queryNatRule(String ethName) throws IOException, InterruptedException {
         String cmd = "iptables -t nat -L POSTROUTING -n -v";
         List<String> list = ProcessUtil.query(cmd);
@@ -47,6 +42,11 @@ public final class Iptables {
             }
         }
         return false;
+    }
+
+    public static void deleteFilterRule(String tunName, String ethName) throws IOException, InterruptedException {
+        String cmd = String.format("iptables -t filter -D FORWARD -i %s -o %s -j ACCEPT", tunName, ethName);
+        int code = ProcessUtil.exec(cmd);
     }
 
     public static void deleteNatRule(String ethName) throws IOException, InterruptedException {
