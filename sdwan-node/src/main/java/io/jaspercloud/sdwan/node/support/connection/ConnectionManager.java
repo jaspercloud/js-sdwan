@@ -84,6 +84,10 @@ public class ConnectionManager implements InitializingBean {
                     })
                     .thenCompose(f -> f);
         });
+        result.exceptionally(throwable -> {
+            connectionMap.remove(dstVIP);
+            return null;
+        });
         return result;
     }
 
