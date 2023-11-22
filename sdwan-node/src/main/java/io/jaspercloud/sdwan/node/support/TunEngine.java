@@ -6,13 +6,13 @@ import io.jaspercloud.sdwan.NetworkInterfaceInfo;
 import io.jaspercloud.sdwan.NetworkInterfaceUtil;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
+import io.jaspercloud.sdwan.node.support.connection.ConnectionDataHandler;
+import io.jaspercloud.sdwan.node.support.connection.ConnectionManager;
+import io.jaspercloud.sdwan.node.support.connection.PeerConnection;
 import io.jaspercloud.sdwan.node.support.node.MappingManager;
 import io.jaspercloud.sdwan.node.support.node.RelayClient;
 import io.jaspercloud.sdwan.node.support.node.SDWanNode;
 import io.jaspercloud.sdwan.node.support.route.RouteManager;
-import io.jaspercloud.sdwan.node.support.connection.ConnectionDataHandler;
-import io.jaspercloud.sdwan.node.support.connection.PeerConnection;
-import io.jaspercloud.sdwan.node.support.connection.ConnectionManager;
 import io.jaspercloud.sdwan.stun.MappingAddress;
 import io.jaspercloud.sdwan.stun.StunClient;
 import io.jaspercloud.sdwan.tun.Ipv4Packet;
@@ -188,6 +188,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
             return;
         }
         Ipv4Packet ipv4Packet = Ipv4Packet.decodeMark(msg);
+        System.out.println(String.format("read: src=%s, dst=%s", ipv4Packet.getSrcIP(), ipv4Packet.getDstIP()));
         byte[] data = ByteBufUtil.toBytes(msg);
         SDWanProtos.IpPacket ipPacket = SDWanProtos.IpPacket.newBuilder()
                 .setSrcIP(ipv4Packet.getSrcIP())
@@ -198,6 +199,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
     }
 
     private void processWriteTun(TunChannel tunChannel, SDWanProtos.IpPacket ipPacket) {
+        System.out.println(String.format("write: src=%s, dst=%s", ipPacket.getSrcIP(), ipPacket.getDstIP()));
         byte[] data = ipPacket.getPayload().toByteArray();
         tunChannel.writeAndFlush(ByteBufUtil.toByteBuf(data));
     }
