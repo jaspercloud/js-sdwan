@@ -7,6 +7,9 @@ import io.jaspercloud.sdwan.NetworkInterfaceUtil;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.node.support.route.RouteManager;
+import io.jaspercloud.sdwan.node.support.tunnel.ConnectionDataHandler;
+import io.jaspercloud.sdwan.node.support.tunnel.PeerConnection;
+import io.jaspercloud.sdwan.node.support.tunnel.TunnelManager;
 import io.jaspercloud.sdwan.stun.MappingAddress;
 import io.jaspercloud.sdwan.stun.StunClient;
 import io.jaspercloud.sdwan.tun.Ipv4Packet;
@@ -16,14 +19,7 @@ import io.jaspercloud.sdwan.tun.TunChannelConfig;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.DefaultEventLoopGroup;
-import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
@@ -45,6 +41,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
     private RelayClient relayClient;
     private MappingManager mappingManager;
     private RouteManager routeManager;
+    private TunnelManager tunnelManager;
 
     private TunChannel tunChannel;
 
@@ -57,18 +54,27 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                      StunClient stunClient,
                      RelayClient relayClient,
                      MappingManager mappingManager,
-                     RouteManager routeManager) {
+                     RouteManager routeManager,
+                     TunnelManager tunnelManager) {
         this.properties = properties;
         this.sdWanNode = sdWanNode;
         this.stunClient = stunClient;
         this.relayClient = relayClient;
         this.mappingManager = mappingManager;
         this.routeManager = routeManager;
+        this.tunnelManager = tunnelManager;
     }
 
     @Override
     public void afterPropertiesSet() throws Exception {
         tunChannel = bootTun();
+        tunnelManager.addConnectionDataHandler(new ConnectionDataHandler() {
+            @Override
+            public void onData(PeerConnection connection, SDWanProtos.IpPacket packet) {
+                byte[] data = packet.getPayload().toByteArray();
+                tunChannel.writeAndFlush(ByteBufUtil.toByteBuf(data));
+            }
+        });
         Thread thread = new Thread(this, "tun-device");
         thread.start();
     }

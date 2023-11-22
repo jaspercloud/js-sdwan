@@ -106,7 +106,8 @@ public class AppConfig {
                                StunClient stunClient,
                                RelayClient relayClient,
                                MappingManager mappingManager,
-                               RouteManager routeManager) {
-        return new TunEngine(properties, sdWanNode, stunClient, relayClient, mappingManager, routeManager);
+                               RouteManager routeManager,
+                               TunnelManager tunnelManager) {
+        return new TunEngine(properties, sdWanNode, stunClient, relayClient, mappingManager, routeManager, tunnelManager);
     }
 }
