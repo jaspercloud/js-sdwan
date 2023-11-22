@@ -24,9 +24,9 @@ public class P2pAnswerTest {
 
     public static void main(String[] args) throws Exception {
         SDWanNodeProperties properties = new SDWanNodeProperties();
-        properties.setControllerServer("192.222.0.66:51002");
+        properties.setControllerServer("astute333.tpddns.cn:51002");
         properties.setStunServer("stun.miwifi.com:3478");
-        properties.setRelayServer("192.222.0.66:51003");
+        properties.setRelayServer("astute333.tpddns.cn:51003");
         //sdWanNode
         SDWanNode sdWanNode = new SDWanNode(properties);
         sdWanNode.afterPropertiesSet();
