@@ -185,7 +185,6 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
             return;
         }
         Ipv4Packet ipv4Packet = Ipv4Packet.decodeMark(msg);
-        System.out.println(String.format("read: src=%s, dst=%s", ipv4Packet.getSrcIP(), ipv4Packet.getDstIP()));
         byte[] data = ByteBufUtil.toBytes(msg);
         SDWanProtos.IpPacket ipPacket = SDWanProtos.IpPacket.newBuilder()
                 .setSrcIP(ipv4Packet.getSrcIP())
@@ -196,7 +195,6 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
     }
 
     private void processWriteTun(TunChannel tunChannel, SDWanProtos.IpPacket ipPacket) {
-        System.out.println(String.format("write: src=%s, dst=%s", ipPacket.getSrcIP(), ipPacket.getDstIP()));
         byte[] data = ipPacket.getPayload().toByteArray();
         tunChannel.writeAndFlush(ByteBufUtil.toByteBuf(data));
     }
