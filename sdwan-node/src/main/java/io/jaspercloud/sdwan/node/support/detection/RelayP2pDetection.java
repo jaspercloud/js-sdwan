@@ -1,10 +1,17 @@
 package io.jaspercloud.sdwan.node.support.detection;
 
+import io.jaspercloud.sdwan.node.support.RelayClient;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
 
 public class RelayP2pDetection implements P2pDetection {
 
-    public RelayP2pDetection() {
+    private RelayClient relayClient;
+
+    public RelayP2pDetection(RelayClient relayClient) {
+        this.relayClient = relayClient;
     }
 
     @Override
@@ -14,6 +21,14 @@ public class RelayP2pDetection implements P2pDetection {
 
     @Override
     public CompletableFuture<String> detection(String uri) {
-        return CompletableFuture.completedFuture(uri);
+        InetSocketAddress relayAddress = relayClient.getRelayAddress();
+        String relayToken = relayClient.getRelayToken();
+        String targetUri = UriComponentsBuilder.newInstance()
+                .scheme(AddressType.RELAY)
+                .host(relayAddress.getHostString())
+                .port(relayAddress.getPort())
+                .queryParam("token", relayToken)
+                .build().toString();
+        return CompletableFuture.completedFuture(targetUri);
     }
 }

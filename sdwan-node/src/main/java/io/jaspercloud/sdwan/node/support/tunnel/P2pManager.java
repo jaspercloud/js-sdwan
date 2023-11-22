@@ -9,6 +9,8 @@ import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
 import io.jaspercloud.sdwan.node.support.detection.AddressType;
 import io.jaspercloud.sdwan.node.support.detection.P2pDetection;
 import io.jaspercloud.sdwan.stun.StunClient;
+import io.jaspercloud.sdwan.stun.StunDataHandler;
+import io.jaspercloud.sdwan.stun.StunMessage;
 import io.netty.channel.ChannelHandlerContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
@@ -47,6 +49,12 @@ public class P2pManager implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
+        stunClient.addStunDataHandler(new StunDataHandler<StunMessage>() {
+            @Override
+            protected void onData(ChannelHandlerContext ctx, StunMessage msg) {
+                System.out.println();
+            }
+        });
         sdWanNode.addDataHandler(new SDWanDataHandler<SDWanProtos.Message>() {
             @Override
             public void onData(ChannelHandlerContext ctx, SDWanProtos.Message msg) throws Exception {
