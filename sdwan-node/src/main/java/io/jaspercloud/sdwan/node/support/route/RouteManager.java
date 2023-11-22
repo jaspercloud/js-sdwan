@@ -29,15 +29,21 @@ public abstract class RouteManager {
 
     public void route(String localVIP, SDWanProtos.IpPacket ipPacket) {
         SDWanProtos.Route route = findRoute(ipPacket.getDstIP());
-        if (null == route) {
-            return;
+        if (null != route) {
+            SDWanProtos.RoutePacket routePacket = SDWanProtos.RoutePacket.newBuilder()
+                    .setSrcVIP(localVIP)
+                    .setDstVIP(route.getNexthop())
+                    .setPayload(ipPacket)
+                    .build();
+            tunnelManager.send(routePacket);
+        } else {
+            SDWanProtos.RoutePacket routePacket = SDWanProtos.RoutePacket.newBuilder()
+                    .setSrcVIP(localVIP)
+                    .setDstVIP(ipPacket.getDstIP())
+                    .setPayload(ipPacket)
+                    .build();
+            tunnelManager.send(routePacket);
         }
-        SDWanProtos.RoutePacket routePacket = SDWanProtos.RoutePacket.newBuilder()
-                .setSrcVIP(localVIP)
-                .setDstVIP(route.getNexthop())
-                .setPayload(ipPacket)
-                .build();
-        tunnelManager.send(routePacket);
     }
 
     private SDWanProtos.Route findRoute(String dstIP) {
