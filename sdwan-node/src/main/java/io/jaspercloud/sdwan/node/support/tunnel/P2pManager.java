@@ -147,7 +147,7 @@ public class P2pManager implements InitializingBean {
                                 }
                                 dataTunnel.close();
                                 tunnelMap.remove(uri);
-                                log.error("punchingHeartTimout: {}", uri);
+                                log.error("p2pHeartTimout: {}", uri);
                             });
                 }
                 try {
