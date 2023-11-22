@@ -31,6 +31,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.InetSocketAddress;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
@@ -188,7 +189,15 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
             return;
         }
         Ipv4Packet ipv4Packet = Ipv4Packet.decodeMark(msg);
-        System.out.println(String.format("read: src=%s, dst=%s", ipv4Packet.getSrcIP(), ipv4Packet.getDstIP()));
+        // TODO: 2023/11/22
+        List<String> ig = Arrays.asList(
+                "10.1.15.255",
+                "239.255.255.250",
+                "224.0.0.251"
+        );
+        if (!ig.contains(ipv4Packet.getDstIP())) {
+            System.out.println(String.format("read: src=%s, dst=%s", ipv4Packet.getSrcIP(), ipv4Packet.getDstIP()));
+        }
         byte[] data = ByteBufUtil.toBytes(msg);
         SDWanProtos.IpPacket ipPacket = SDWanProtos.IpPacket.newBuilder()
                 .setSrcIP(ipv4Packet.getSrcIP())
