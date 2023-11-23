@@ -88,7 +88,9 @@ public class RelayServer implements InitializingBean, DisposableBean {
         InetSocketAddress sender = packet.sender();
         if (MessageType.BindRelayRequest.equals(request.getMessageType())) {
             processBindRelay(ctx, packet);
-        } else if (MessageType.Heart.equals(request.getMessageType())) {
+        } else if (MessageType.HeartRequest.equals(request.getMessageType())) {
+            processRelayHeart(ctx, packet);
+        } else if (MessageType.HeartResponse.equals(request.getMessageType())) {
             processRelayHeart(ctx, packet);
         } else if (MessageType.Transfer.equals(request.getMessageType())) {
             processTransfer(ctx, packet);
