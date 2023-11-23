@@ -74,6 +74,9 @@ public class P2pManager implements InitializingBean {
                         SDWanProtos.P2pPacket p2pPacket = SDWanProtos.P2pPacket.parseFrom(data);
                         SDWanProtos.RoutePacket routePacket = p2pPacket.getPayload();
                         DataTunnel dataTunnel = tunnelMap.get(p2pPacket.getSrcAddress());
+                        if (null == dataTunnel) {
+                            return;
+                        }
                         for (TunnelDataHandler handler : tunnelDataHandlerList) {
                             handler.onData(dataTunnel, routePacket);
                         }
