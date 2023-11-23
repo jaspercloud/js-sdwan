@@ -90,8 +90,6 @@ sdwan:
     stunServer: stun.miwifi.com:3478
     # Relay server address
     relayServer: 127.0.0.1:8082
-    # Configure the local IP for your machine, as there may be multiple network interfaces
-    localIP: 192.168.1.2
 ```
 
 3.Starting sdwan-node on Your Local Machine
@@ -106,8 +104,6 @@ sdwan:
     stunServer: stun.miwifi.com:3478
     # Relay server address
     relayServer: 127.0.0.1:8082
-    # Configure the local IP for your machine, as there may be multiple network interfaces
-    localIP: 10.22.6.3
 ```
 4.Defining Routes in the Dashboard
 
@@ -118,3 +114,24 @@ View online node information.
 Configure route information.
 
 ![route](doc/img/route.png)
+
+```shell
+sudo iptables -F
+sudo iptables -X
+sudo iptables -t nat -F
+sudo iptables -t nat -X
+sudo iptables -t mangle -F
+sudo iptables -t mangle -X
+sudo iptables -P INPUT ACCEPT
+sudo iptables -P FORWARD ACCEPT
+sudo iptables -P OUTPUT ACCEPT
+```
+iptables -F: Flushes all rules in the default chains.
+iptables -X: Deletes all user-defined chains.
+iptables -t nat -F: Flushes the rules in the NAT table.
+iptables -t nat -X: Deletes all user-defined chains in the NAT table.
+iptables -t mangle -F: Flushes the rules in the Mangle table.
+iptables -t mangle -X: Deletes all user-defined chains in the Mangle table.
+iptables -P INPUT ACCEPT: Sets the default policy for the INPUT chain to ACCEPT.
+iptables -P FORWARD ACCEPT: Sets the default policy for the FORWARD chain to ACCEPT.
+iptables -P OUTPUT ACCEPT: Sets the default policy for the OUTPUT chain to ACCEPT.
