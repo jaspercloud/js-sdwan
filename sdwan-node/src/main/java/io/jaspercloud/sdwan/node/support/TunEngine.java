@@ -195,7 +195,8 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                 "239.255.255.250",
                 "224.0.0.251"
         );
-        if (!ig.contains(ipv4Packet.getDstIP())) {
+        if (ig.contains(ipv4Packet.getDstIP())) {
+            return;
 //            System.out.println(String.format("read: src=%s, dst=%s", ipv4Packet.getSrcIP(), ipv4Packet.getDstIP()));
         }
         byte[] data = ByteBufUtil.toBytes(msg);

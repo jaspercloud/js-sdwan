@@ -10,7 +10,12 @@ import io.jaspercloud.sdwan.node.support.detection.P2pDetection;
 import io.jaspercloud.sdwan.node.support.node.RelayClient;
 import io.jaspercloud.sdwan.node.support.node.SDWanDataHandler;
 import io.jaspercloud.sdwan.node.support.node.SDWanNode;
-import io.jaspercloud.sdwan.stun.*;
+import io.jaspercloud.sdwan.stun.AttrType;
+import io.jaspercloud.sdwan.stun.BytesAttr;
+import io.jaspercloud.sdwan.stun.MessageType;
+import io.jaspercloud.sdwan.stun.StunClient;
+import io.jaspercloud.sdwan.stun.StunDataHandler;
+import io.jaspercloud.sdwan.stun.StunMessage;
 import io.netty.channel.ChannelHandlerContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
@@ -18,7 +23,10 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.InetSocketAddress;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -79,56 +87,7 @@ public class P2pManager implements InitializingBean {
                 try {
                     switch (msg.getType().getNumber()) {
                         case SDWanProtos.MsgTypeCode.P2pOfferType_VALUE: {
-                            SDWanProtos.P2pOffer p2pOffer = SDWanProtos.P2pOffer.parseFrom(msg.getData());
-                            List<UriComponents> addressList = p2pOffer.getAddressListList().stream()
-                                    .map(uri -> UriComponentsBuilder.fromUriString(uri).build())
-                                    .collect(Collectors.toList());
-                            Iterator<UriComponents> iterator = addressList.iterator();
-                            CompletableFuture<DetectionInfo> future = CompletableFuture.supplyAsync(() -> {
-                                throw new ProcessException("init");
-                            });
-                            while (iterator.hasNext()) {
-                                UriComponents next = iterator.next();
-                                P2pDetection detection = detectionMap.get(next.getScheme());
-                                future = CompletableFutures.onException(future, () -> {
-                                    return detection.detection(next.toUriString());
-                                });
-                            }
-                            future.whenComplete((info, error) -> {
-                                if (null != error) {
-                                    SDWanProtos.P2pAnswer p2pAnswer = SDWanProtos.P2pAnswer.newBuilder()
-                                            .setCode(SDWanProtos.MessageCode.NotFound_VALUE)
-                                            .build();
-                                    SDWanProtos.Message resp = msg.toBuilder()
-                                            .setType(SDWanProtos.MsgTypeCode.P2pAnswerType)
-                                            .setData(p2pAnswer.toByteString())
-                                            .build();
-                                    ctx.channel().writeAndFlush(resp);
-                                    return;
-                                }
-                                UriComponents components = UriComponentsBuilder.fromUriString(info.getDstAddress()).build();
-                                if (AddressType.RELAY.equals(components.getScheme())) {
-                                    InetSocketAddress address = new InetSocketAddress(components.getHost(), components.getPort());
-                                    DataTunnel dataTunnel = new RelayDataTunnel(stunClient, relayClient, info, address, components.getQueryParams().getFirst("token"));
-                                    tunnelMap.computeIfAbsent(info.getDstAddress(), key -> dataTunnel);
-                                } else {
-                                    InetSocketAddress address = new InetSocketAddress(components.getHost(), components.getPort());
-                                    DataTunnel dataTunnel = new P2pDataTunnel(stunClient, info, address);
-                                    tunnelMap.computeIfAbsent(info.getDstAddress(), key -> dataTunnel);
-                                }
-                                SDWanProtos.P2pAnswer p2pAnswer = SDWanProtos.P2pAnswer.newBuilder()
-                                        .setCode(SDWanProtos.MessageCode.Success_VALUE)
-                                        .setSrcVIP(p2pOffer.getDstVIP())
-                                        .setDstVIP(p2pOffer.getSrcVIP())
-                                        .setSrcAddress(info.getSrcAddress())
-                                        .setDstAddress(info.getDstAddress())
-                                        .build();
-                                SDWanProtos.Message resp = msg.toBuilder()
-                                        .setType(SDWanProtos.MsgTypeCode.P2pAnswerType)
-                                        .setData(p2pAnswer.toByteString())
-                                        .build();
-                                ctx.channel().writeAndFlush(resp);
-                            });
+                            processP2pOffer(ctx, msg);
                             break;
                         }
                     }
@@ -161,6 +120,58 @@ public class P2pManager implements InitializingBean {
         }, "p2p-tunnel-heart");
         tunnelHeartThread.setDaemon(true);
         tunnelHeartThread.start();
+    }
+
+    private void processP2pOffer(ChannelHandlerContext ctx, SDWanProtos.Message msg) throws Exception {
+        long s = System.currentTimeMillis();
+        SDWanProtos.P2pOffer p2pOffer = SDWanProtos.P2pOffer.parseFrom(msg.getData());
+        List<UriComponents> addressList = p2pOffer.getAddressListList().stream()
+                .map(uri -> UriComponentsBuilder.fromUriString(uri).build())
+                .collect(Collectors.toList());
+        List<CompletableFuture<DetectionInfo>> futureList = addressList.stream()
+                .map(e -> {
+                    P2pDetection detection = detectionMap.get(e.getScheme());
+                    return detection.detection(e.toString());
+                }).collect(Collectors.toList());
+        CompletableFutures.allOf(futureList)
+                .whenComplete((list, error) -> {
+                    if (list.isEmpty()) {
+                        SDWanProtos.P2pAnswer p2pAnswer = SDWanProtos.P2pAnswer.newBuilder()
+                                .setCode(SDWanProtos.MessageCode.NotFound_VALUE)
+                                .build();
+                        SDWanProtos.Message resp = msg.toBuilder()
+                                .setType(SDWanProtos.MsgTypeCode.P2pAnswerType)
+                                .setData(p2pAnswer.toByteString())
+                                .build();
+                        ctx.channel().writeAndFlush(resp);
+                        return;
+                    }
+                    DetectionInfo info = list.get(0);
+                    UriComponents components = UriComponentsBuilder.fromUriString(info.getDstAddress()).build();
+                    if (AddressType.RELAY.equals(components.getScheme())) {
+                        InetSocketAddress address = new InetSocketAddress(components.getHost(), components.getPort());
+                        DataTunnel dataTunnel = new RelayDataTunnel(stunClient, relayClient, info, address, components.getQueryParams().getFirst("token"));
+                        tunnelMap.computeIfAbsent(info.getDstAddress(), key -> dataTunnel);
+                    } else {
+                        InetSocketAddress address = new InetSocketAddress(components.getHost(), components.getPort());
+                        DataTunnel dataTunnel = new P2pDataTunnel(stunClient, info, address);
+                        tunnelMap.computeIfAbsent(info.getDstAddress(), key -> dataTunnel);
+                    }
+                    long e = System.currentTimeMillis();
+                    System.out.println("time: " + (e - s));
+                    SDWanProtos.P2pAnswer p2pAnswer = SDWanProtos.P2pAnswer.newBuilder()
+                            .setCode(SDWanProtos.MessageCode.Success_VALUE)
+                            .setSrcVIP(p2pOffer.getDstVIP())
+                            .setDstVIP(p2pOffer.getSrcVIP())
+                            .setSrcAddress(info.getSrcAddress())
+                            .setDstAddress(info.getDstAddress())
+                            .build();
+                    SDWanProtos.Message resp = msg.toBuilder()
+                            .setType(SDWanProtos.MsgTypeCode.P2pAnswerType)
+                            .setData(p2pAnswer.toByteString())
+                            .build();
+                    ctx.channel().writeAndFlush(resp);
+                });
     }
 
     public CompletableFuture<DataTunnel> create(String srcVIP, String dstVIP, List<String> addressList) {

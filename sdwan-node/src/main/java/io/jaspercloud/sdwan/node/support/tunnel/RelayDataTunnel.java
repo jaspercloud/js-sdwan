@@ -3,7 +3,13 @@ package io.jaspercloud.sdwan.node.support.tunnel;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.node.support.detection.DetectionInfo;
 import io.jaspercloud.sdwan.node.support.node.RelayClient;
-import io.jaspercloud.sdwan.stun.*;
+import io.jaspercloud.sdwan.stun.AttrType;
+import io.jaspercloud.sdwan.stun.BytesAttr;
+import io.jaspercloud.sdwan.stun.MessageType;
+import io.jaspercloud.sdwan.stun.StringAttr;
+import io.jaspercloud.sdwan.stun.StunClient;
+import io.jaspercloud.sdwan.stun.StunMessage;
+import io.jaspercloud.sdwan.stun.StunPacket;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
@@ -26,6 +32,11 @@ public class RelayDataTunnel implements DataTunnel {
         this.detectionInfo = detectionInfo;
         this.relayAddr = relayAddr;
         this.relayToken = relayToken;
+    }
+
+    @Override
+    public DetectionInfo getDetectionInfo() {
+        return detectionInfo;
     }
 
     @Override

@@ -1,7 +1,9 @@
 package io.jaspercloud.sdwan;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
@@ -9,6 +11,23 @@ public final class CompletableFutures {
 
     private CompletableFutures() {
 
+    }
+
+    public static <T> CompletableFuture<List<T>> allOf(List<CompletableFuture<T>> list) {
+        CompletableFuture<Void> future = CompletableFuture.allOf(list.toArray(new CompletableFuture[0]));
+        CompletableFuture<List<T>> result = new CompletableFuture<>();
+        future.whenComplete((r, e) -> {
+            List<T> resultList = new ArrayList<>();
+            for (CompletableFuture<T> f : list) {
+                try {
+                    T item = f.get();
+                    resultList.add(item);
+                } catch (Exception ex) {
+                }
+            }
+            result.complete(resultList);
+        });
+        return result;
     }
 
     public static <T> CompletableFuture<T> onException(CompletableFuture<T> last, Supplier<CompletableFuture<T>> supplier) {

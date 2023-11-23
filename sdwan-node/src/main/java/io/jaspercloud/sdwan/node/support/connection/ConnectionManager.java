@@ -57,7 +57,7 @@ public class ConnectionManager implements InitializingBean {
         p2pManager.addDataHandler(new TunnelDataHandler() {
             @Override
             public void onData(DataTunnel dataTunnel, SDWanProtos.RoutePacket routePacket) {
-                CompletableFuture<PeerConnection> future = connectionMap.computeIfAbsent(routePacket.getDstVIP(), key -> {
+                CompletableFuture<PeerConnection> future = connectionMap.computeIfAbsent(routePacket.getSrcVIP(), key -> {
                     return CompletableFuture.completedFuture(PeerConnection.create(dataTunnel));
                 });
                 future.whenComplete((connection, throwable) -> {
