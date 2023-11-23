@@ -56,6 +56,10 @@ public class StunClient implements InitializingBean {
                                 StunMessage request = packet.content();
                                 InetSocketAddress sender = packet.sender();
                                 if (MessageType.Heart.equals(request.getMessageType())) {
+                                    Attr srcToken = request.getAttr(AttrType.SrcRelayToken);
+                                    Attr dstToken = request.getAttr(AttrType.DstRelayToken);
+                                    request.getAttrs().put(AttrType.SrcRelayToken, dstToken);
+                                    request.getAttrs().put(AttrType.DstRelayToken, srcToken);
                                     StunPacket response = new StunPacket(request, sender);
                                     ctx.writeAndFlush(response);
                                     AsyncTask.completeTask(request.getTranId(), packet);
