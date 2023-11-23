@@ -43,8 +43,9 @@ public class AppConfig {
 
     @Bean
     public RelayClient relayClient(SDWanNodeProperties properties,
+                                   SDWanNode sdWanNode,
                                    StunClient stunClient) {
-        return new RelayClient(properties, stunClient);
+        return new RelayClient(properties, sdWanNode, stunClient);
     }
 
     @Bean
