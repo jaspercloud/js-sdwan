@@ -62,8 +62,6 @@ public class P2pManager implements InitializingBean {
                         BytesAttr dataAttr = msg.getAttr(AttrType.Data);
                         byte[] data = dataAttr.getData();
                         SDWanProtos.P2pPacket p2pPacket = SDWanProtos.P2pPacket.parseFrom(data);
-                        System.out.println(String.format("stunClient-StunDataHandler: src=%s, dst=%s",
-                                p2pPacket.getSrcAddress(), p2pPacket.getDstAddress()));
                         SDWanProtos.RoutePacket routePacket = p2pPacket.getPayload();
                         DataTunnel dataTunnel = tunnelMap.get(p2pPacket.getSrcAddress());
                         for (TunnelDataHandler handler : tunnelDataHandlerList) {
@@ -110,15 +108,13 @@ public class P2pManager implements InitializingBean {
                                 }
                                 UriComponents components = UriComponentsBuilder.fromUriString(info.getDstAddress()).build();
                                 if (AddressType.RELAY.equals(components.getScheme())) {
-                                    System.out.println("onData RelayDataTunnel");
                                     InetSocketAddress address = new InetSocketAddress(components.getHost(), components.getPort());
                                     DataTunnel dataTunnel = new RelayDataTunnel(stunClient, relayClient, info, address, components.getQueryParams().getFirst("token"));
-                                    tunnelMap.put(info.getDstAddress(), dataTunnel);
+                                    tunnelMap.computeIfAbsent(info.getDstAddress(), key -> dataTunnel);
                                 } else {
-                                    System.out.println("onData P2pDataTunnel");
                                     InetSocketAddress address = new InetSocketAddress(components.getHost(), components.getPort());
                                     DataTunnel dataTunnel = new P2pDataTunnel(stunClient, info, address);
-                                    tunnelMap.put(info.getDstAddress(), dataTunnel);
+                                    tunnelMap.computeIfAbsent(info.getDstAddress(), key -> dataTunnel);
                                 }
                                 SDWanProtos.P2pAnswer p2pAnswer = SDWanProtos.P2pAnswer.newBuilder()
                                         .setCode(SDWanProtos.MessageCode.Success_VALUE)
@@ -178,15 +174,13 @@ public class P2pManager implements InitializingBean {
                     UriComponents components = UriComponentsBuilder.fromUriString(info.getDstAddress()).build();
                     DataTunnel dataTunnel;
                     if (AddressType.RELAY.equals(components.getScheme())) {
-                        System.out.println("offer RelayDataTunnel");
                         InetSocketAddress address = new InetSocketAddress(components.getHost(), components.getPort());
                         dataTunnel = new RelayDataTunnel(stunClient, relayClient, info, address, components.getQueryParams().getFirst("token"));
-                        tunnelMap.put(info.getDstAddress(), dataTunnel);
+                        tunnelMap.computeIfAbsent(info.getDstAddress(), key -> dataTunnel);
                     } else {
-                        System.out.println("offer P2pDataTunnel");
                         InetSocketAddress address = new InetSocketAddress(components.getHost(), components.getPort());
                         dataTunnel = new P2pDataTunnel(stunClient, info, address);
-                        tunnelMap.put(info.getDstAddress(), dataTunnel);
+                        tunnelMap.computeIfAbsent(info.getDstAddress(), key -> dataTunnel);
                     }
                     return dataTunnel;
                 });
