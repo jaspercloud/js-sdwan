@@ -13,7 +13,8 @@ public enum AttrType {
     OtherAddress(0x802c, AddressAttr.Decode, 0x0005),
 
     Data(0x8003, BytesAttr.Decode),
-    RelayToken(0x8006, StringAttr.Decode);
+    SrcRelayToken(0x8007, StringAttr.Decode),
+    DstRelayToken(0x8008, StringAttr.Decode);
 
     private int code;
     private AttrDecode decode;

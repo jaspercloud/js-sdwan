@@ -14,14 +14,14 @@ public class RelayClient implements InitializingBean {
 
     private SDWanNodeProperties properties;
     private StunClient stunClient;
-    private String relayToken = UUID.randomUUID().toString();
+    private String localRelayToken = UUID.randomUUID().toString();
 
     public InetSocketAddress getRelayAddress() {
         return properties.getRelayServer();
     }
 
     public String getRelayToken() {
-        return relayToken;
+        return localRelayToken;
     }
 
     public RelayClient(SDWanNodeProperties properties, StunClient stunClient) {
@@ -49,13 +49,14 @@ public class RelayClient implements InitializingBean {
 
     private void bind() throws Exception {
         StunMessage req = new StunMessage(MessageType.BindRelayRequest);
-        req.setAttr(AttrType.RelayToken, new StringAttr(relayToken));
+        req.setAttr(AttrType.DstRelayToken, new StringAttr(localRelayToken));
         stunClient.invokeAsync(new StunPacket(req, properties.getRelayServer())).get();
     }
 
-    public CompletableFuture<StunPacket> sendHeart(InetSocketAddress relayAddr, String relayToken) {
+    public CompletableFuture<StunPacket> sendHeart(InetSocketAddress relayAddr, String dstRelayToken) {
         StunMessage req = new StunMessage(MessageType.Heart);
-        req.setAttr(AttrType.RelayToken, new StringAttr(relayToken));
+        req.setAttr(AttrType.SrcRelayToken, new StringAttr(localRelayToken));
+        req.setAttr(AttrType.DstRelayToken, new StringAttr(dstRelayToken));
         return stunClient.invokeAsync(new StunPacket(req, relayAddr));
     }
 }

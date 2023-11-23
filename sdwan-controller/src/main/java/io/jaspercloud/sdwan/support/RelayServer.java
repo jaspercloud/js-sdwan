@@ -114,15 +114,14 @@ public class RelayServer implements InitializingBean, DisposableBean {
         InetSocketAddress sender = packet.sender();
         StunMessage request = packet.content();
         //parse
-        StringAttr relayTokenAttr = (StringAttr) request.getAttrs().get(AttrType.RelayToken);
+        StringAttr relayTokenAttr = (StringAttr) request.getAttrs().get(AttrType.DstRelayToken);
         String relayToken = relayTokenAttr.getData();
         RelayNode node = channelMap.get(relayToken);
         if (null == node) {
             return;
         }
         //resp
-        StunMessage message = new StunMessage(MessageType.Heart, packet.content().getTranId());
-        StunPacket response = new StunPacket(message, node.getTargetAddress());
+        StunPacket response = new StunPacket(request, node.getTargetAddress());
         ctx.writeAndFlush(response);
     }
 
@@ -130,7 +129,7 @@ public class RelayServer implements InitializingBean, DisposableBean {
         InetSocketAddress sender = packet.sender();
         StunMessage request = packet.content();
         //parse
-        StringAttr relayTokenAttr = (StringAttr) request.getAttrs().get(AttrType.RelayToken);
+        StringAttr relayTokenAttr = (StringAttr) request.getAttrs().get(AttrType.DstRelayToken);
         String relayToken = relayTokenAttr.getData();
         RelayNode node = channelMap.get(relayToken);
         if (null == node) {
