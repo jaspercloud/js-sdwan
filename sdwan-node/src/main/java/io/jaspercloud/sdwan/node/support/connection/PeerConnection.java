@@ -14,7 +14,9 @@ public class PeerConnection {
     private CompletableFuture<Void> closeFuture = new CompletableFuture<>();
 
     public void addCloseListener(Consumer<PeerConnection> consumer) {
+        System.out.println("connection addCloseListener");
         closeFuture.thenAccept(v -> {
+            System.out.println("connection onClose");
             consumer.accept(this);
         });
     }
@@ -24,6 +26,7 @@ public class PeerConnection {
     }
 
     public void close() {
+        System.out.println("connection close");
         closeFuture.complete(null);
     }
 

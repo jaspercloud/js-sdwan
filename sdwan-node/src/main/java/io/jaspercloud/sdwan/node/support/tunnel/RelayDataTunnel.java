@@ -41,13 +41,16 @@ public class RelayDataTunnel implements DataTunnel {
 
     @Override
     public void addCloseListener(Consumer<DataTunnel> consumer) {
+        System.out.println("tunnel addCloseListener");
         closeFuture.thenAccept(v -> {
+            System.out.println("tunnel onClose");
             consumer.accept(this);
         });
     }
 
     @Override
     public void close() {
+        System.out.println("tunnel close");
         closeFuture.complete(null);
     }
 

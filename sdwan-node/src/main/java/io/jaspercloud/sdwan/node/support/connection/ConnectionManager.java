@@ -59,7 +59,20 @@ public class ConnectionManager implements InitializingBean {
             @Override
             public void onData(DataTunnel dataTunnel, SDWanProtos.RoutePacket routePacket) {
                 CompletableFuture<PeerConnection> future = connectionMap.computeIfAbsent(routePacket.getSrcVIP(), key -> {
-                    return CompletableFuture.completedFuture(PeerConnection.create(dataTunnel));
+                    PeerConnection connection = PeerConnection.create(dataTunnel);
+                    dataTunnel.addCloseListener(new Consumer<DataTunnel>() {
+                        @Override
+                        public void accept(DataTunnel dataTunnel) {
+                            connection.close();
+                        }
+                    });
+                    connection.addCloseListener(new Consumer<PeerConnection>() {
+                        @Override
+                        public void accept(PeerConnection peerConnection) {
+                            connectionMap.remove(routePacket.getSrcVIP());
+                        }
+                    });
+                    return CompletableFuture.completedFuture(connection);
                 });
                 future.whenComplete((connection, throwable) -> {
                     if (null != throwable) {
