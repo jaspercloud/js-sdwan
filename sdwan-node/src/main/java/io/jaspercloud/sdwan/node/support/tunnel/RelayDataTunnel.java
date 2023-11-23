@@ -41,8 +41,12 @@ public class RelayDataTunnel implements DataTunnel {
     }
 
     @Override
-    public CompletableFuture<StunPacket> check() {
-        return relayClient.checkToken(relayAddr, relayToken);
+    public CompletableFuture<Boolean> check() {
+        return relayClient.checkToken(relayAddr, relayToken)
+                .thenApply(resp -> {
+                    Attr attr = resp.content().getAttr(AttrType.SourceAddress);
+                    return null != attr;
+                });
     }
 
     @Override

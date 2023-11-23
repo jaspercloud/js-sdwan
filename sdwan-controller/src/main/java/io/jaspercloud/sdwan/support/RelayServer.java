@@ -119,16 +119,18 @@ public class RelayServer implements InitializingBean, DisposableBean {
         RelayNode relayNode = channelMap.get(relayToken);
         //resp
         StunMessage responseMessage = new StunMessage(MessageType.CheckTokenResponse, request.getTranId());
-        InetSocketAddress targetAddress = relayNode.getTargetAddress();
-        ProtoFamily protoFamily;
-        if (IPAddressUtil.isIPv4LiteralAddress(targetAddress.getHostString())) {
-            protoFamily = ProtoFamily.IPv4;
-        } else if (IPAddressUtil.isIPv6LiteralAddress(targetAddress.getHostString())) {
-            protoFamily = ProtoFamily.IPv6;
-        } else {
-            throw new UnsupportedOperationException();
+        if (null != relayNode) {
+            InetSocketAddress targetAddress = relayNode.getTargetAddress();
+            ProtoFamily protoFamily;
+            if (IPAddressUtil.isIPv4LiteralAddress(targetAddress.getHostString())) {
+                protoFamily = ProtoFamily.IPv4;
+            } else if (IPAddressUtil.isIPv6LiteralAddress(targetAddress.getHostString())) {
+                protoFamily = ProtoFamily.IPv6;
+            } else {
+                throw new UnsupportedOperationException();
+            }
+            responseMessage.getAttrs().put(AttrType.SourceAddress, new AddressAttr(protoFamily, targetAddress.getHostString(), targetAddress.getPort()));
         }
-        responseMessage.getAttrs().put(AttrType.SourceAddress, new AddressAttr(protoFamily, targetAddress.getHostString(), targetAddress.getPort()));
         StunPacket response = new StunPacket(responseMessage, sender);
         ctx.writeAndFlush(response);
     }

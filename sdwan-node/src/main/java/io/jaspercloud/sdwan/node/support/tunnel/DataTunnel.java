@@ -12,7 +12,7 @@ public interface DataTunnel {
 
     void close();
 
-    CompletableFuture<StunPacket> check();
+    CompletableFuture<Boolean> check();
 
     void send(SDWanProtos.RoutePacket routePacket);
 }

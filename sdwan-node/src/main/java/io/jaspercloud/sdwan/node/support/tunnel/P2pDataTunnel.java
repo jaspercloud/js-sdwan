@@ -36,8 +36,12 @@ public class P2pDataTunnel implements DataTunnel {
     }
 
     @Override
-    public CompletableFuture<StunPacket> check() {
-        return stunClient.sendBind(address);
+    public CompletableFuture<Boolean> check() {
+        return stunClient.sendBind(address)
+                .thenApply(resp -> {
+                    Attr attr = resp.content().getAttr(AttrType.MappedAddress);
+                    return null != attr;
+                });
     }
 
     @Override

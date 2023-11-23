@@ -147,8 +147,11 @@ public class P2pManager implements InitializingBean {
                     String uri = entry.getKey();
                     DataTunnel dataTunnel = entry.getValue();
                     dataTunnel.check()
-                            .whenComplete((result, throwable) -> {
+                            .whenComplete((check, throwable) -> {
                                 if (null == throwable) {
+                                    return;
+                                }
+                                if (true == check) {
                                     return;
                                 }
                                 dataTunnel.close();
