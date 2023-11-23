@@ -151,7 +151,7 @@ public class P2pManager implements InitializingBean {
                                 if (null == throwable) {
                                     return;
                                 }
-                                if (true == check) {
+                                if (null != check && true == check) {
                                     return;
                                 }
                                 dataTunnel.close();
