@@ -101,7 +101,7 @@ public class RelayServer implements InitializingBean, DisposableBean {
         InetSocketAddress sender = packet.sender();
         StunMessage request = packet.content();
         //parse
-        StringAttr relayTokenAttr = (StringAttr) request.getAttrs().get(AttrType.RelayToken);
+        StringAttr relayTokenAttr = (StringAttr) request.getAttrs().get(AttrType.DstRelayToken);
         String relayToken = relayTokenAttr.getData();
         channelMap.put(relayToken, new RelayNode(sender));
         //resp
