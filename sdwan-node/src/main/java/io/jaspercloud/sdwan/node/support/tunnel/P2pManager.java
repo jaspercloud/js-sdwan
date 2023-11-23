@@ -123,7 +123,6 @@ public class P2pManager implements InitializingBean {
     }
 
     private void processP2pOffer(ChannelHandlerContext ctx, SDWanProtos.Message msg) throws Exception {
-        long s = System.currentTimeMillis();
         SDWanProtos.P2pOffer p2pOffer = SDWanProtos.P2pOffer.parseFrom(msg.getData());
         List<UriComponents> addressList = p2pOffer.getAddressListList().stream()
                 .map(uri -> UriComponentsBuilder.fromUriString(uri).build())
@@ -157,8 +156,6 @@ public class P2pManager implements InitializingBean {
                         DataTunnel dataTunnel = new P2pDataTunnel(stunClient, info, address);
                         tunnelMap.computeIfAbsent(info.getDstAddress(), key -> dataTunnel);
                     }
-                    long e = System.currentTimeMillis();
-                    System.out.println("time: " + (e - s));
                     SDWanProtos.P2pAnswer p2pAnswer = SDWanProtos.P2pAnswer.newBuilder()
                             .setCode(SDWanProtos.MessageCode.Success_VALUE)
                             .setSrcVIP(p2pOffer.getDstVIP())
