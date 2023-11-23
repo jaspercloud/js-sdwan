@@ -37,7 +37,7 @@ public class P2pOfferTest {
         stunClient.afterPropertiesSet();
         InetSocketAddress stunClientLocalAddress = (InetSocketAddress) stunClient.getChannel().localAddress();
         //relayClient
-        RelayClient relayClient = new RelayClient(properties, stunClient);
+        RelayClient relayClient = new RelayClient(properties, sdWanNode, stunClient);
         relayClient.afterPropertiesSet();
         //mappingManager
         MappingManager mappingManager = new MappingManager(properties, stunClient);
