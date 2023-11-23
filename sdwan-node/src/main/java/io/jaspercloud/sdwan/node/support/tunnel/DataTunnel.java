@@ -18,4 +18,6 @@ public interface DataTunnel {
     CompletableFuture<StunPacket> check();
 
     void send(SDWanProtos.RoutePacket routePacket);
+
+    SDWanProtos.RoutePacket receive(SDWanProtos.P2pPacket p2pPacket);
 }

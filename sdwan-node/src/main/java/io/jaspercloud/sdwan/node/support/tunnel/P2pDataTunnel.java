@@ -4,6 +4,7 @@ import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.node.support.detection.DetectionInfo;
 import io.jaspercloud.sdwan.stun.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
@@ -52,8 +53,24 @@ public class P2pDataTunnel implements DataTunnel {
                 .setDstAddress(detectionInfo.getDstAddress())
                 .setPayload(routePacket)
                 .build();
+        String src = UriComponentsBuilder.fromUriString(p2pPacket.getSrcAddress())
+                .build().getHost();
+        String dst = UriComponentsBuilder.fromUriString(p2pPacket.getDstAddress())
+                .build().getHost();
+        System.out.println(String.format("P2pDataTunnel p2pPacket send: src=%s, dst=%s", src, dst));
         StunMessage message = new StunMessage(MessageType.Transfer);
         message.getAttrs().put(AttrType.Data, new BytesAttr(p2pPacket.toByteArray()));
         stunClient.send(address, message);
+    }
+
+    @Override
+    public SDWanProtos.RoutePacket receive(SDWanProtos.P2pPacket p2pPacket) {
+        String src = UriComponentsBuilder.fromUriString(p2pPacket.getSrcAddress())
+                .build().getHost();
+        String dst = UriComponentsBuilder.fromUriString(p2pPacket.getDstAddress())
+                .build().getHost();
+        System.out.println(String.format("P2pDataTunnel p2pPacket recv: src=%s, dst=%s", src, dst));
+        SDWanProtos.RoutePacket routePacket = p2pPacket.getPayload();
+        return routePacket;
     }
 }
