@@ -154,13 +154,13 @@ public class P2pManager implements InitializingBean {
                                 if (null != check && true == check) {
                                     return;
                                 }
-                                dataTunnel.close();
                                 tunnelMap.remove(uri);
+                                dataTunnel.close();
                                 log.error("p2pHeartTimout: {}", uri);
                             });
                 }
                 try {
-                    Thread.sleep(5 * 1000);
+                    Thread.sleep(1 * 1000);
                 } catch (InterruptedException e) {
                     log.error(e.getMessage(), e);
                 }

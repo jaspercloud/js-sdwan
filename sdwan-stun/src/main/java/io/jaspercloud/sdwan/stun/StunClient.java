@@ -61,6 +61,8 @@ public class StunClient implements InitializingBean {
                                     AsyncTask.completeTask(request.getTranId(), packet);
                                 } else if (MessageType.BindRelayResponse.equals(request.getMessageType())) {
                                     AsyncTask.completeTask(request.getTranId(), packet);
+                                } else if (MessageType.CheckTokenResponse.equals(request.getMessageType())) {
+                                    AsyncTask.completeTask(request.getTranId(), packet);
                                 } else {
                                     for (StunDataHandler handler : dataHandlerList) {
                                         handler.receive(ctx, request);
