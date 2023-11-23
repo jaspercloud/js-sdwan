@@ -3,6 +3,7 @@ package io.jaspercloud.sdwan.node.support.connection;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
+import io.jaspercloud.sdwan.node.support.detection.AddressType;
 import io.jaspercloud.sdwan.node.support.node.MappingManager;
 import io.jaspercloud.sdwan.node.support.node.RelayClient;
 import io.jaspercloud.sdwan.node.support.node.SDWanNode;
@@ -96,19 +97,19 @@ public class ConnectionManager implements InitializingBean {
         InetSocketAddress sdWanNodeLocalAddress = (InetSocketAddress) sdWanNode.getChannel().localAddress();
         InetSocketAddress stunClientLocalAddress = (InetSocketAddress) stunClient.getChannel().localAddress();
         String host = UriComponentsBuilder.newInstance()
-                .scheme("host")
+                .scheme(AddressType.HOST)
                 .host(sdWanNodeLocalAddress.getHostString())
                 .port(stunClientLocalAddress.getPort())
                 .build().toString();
         MappingAddress mappingAddress = mappingManager.getMappingAddress();
         String srflx = UriComponentsBuilder.newInstance()
-                .scheme("srflx")
+                .scheme(AddressType.SRFLX)
                 .host(mappingAddress.getMappingAddress().getHostString())
                 .port(mappingAddress.getMappingAddress().getPort())
                 .queryParam("mappingType", mappingAddress.getMappingType().name())
                 .build().toString();
         String relay = UriComponentsBuilder.newInstance()
-                .scheme("relay")
+                .scheme(AddressType.RELAY)
                 .host(properties.getRelayServer().getHostString())
                 .port(properties.getRelayServer().getPort())
                 .queryParam("token", relayClient.getRelayToken())
@@ -126,7 +127,7 @@ public class ConnectionManager implements InitializingBean {
                     AddressAttr mappedAddressAttr = bindResp.content().getAttr(AttrType.MappedAddress);
                     InetSocketAddress punchAddress = mappedAddressAttr.getAddress();
                     String prflx = UriComponentsBuilder.newInstance()
-                            .scheme("prflx")
+                            .scheme(AddressType.PRFLX)
                             .host(punchAddress.getHostString())
                             .port(punchAddress.getPort())
                             .build().toString();

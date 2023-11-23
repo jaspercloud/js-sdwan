@@ -9,6 +9,7 @@ import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.node.support.connection.ConnectionDataHandler;
 import io.jaspercloud.sdwan.node.support.connection.ConnectionManager;
 import io.jaspercloud.sdwan.node.support.connection.PeerConnection;
+import io.jaspercloud.sdwan.node.support.detection.AddressType;
 import io.jaspercloud.sdwan.node.support.node.MappingManager;
 import io.jaspercloud.sdwan.node.support.node.RelayClient;
 import io.jaspercloud.sdwan.node.support.node.SDWanNode;
@@ -97,18 +98,18 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                 MappingAddress mappingAddress = mappingManager.getMappingAddress();
                 //address
                 String host = UriComponentsBuilder.newInstance()
-                        .scheme("host")
+                        .scheme(AddressType.HOST)
                         .host(sdWanNodeLocalAddress.getHostString())
                         .port(stunClientLocalAddress.getPort())
                         .build().toString();
                 String srflx = UriComponentsBuilder.newInstance()
-                        .scheme("srflx")
+                        .scheme(AddressType.SRFLX)
                         .host(mappingAddress.getMappingAddress().getHostString())
                         .port(mappingAddress.getMappingAddress().getPort())
                         .queryParam("mappingType", mappingAddress.getMappingType().name())
                         .build().toString();
                 String relay = UriComponentsBuilder.newInstance()
-                        .scheme("relay")
+                        .scheme(AddressType.RELAY)
                         .host(properties.getRelayServer().getHostString())
                         .port(properties.getRelayServer().getPort())
                         .queryParam("token", relayClient.getRelayToken())
