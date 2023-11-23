@@ -1,13 +1,7 @@
 package io.jaspercloud.sdwan.node.support.node;
 
 import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
-import io.jaspercloud.sdwan.stun.AttrType;
-import io.jaspercloud.sdwan.stun.MessageType;
-import io.jaspercloud.sdwan.stun.StringAttr;
-import io.jaspercloud.sdwan.stun.StunClient;
-import io.jaspercloud.sdwan.stun.StunDataHandler;
-import io.jaspercloud.sdwan.stun.StunMessage;
-import io.jaspercloud.sdwan.stun.StunPacket;
+import io.jaspercloud.sdwan.stun.*;
 import io.netty.channel.ChannelHandlerContext;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -21,8 +15,9 @@ import java.util.concurrent.CompletableFuture;
 public class RelayClient implements InitializingBean {
 
     private SDWanNodeProperties properties;
+    private SDWanNode sdWanNode;
     private StunClient stunClient;
-    private String localRelayToken = UUID.randomUUID().toString();
+    private String localRelayToken;
 
     public InetSocketAddress getRelayAddress() {
         return properties.getRelayServer();
@@ -32,13 +27,16 @@ public class RelayClient implements InitializingBean {
         return localRelayToken;
     }
 
-    public RelayClient(SDWanNodeProperties properties, StunClient stunClient) {
+    public RelayClient(SDWanNodeProperties properties, SDWanNode sdWanNode, StunClient stunClient) {
         this.properties = properties;
+        this.sdWanNode = sdWanNode;
         this.stunClient = stunClient;
     }
 
     @Override
     public void afterPropertiesSet() throws Exception {
+        InetSocketAddress address = (InetSocketAddress) sdWanNode.getChannel().localAddress();
+        localRelayToken = address.getHostString() + "-" + UUID.randomUUID().toString();
         stunClient.addDataHandler(new StunDataHandler() {
             @Override
             public void onData(ChannelHandlerContext ctx, StunPacket packet) {
