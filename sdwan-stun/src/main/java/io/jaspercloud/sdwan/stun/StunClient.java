@@ -55,11 +55,7 @@ public class StunClient implements InitializingBean {
                             protected void channelRead0(ChannelHandlerContext ctx, StunPacket packet) throws Exception {
                                 StunMessage request = packet.content();
                                 InetSocketAddress sender = packet.sender();
-                                if (MessageType.Heart.equals(request.getMessageType())) {
-                                    StunPacket response = new StunPacket(request, sender);
-                                    ctx.writeAndFlush(response);
-                                    AsyncTask.completeTask(request.getTranId(), packet);
-                                } else if (MessageType.BindRequest.equals(request.getMessageType())) {
+                                if (MessageType.BindRequest.equals(request.getMessageType())) {
                                     processBindRequest(ctx, packet);
                                 } else if (MessageType.BindResponse.equals(request.getMessageType())) {
                                     AsyncTask.completeTask(request.getTranId(), packet);
@@ -95,22 +91,9 @@ public class StunClient implements InitializingBean {
         channel.writeAndFlush(response);
     }
 
-    public StunPacket invokeSync(StunPacket request) throws Exception {
-        CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), 500);
-        localChannel.writeAndFlush(request);
-        return future.get();
-    }
-
     public CompletableFuture<StunPacket> invokeAsync(StunPacket request) {
         CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), 500);
         localChannel.writeAndFlush(request);
-        return future;
-    }
-
-    public CompletableFuture<StunPacket> sendHeart(InetSocketAddress address) {
-        StunMessage message = new StunMessage(MessageType.Heart);
-        StunPacket request = new StunPacket(message, address);
-        CompletableFuture<StunPacket> future = invokeAsync(request);
         return future;
     }
 

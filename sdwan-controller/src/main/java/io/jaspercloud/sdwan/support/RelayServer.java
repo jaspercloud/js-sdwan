@@ -10,6 +10,7 @@ import io.netty.channel.socket.nio.NioDatagramChannel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
+import sun.net.util.IPAddressUtil;
 
 import java.net.InetSocketAddress;
 import java.util.Collections;
@@ -85,11 +86,10 @@ public class RelayServer implements InitializingBean, DisposableBean {
     private void process(ChannelHandlerContext ctx, StunPacket packet) {
         StunMessage request = packet.content();
         InetSocketAddress sender = packet.sender();
-        if (MessageType.Heart.equals(request.getMessageType())) {
-            StunPacket response = new StunPacket(request, sender);
-            ctx.writeAndFlush(response);
-        } else if (MessageType.BindRelayRequest.equals(request.getMessageType())) {
+        if (MessageType.BindRelayRequest.equals(request.getMessageType())) {
             processBindRelay(ctx, packet);
+        } else if (MessageType.CheckTokenRequest.equals(request.getMessageType())) {
+            processCheckToken(ctx, packet);
         } else if (MessageType.Transfer.equals(request.getMessageType())) {
             processTransfer(ctx, packet);
         } else {
@@ -106,6 +106,29 @@ public class RelayServer implements InitializingBean, DisposableBean {
         channelMap.put(relayToken, new RelayNode(sender));
         //resp
         StunMessage responseMessage = new StunMessage(MessageType.BindRelayResponse, request.getTranId());
+        StunPacket response = new StunPacket(responseMessage, sender);
+        ctx.writeAndFlush(response);
+    }
+
+    private void processCheckToken(ChannelHandlerContext ctx, StunPacket packet) {
+        InetSocketAddress sender = packet.sender();
+        StunMessage request = packet.content();
+        //parse
+        StringAttr relayTokenAttr = (StringAttr) request.getAttrs().get(AttrType.RelayToken);
+        String relayToken = relayTokenAttr.getData();
+        RelayNode relayNode = channelMap.get(relayToken);
+        //resp
+        StunMessage responseMessage = new StunMessage(MessageType.CheckTokenResponse, request.getTranId());
+        InetSocketAddress targetAddress = relayNode.getTargetAddress();
+        ProtoFamily protoFamily;
+        if (IPAddressUtil.isIPv4LiteralAddress(targetAddress.getHostString())) {
+            protoFamily = ProtoFamily.IPv4;
+        } else if (IPAddressUtil.isIPv6LiteralAddress(targetAddress.getHostString())) {
+            protoFamily = ProtoFamily.IPv6;
+        } else {
+            throw new UnsupportedOperationException();
+        }
+        responseMessage.getAttrs().put(AttrType.SourceAddress, new AddressAttr(protoFamily, targetAddress.getHostString(), targetAddress.getPort()));
         StunPacket response = new StunPacket(responseMessage, sender);
         ctx.writeAndFlush(response);
     }

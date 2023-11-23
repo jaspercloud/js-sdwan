@@ -1,6 +1,8 @@
 package io.jaspercloud.sdwan.node.config;
 
-import io.jaspercloud.sdwan.node.support.*;
+import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
+import io.jaspercloud.sdwan.node.support.TunEngine;
+import io.jaspercloud.sdwan.node.support.connection.ConnectionManager;
 import io.jaspercloud.sdwan.node.support.detection.*;
 import io.jaspercloud.sdwan.node.support.node.MappingManager;
 import io.jaspercloud.sdwan.node.support.node.RelayClient;
@@ -10,7 +12,6 @@ import io.jaspercloud.sdwan.node.support.route.OsxRouteManager;
 import io.jaspercloud.sdwan.node.support.route.RouteManager;
 import io.jaspercloud.sdwan.node.support.route.WindowsRouteManager;
 import io.jaspercloud.sdwan.node.support.tunnel.P2pManager;
-import io.jaspercloud.sdwan.node.support.connection.ConnectionManager;
 import io.jaspercloud.sdwan.stun.StunClient;
 import io.netty.util.internal.PlatformDependent;
 import org.springframework.beans.factory.ObjectProvider;
@@ -94,9 +95,10 @@ public class AppConfig {
     public P2pManager p2pManager(SDWanNodeProperties properties,
                                  SDWanNode sdWanNode,
                                  StunClient stunClient,
+                                 RelayClient relayClient,
                                  ObjectProvider<List<P2pDetection>> provider) {
         List<P2pDetection> detectionList = provider.getIfAvailable();
-        P2pManager p2pManager = new P2pManager(properties, sdWanNode, stunClient);
+        P2pManager p2pManager = new P2pManager(properties, sdWanNode, stunClient, relayClient);
         detectionList.forEach(item -> {
             p2pManager.addP2pDetection(item);
         });

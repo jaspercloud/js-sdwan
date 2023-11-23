@@ -37,7 +37,7 @@ public class P2pDataTunnel implements DataTunnel {
 
     @Override
     public CompletableFuture<StunPacket> check() {
-        return stunClient.sendHeart(address);
+        return stunClient.sendBind(address);
     }
 
     @Override

@@ -7,6 +7,7 @@ import org.springframework.beans.factory.InitializingBean;
 
 import java.net.InetSocketAddress;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 public class RelayClient implements InitializingBean {
@@ -49,6 +50,12 @@ public class RelayClient implements InitializingBean {
     private void bind() throws Exception {
         StunMessage req = new StunMessage(MessageType.BindRelayRequest);
         req.setAttr(AttrType.RelayToken, new StringAttr(relayToken));
-        stunClient.invokeSync(new StunPacket(req, properties.getRelayServer()));
+        stunClient.invokeAsync(new StunPacket(req, properties.getRelayServer())).get();
+    }
+
+    public CompletableFuture<StunPacket> checkToken(InetSocketAddress relayAddr, String relayToken) {
+        StunMessage req = new StunMessage(MessageType.CheckTokenRequest);
+        req.setAttr(AttrType.RelayToken, new StringAttr(relayToken));
+        return stunClient.invokeAsync(new StunPacket(req, relayAddr));
     }
 }

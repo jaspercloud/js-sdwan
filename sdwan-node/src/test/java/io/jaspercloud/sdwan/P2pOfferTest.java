@@ -44,7 +44,7 @@ public class P2pOfferTest {
         mappingManager.afterPropertiesSet();
         MappingAddress mappingAddress = mappingManager.getMappingAddress();
         //p2pManager
-        P2pManager p2pManager = new P2pManager(properties, sdWanNode, stunClient);
+        P2pManager p2pManager = new P2pManager(properties, sdWanNode, stunClient, relayClient);
         p2pManager.addP2pDetection(new HostP2pDetection(stunClient));
         p2pManager.addP2pDetection(new SrflxP2pDetection(stunClient));
         p2pManager.addP2pDetection(new PrflxP2pDetection(stunClient));

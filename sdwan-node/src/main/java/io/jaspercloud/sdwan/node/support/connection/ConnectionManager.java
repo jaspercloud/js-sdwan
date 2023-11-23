@@ -154,6 +154,7 @@ public class ConnectionManager implements InitializingBean {
     public void send(SDWanProtos.RoutePacket routePacket) {
         getConnection(routePacket.getSrcVIP(), routePacket.getDstVIP())
                 .thenAccept(connection -> {
+                    System.out.println(String.format("routePacket: src=%s, dst=%s", routePacket.getSrcVIP(), routePacket.getDstVIP()));
                     connection.send(routePacket);
                 });
     }

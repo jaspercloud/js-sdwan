@@ -2,6 +2,7 @@ package io.jaspercloud.sdwan.node.support.tunnel;
 
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.node.support.detection.DetectionInfo;
+import io.jaspercloud.sdwan.node.support.node.RelayClient;
 import io.jaspercloud.sdwan.stun.*;
 import lombok.extern.slf4j.Slf4j;
 
@@ -13,13 +14,15 @@ import java.util.function.Consumer;
 public class RelayDataTunnel implements DataTunnel {
 
     private StunClient stunClient;
+    private RelayClient relayClient;
     private DetectionInfo detectionInfo;
     private InetSocketAddress relayAddr;
     private String relayToken;
     private CompletableFuture<Void> closeFuture = new CompletableFuture<>();
 
-    public RelayDataTunnel(StunClient stunClient, DetectionInfo detectionInfo, InetSocketAddress relayAddr, String relayToken) {
+    public RelayDataTunnel(StunClient stunClient, RelayClient relayClient, DetectionInfo detectionInfo, InetSocketAddress relayAddr, String relayToken) {
         this.stunClient = stunClient;
+        this.relayClient = relayClient;
         this.detectionInfo = detectionInfo;
         this.relayAddr = relayAddr;
         this.relayToken = relayToken;
@@ -39,7 +42,7 @@ public class RelayDataTunnel implements DataTunnel {
 
     @Override
     public CompletableFuture<StunPacket> check() {
-        return stunClient.sendHeart(relayAddr);
+        return relayClient.checkToken(relayAddr, relayToken);
     }
 
     @Override
@@ -49,6 +52,7 @@ public class RelayDataTunnel implements DataTunnel {
                 .setDstAddress(detectionInfo.getDstAddress())
                 .setPayload(routePacket)
                 .build();
+        System.out.println(String.format("p2pPacket: src=%s, dst=%s", p2pPacket.getSrcAddress(), p2pPacket.getDstAddress()));
         StunMessage message = new StunMessage(MessageType.Transfer);
         message.getAttrs().put(AttrType.RelayToken, new StringAttr(relayToken));
         message.getAttrs().put(AttrType.Data, new BytesAttr(p2pPacket.toByteArray()));
