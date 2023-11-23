@@ -53,8 +53,8 @@ public class RelayClient implements InitializingBean {
         stunClient.invokeAsync(new StunPacket(req, properties.getRelayServer())).get();
     }
 
-    public CompletableFuture<StunPacket> checkToken(InetSocketAddress relayAddr, String relayToken) {
-        StunMessage req = new StunMessage(MessageType.CheckTokenRequest);
+    public CompletableFuture<StunPacket> sendHeart(InetSocketAddress relayAddr, String relayToken) {
+        StunMessage req = new StunMessage(MessageType.Heart);
         req.setAttr(AttrType.RelayToken, new StringAttr(relayToken));
         return stunClient.invokeAsync(new StunPacket(req, relayAddr));
     }

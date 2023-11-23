@@ -10,7 +10,6 @@ import io.netty.channel.socket.nio.NioDatagramChannel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
-import sun.net.util.IPAddressUtil;
 
 import java.net.InetSocketAddress;
 import java.util.Collections;
@@ -72,7 +71,8 @@ public class RelayServer implements InitializingBean, DisposableBean {
                         });
                     }
                 });
-        localChannel = bootstrap.bind(local).sync().channel();
+        localChannel = bootstrap.bind(local).syncUninterruptibly().channel();
+        log.info("relayServer started: port={}", properties.getPort());
     }
 
     @Override
@@ -88,8 +88,8 @@ public class RelayServer implements InitializingBean, DisposableBean {
         InetSocketAddress sender = packet.sender();
         if (MessageType.BindRelayRequest.equals(request.getMessageType())) {
             processBindRelay(ctx, packet);
-        } else if (MessageType.CheckTokenRequest.equals(request.getMessageType())) {
-            processCheckToken(ctx, packet);
+        } else if (MessageType.Heart.equals(request.getMessageType())) {
+            processRelayHeart(ctx, packet);
         } else if (MessageType.Transfer.equals(request.getMessageType())) {
             processTransfer(ctx, packet);
         } else {
@@ -110,28 +110,19 @@ public class RelayServer implements InitializingBean, DisposableBean {
         ctx.writeAndFlush(response);
     }
 
-    private void processCheckToken(ChannelHandlerContext ctx, StunPacket packet) {
+    private void processRelayHeart(ChannelHandlerContext ctx, StunPacket packet) {
         InetSocketAddress sender = packet.sender();
         StunMessage request = packet.content();
         //parse
         StringAttr relayTokenAttr = (StringAttr) request.getAttrs().get(AttrType.RelayToken);
         String relayToken = relayTokenAttr.getData();
-        RelayNode relayNode = channelMap.get(relayToken);
-        //resp
-        StunMessage responseMessage = new StunMessage(MessageType.CheckTokenResponse, request.getTranId());
-        if (null != relayNode) {
-            InetSocketAddress targetAddress = relayNode.getTargetAddress();
-            ProtoFamily protoFamily;
-            if (IPAddressUtil.isIPv4LiteralAddress(targetAddress.getHostString())) {
-                protoFamily = ProtoFamily.IPv4;
-            } else if (IPAddressUtil.isIPv6LiteralAddress(targetAddress.getHostString())) {
-                protoFamily = ProtoFamily.IPv6;
-            } else {
-                throw new UnsupportedOperationException();
-            }
-            responseMessage.getAttrs().put(AttrType.SourceAddress, new AddressAttr(protoFamily, targetAddress.getHostString(), targetAddress.getPort()));
+        RelayNode node = channelMap.get(relayToken);
+        if (null == node) {
+            return;
         }
-        StunPacket response = new StunPacket(responseMessage, sender);
+        //resp
+        StunMessage message = new StunMessage(MessageType.Heart, packet.content().getTranId());
+        StunPacket response = new StunPacket(message, node.getTargetAddress());
         ctx.writeAndFlush(response);
     }
 

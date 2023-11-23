@@ -55,13 +55,15 @@ public class StunClient implements InitializingBean {
                             protected void channelRead0(ChannelHandlerContext ctx, StunPacket packet) throws Exception {
                                 StunMessage request = packet.content();
                                 InetSocketAddress sender = packet.sender();
-                                if (MessageType.BindRequest.equals(request.getMessageType())) {
+                                if (MessageType.Heart.equals(request.getMessageType())) {
+                                    StunPacket response = new StunPacket(request, sender);
+                                    ctx.writeAndFlush(response);
+                                    AsyncTask.completeTask(request.getTranId(), packet);
+                                } else if (MessageType.BindRequest.equals(request.getMessageType())) {
                                     processBindRequest(ctx, packet);
                                 } else if (MessageType.BindResponse.equals(request.getMessageType())) {
                                     AsyncTask.completeTask(request.getTranId(), packet);
                                 } else if (MessageType.BindRelayResponse.equals(request.getMessageType())) {
-                                    AsyncTask.completeTask(request.getTranId(), packet);
-                                } else if (MessageType.CheckTokenResponse.equals(request.getMessageType())) {
                                     AsyncTask.completeTask(request.getTranId(), packet);
                                 } else {
                                     for (StunDataHandler handler : dataHandlerList) {
@@ -118,5 +120,10 @@ public class StunClient implements InitializingBean {
     public void send(InetSocketAddress address, StunMessage message) {
         StunPacket request = new StunPacket(message, address);
         localChannel.writeAndFlush(request);
+    }
+
+    public CompletableFuture<StunPacket> sendHeart(InetSocketAddress address) {
+        StunMessage req = new StunMessage(MessageType.Heart);
+        return invokeAsync(new StunPacket(req, address));
     }
 }

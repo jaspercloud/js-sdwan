@@ -166,7 +166,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                 .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
                 .handler(new ChannelInitializer<Channel>() {
                     @Override
-                    protected void initChannel(final Channel ch) {
+                    protected void initChannel(Channel ch) {
                         ChannelPipeline pipeline = ch.pipeline();
                         pipeline.addLast("TunEngine:readTun", new SimpleChannelInboundHandler<ByteBuf>() {
                             @Override

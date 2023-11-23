@@ -2,16 +2,11 @@ package io.jaspercloud.sdwan.support;
 
 import io.jaspercloud.sdwan.LogHandler;
 import io.jaspercloud.sdwan.NioEventLoopFactory;
-import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.config.SDWanControllerProperties;
+import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.*;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.protobuf.ProtobufDecoder;
 import io.netty.handler.codec.protobuf.ProtobufEncoder;
@@ -26,7 +21,7 @@ public class SDWanControllerServer implements InitializingBean, DisposableBean {
 
     private SDWanControllerProperties properties;
     private ChannelHandler handler;
-    private Channel channel;
+    private Channel localChannel;
 
     public SDWanControllerServer(SDWanControllerProperties properties, ChannelHandler handler) {
         this.properties = properties;
@@ -44,10 +39,10 @@ public class SDWanControllerServer implements InitializingBean, DisposableBean {
                 .childOption(ChannelOption.SO_KEEPALIVE, true)
                 .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
                 .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
-                .childHandler(new ChannelInitializer<SocketChannel>() {
+                .childHandler(new ChannelInitializer<Channel>() {
                     @Override
-                    protected void initChannel(SocketChannel channel) throws Exception {
-                        ChannelPipeline pipeline = channel.pipeline();
+                    protected void initChannel(Channel ch) throws Exception {
+                        ChannelPipeline pipeline = ch.pipeline();
                         pipeline.addLast(new LogHandler("sdwan"));
                         pipeline.addLast(new ProtobufVarint32FrameDecoder());
                         pipeline.addLast(new ProtobufDecoder(SDWanProtos.Message.getDefaultInstance()));
@@ -56,15 +51,15 @@ public class SDWanControllerServer implements InitializingBean, DisposableBean {
                         pipeline.addLast(handler);
                     }
                 });
-        channel = serverBootstrap.bind(properties.getPort()).syncUninterruptibly().channel();
+        localChannel = serverBootstrap.bind(properties.getPort()).syncUninterruptibly().channel();
         log.info("sdwan controller started: port={}", properties.getPort());
     }
 
     @Override
     public void destroy() throws Exception {
-        if (null == channel) {
+        if (null == localChannel) {
             return;
         }
-        channel.close();
+        localChannel.close();
     }
 }
