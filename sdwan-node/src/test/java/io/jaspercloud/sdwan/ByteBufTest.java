@@ -40,12 +40,4 @@ public class ByteBufTest {
         int cnt = buf.refCnt();
         Assert.isTrue(0 == cnt);
     }
-
-    @Test
-    public void testa() {
-        URI uri1 = URI.create("relay://192.222.2.3:5433?token=" + UUID.randomUUID().toString());
-        URI uri2 = URI.create("srflx://192.222.2.3:5433");
-        URI uri3 = URI.create("host://192.222.2.3:5433");
-        System.out.println();
-    }
 }
