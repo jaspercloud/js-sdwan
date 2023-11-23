@@ -51,9 +51,9 @@ public class RelayClient implements InitializingBean {
                     if (!StringUtils.equals(token, localRelayToken)) {
                         return;
                     }
-                    request.getAttrs().put(AttrType.SrcRelayToken, dstToken);
-                    request.getAttrs().put(AttrType.DstRelayToken, srcToken);
                     StunMessage response = new StunMessage(MessageType.HeartResponse, request.getTranId());
+                    response.getAttrs().put(AttrType.SrcRelayToken, dstToken);
+                    response.getAttrs().put(AttrType.DstRelayToken, srcToken);
                     ctx.writeAndFlush(new StunPacket(response, sender));
                 }
             }
