@@ -63,6 +63,7 @@ public class RelayDataTunnel implements DataTunnel {
                 .setDstAddress(detectionInfo.getDstAddress())
                 .setPayload(routePacket)
                 .build();
+        System.out.println("sendRelayToken: " + relayToken);
         StunMessage message = new StunMessage(MessageType.Transfer);
         message.getAttrs().put(AttrType.DstRelayToken, new StringAttr(relayToken));
         message.getAttrs().put(AttrType.Data, new BytesAttr(p2pPacket.toByteArray()));
