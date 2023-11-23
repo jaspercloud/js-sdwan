@@ -77,6 +77,11 @@ public class P2pManager implements InitializingBean {
                         if (null == dataTunnel) {
                             return;
                         }
+                        String src = UriComponentsBuilder.fromUriString(p2pPacket.getSrcAddress())
+                                .build().getQueryParams().getFirst("token");
+                        String dst = UriComponentsBuilder.fromUriString(p2pPacket.getDstAddress())
+                                .build().getQueryParams().getFirst("token");
+                        System.out.println(String.format("p2pPacket recv: src=%s, dst=%s", src, dst));
                         for (TunnelDataHandler handler : tunnelDataHandlerList) {
                             handler.onData(dataTunnel, routePacket);
                         }

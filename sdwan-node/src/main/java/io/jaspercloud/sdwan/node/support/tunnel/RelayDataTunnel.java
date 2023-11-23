@@ -11,6 +11,7 @@ import io.jaspercloud.sdwan.stun.StunClient;
 import io.jaspercloud.sdwan.stun.StunMessage;
 import io.jaspercloud.sdwan.stun.StunPacket;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
@@ -66,6 +67,11 @@ public class RelayDataTunnel implements DataTunnel {
                 .setDstAddress(detectionInfo.getDstAddress())
                 .setPayload(routePacket)
                 .build();
+        String src = UriComponentsBuilder.fromUriString(p2pPacket.getSrcAddress())
+                .build().getQueryParams().getFirst("token");
+        String dst = UriComponentsBuilder.fromUriString(p2pPacket.getDstAddress())
+                .build().getQueryParams().getFirst("token");
+        System.out.println(String.format("p2pPacket send: src=%s, dst=%s", src, dst));
         StunMessage message = new StunMessage(MessageType.Transfer);
         message.getAttrs().put(AttrType.DstRelayToken, new StringAttr(relayToken));
         message.getAttrs().put(AttrType.Data, new BytesAttr(p2pPacket.toByteArray()));
