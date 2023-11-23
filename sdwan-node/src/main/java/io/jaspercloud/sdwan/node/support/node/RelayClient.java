@@ -1,7 +1,13 @@
 package io.jaspercloud.sdwan.node.support.node;
 
 import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
-import io.jaspercloud.sdwan.stun.*;
+import io.jaspercloud.sdwan.stun.AttrType;
+import io.jaspercloud.sdwan.stun.MessageType;
+import io.jaspercloud.sdwan.stun.StringAttr;
+import io.jaspercloud.sdwan.stun.StunClient;
+import io.jaspercloud.sdwan.stun.StunDataHandler;
+import io.jaspercloud.sdwan.stun.StunMessage;
+import io.jaspercloud.sdwan.stun.StunPacket;
 import io.netty.channel.ChannelHandlerContext;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -33,9 +39,9 @@ public class RelayClient implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        stunClient.addDataHandler(new StunDataHandler<StunPacket>() {
+        stunClient.addDataHandler(new StunDataHandler() {
             @Override
-            protected void onData(ChannelHandlerContext ctx, StunPacket packet) {
+            public void onData(ChannelHandlerContext ctx, StunPacket packet) {
                 StunMessage request = packet.content();
                 InetSocketAddress sender = packet.sender();
                 if (MessageType.HeartRequest.equals(request.getMessageType())) {

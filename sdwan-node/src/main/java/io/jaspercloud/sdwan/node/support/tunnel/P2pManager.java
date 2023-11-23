@@ -16,6 +16,7 @@ import io.jaspercloud.sdwan.stun.MessageType;
 import io.jaspercloud.sdwan.stun.StunClient;
 import io.jaspercloud.sdwan.stun.StunDataHandler;
 import io.jaspercloud.sdwan.stun.StunMessage;
+import io.jaspercloud.sdwan.stun.StunPacket;
 import io.netty.channel.ChannelHandlerContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
@@ -62,12 +63,13 @@ public class P2pManager implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        stunClient.addDataHandler(new StunDataHandler<StunMessage>() {
+        stunClient.addDataHandler(new StunDataHandler() {
             @Override
-            protected void onData(ChannelHandlerContext ctx, StunMessage msg) {
+            public void onData(ChannelHandlerContext ctx, StunPacket packet) {
                 try {
-                    if (MessageType.Transfer.equals(msg.getMessageType())) {
-                        BytesAttr dataAttr = msg.getAttr(AttrType.Data);
+                    StunMessage request = packet.content();
+                    if (MessageType.Transfer.equals(request.getMessageType())) {
+                        BytesAttr dataAttr = request.getAttr(AttrType.Data);
                         byte[] data = dataAttr.getData();
                         SDWanProtos.P2pPacket p2pPacket = SDWanProtos.P2pPacket.parseFrom(data);
                         SDWanProtos.RoutePacket routePacket = p2pPacket.getPayload();
