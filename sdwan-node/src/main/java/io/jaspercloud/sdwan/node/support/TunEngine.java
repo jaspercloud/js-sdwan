@@ -47,7 +47,7 @@ import java.util.concurrent.TimeoutException;
 @Slf4j
 public class TunEngine implements InitializingBean, DisposableBean, Runnable {
 
-    public static final String TUN = "sdwan";
+    public static final String TUN = "net-thunder";
 
     private SDWanNodeProperties properties;
     private SDWanNode sdWanNode;
