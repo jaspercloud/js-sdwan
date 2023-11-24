@@ -154,7 +154,7 @@ public class P2pManager implements InitializingBean {
                     UriComponents components = UriComponentsBuilder.fromUriString(info.getDstAddress()).build();
                     if (AddressType.RELAY.equals(components.getScheme())) {
                         InetSocketAddress address = new InetSocketAddress(components.getHost(), components.getPort());
-                        DataTunnel dataTunnel = new RelayDataTunnel(sdWanNode, stunClient, p2pOffer.getDstVIP(), info, address, components.getQueryParams().getFirst("token"));
+                        DataTunnel dataTunnel = new RelayDataTunnel(sdWanNode, stunClient, p2pOffer.getSrcVIP(), info, address, components.getQueryParams().getFirst("token"));
                         tunnelMap.computeIfAbsent(info.getDstAddress(), key -> dataTunnel);
                     } else {
                         InetSocketAddress address = new InetSocketAddress(components.getHost(), components.getPort());
