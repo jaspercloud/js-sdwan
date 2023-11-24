@@ -26,6 +26,7 @@ public class SDWanNodeProperties {
 
         private InetSocketAddress address;
         private Integer connectTimeout;
+        private Long callTimeout;
 
         public void setAddress(String address) {
             this.address = parseAddress(address);
@@ -36,7 +37,8 @@ public class SDWanNodeProperties {
     public static class Stun {
 
         private InetSocketAddress address;
-        private Long mappingTimeout;
+        private Long callTimeout;
+        private Long heartTimeout;
 
         public void setAddress(String address) {
             this.address = parseAddress(address);
@@ -47,6 +49,7 @@ public class SDWanNodeProperties {
     public static class Relay {
 
         private InetSocketAddress address;
+        private Long heartTimeout;
 
         public void setAddress(String address) {
             this.address = parseAddress(address);

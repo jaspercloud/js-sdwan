@@ -140,7 +140,8 @@ public class ConnectionManager implements InitializingBean {
                 .map(uri -> UriComponentsBuilder.fromUriString(uri).build())
                 .collect(Collectors.toMap(e -> e.getScheme(), e -> e));
         UriComponents components = uriComponentsMap.get("srflx");
-        return stunClient.sendBind(new InetSocketAddress(components.getHost(), components.getPort()))
+        Long timeout = properties.getStun().getHeartTimeout();
+        return stunClient.sendBind(new InetSocketAddress(components.getHost(), components.getPort()), timeout)
                 .handle((bindResp, bindError) -> {
                     if (null != bindError) {
                         return Arrays.asList(host, srflx, relay);

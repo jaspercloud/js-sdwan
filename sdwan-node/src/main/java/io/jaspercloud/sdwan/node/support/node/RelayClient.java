@@ -1,12 +1,7 @@
 package io.jaspercloud.sdwan.node.support.node;
 
 import io.jaspercloud.sdwan.node.config.SDWanNodeProperties;
-import io.jaspercloud.sdwan.stun.AttrType;
-import io.jaspercloud.sdwan.stun.MessageType;
-import io.jaspercloud.sdwan.stun.StringAttr;
-import io.jaspercloud.sdwan.stun.StunClient;
-import io.jaspercloud.sdwan.stun.StunMessage;
-import io.jaspercloud.sdwan.stun.StunPacket;
+import io.jaspercloud.sdwan.stun.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 
@@ -64,8 +59,9 @@ public class RelayClient implements InitializingBean {
     }
 
     private void bind() throws Exception {
+        SDWanNodeProperties.Relay relay = properties.getRelay();
         StunMessage req = new StunMessage(MessageType.BindRelayRequest);
         req.setAttr(AttrType.RelayToken, new StringAttr(localRelayToken));
-        stunClient.invokeAsync(new StunPacket(req, properties.getRelay().getAddress())).get();
+        stunClient.invokeAsync(new StunPacket(req, relay.getAddress()), relay.getHeartTimeout()).get();
     }
 }

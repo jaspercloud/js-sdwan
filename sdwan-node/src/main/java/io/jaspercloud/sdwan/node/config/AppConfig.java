@@ -2,11 +2,7 @@ package io.jaspercloud.sdwan.node.config;
 
 import io.jaspercloud.sdwan.node.support.TunEngine;
 import io.jaspercloud.sdwan.node.support.connection.ConnectionManager;
-import io.jaspercloud.sdwan.node.support.detection.HostP2pDetection;
-import io.jaspercloud.sdwan.node.support.detection.P2pDetection;
-import io.jaspercloud.sdwan.node.support.detection.PrflxP2pDetection;
-import io.jaspercloud.sdwan.node.support.detection.RelayP2pDetection;
-import io.jaspercloud.sdwan.node.support.detection.SrflxP2pDetection;
+import io.jaspercloud.sdwan.node.support.detection.*;
 import io.jaspercloud.sdwan.node.support.node.MappingManager;
 import io.jaspercloud.sdwan.node.support.node.RelayClient;
 import io.jaspercloud.sdwan.node.support.node.SDWanNode;
@@ -29,8 +25,8 @@ import java.util.List;
 public class AppConfig {
 
     @Bean
-    public StunClient stunClient() throws Exception {
-        return new StunClient(0);
+    public StunClient stunClient(SDWanNodeProperties properties) throws Exception {
+        return new StunClient(0, properties.getStun().getCallTimeout());
     }
 
     @Bean
@@ -76,18 +72,21 @@ public class AppConfig {
     }
 
     @Bean
-    public HostP2pDetection hostP2pDetection(StunClient stunClient) {
-        return new HostP2pDetection(stunClient);
+    public HostP2pDetection hostP2pDetection(SDWanNodeProperties properties,
+                                             StunClient stunClient) {
+        return new HostP2pDetection(properties, stunClient);
     }
 
     @Bean
-    public SrflxP2pDetection srflxP2pDetection(StunClient stunClient) {
-        return new SrflxP2pDetection(stunClient);
+    public SrflxP2pDetection srflxP2pDetection(SDWanNodeProperties properties,
+                                               StunClient stunClient) {
+        return new SrflxP2pDetection(properties, stunClient);
     }
 
     @Bean
-    public PrflxP2pDetection prflxP2pDetection(StunClient stunClient) {
-        return new PrflxP2pDetection(stunClient);
+    public PrflxP2pDetection prflxP2pDetection(SDWanNodeProperties properties,
+                                               StunClient stunClient) {
+        return new PrflxP2pDetection(properties, stunClient);
     }
 
     @Bean

@@ -43,11 +43,14 @@ public abstract class RouteManager implements InitializingBean {
             @Override
             public void onData(ChannelHandlerContext ctx, SDWanProtos.Message msg) {
                 try {
-                    if (SDWanProtos.MsgTypeCode.RefreshRouteListType.equals(msg.getType())) {
-                        for (UpdateRouteHandler handler : handlerList) {
-                            List<SDWanProtos.Route> routeList = SDWanProtos.RouteList.parseFrom(msg.getData())
-                                    .getRouteList();
-                            handler.onUpdate(routeList);
+                    switch (msg.getType().getNumber()) {
+                        case SDWanProtos.MsgTypeCode.RefreshRouteListType_VALUE: {
+                            for (UpdateRouteHandler handler : handlerList) {
+                                List<SDWanProtos.Route> routeList = SDWanProtos.RouteList.parseFrom(msg.getData())
+                                        .getRouteList();
+                                handler.onUpdate(routeList);
+                            }
+                            break;
                         }
                     }
                 } catch (Throwable e) {

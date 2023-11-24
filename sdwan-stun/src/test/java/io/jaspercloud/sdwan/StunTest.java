@@ -22,9 +22,9 @@ public class StunTest {
     }
 
     private void run() throws Exception {
-        StunClient stunClient1 = new StunClient(1001);
+        StunClient stunClient1 = new StunClient(1001, 3000);
         stunClient1.afterPropertiesSet();
-        StunClient stunClient2 = new StunClient(1002);
+        StunClient stunClient2 = new StunClient(1002, 3000);
         stunClient2.afterPropertiesSet();
 
         StunPacket stunPacket = stunClient1.sendBind(new InetSocketAddress("127.0.0.1", 1002)).get();

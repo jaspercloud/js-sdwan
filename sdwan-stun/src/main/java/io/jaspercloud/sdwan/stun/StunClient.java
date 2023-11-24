@@ -19,6 +19,7 @@ import java.util.concurrent.CompletableFuture;
 public class StunClient implements InitializingBean {
 
     private int port;
+    private long callTimeout;
     private Channel localChannel;
     private List<StunDataHandler> dataHandlerList = new ArrayList<>();
 
@@ -26,12 +27,13 @@ public class StunClient implements InitializingBean {
         return localChannel;
     }
 
-    public StunClient() {
-        this(0);
+    public StunClient(long callTimeout) {
+        this(0, callTimeout);
     }
 
-    public StunClient(int port) {
+    public StunClient(int port, long callTimeout) {
         this.port = port;
+        this.callTimeout = callTimeout;
     }
 
     public void addDataHandler(StunDataHandler handler) {
@@ -92,7 +94,7 @@ public class StunClient implements InitializingBean {
     }
 
     public CompletableFuture<StunPacket> invokeAsync(StunPacket request) {
-        CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), 500);
+        CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), callTimeout);
         localChannel.writeAndFlush(request);
         return future;
     }

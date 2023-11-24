@@ -1,12 +1,9 @@
 package io.jaspercloud.sdwan.node.support.tunnel;
 
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
+import io.jaspercloud.sdwan.node.config.SDWanNodeProperties;
 import io.jaspercloud.sdwan.node.support.detection.DetectionInfo;
-import io.jaspercloud.sdwan.stun.AttrType;
-import io.jaspercloud.sdwan.stun.BytesAttr;
-import io.jaspercloud.sdwan.stun.MessageType;
-import io.jaspercloud.sdwan.stun.StunClient;
-import io.jaspercloud.sdwan.stun.StunMessage;
+import io.jaspercloud.sdwan.stun.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -17,12 +14,14 @@ import java.util.function.Consumer;
 @Slf4j
 public class P2pDataTunnel implements DataTunnel {
 
+    private SDWanNodeProperties properties;
     private StunClient stunClient;
     private DetectionInfo detectionInfo;
     private InetSocketAddress address;
     private CompletableFuture<Void> closeFuture = new CompletableFuture<>();
 
-    public P2pDataTunnel(StunClient stunClient, DetectionInfo detectionInfo, InetSocketAddress address) {
+    public P2pDataTunnel(SDWanNodeProperties properties, StunClient stunClient, DetectionInfo detectionInfo, InetSocketAddress address) {
+        this.properties = properties;
         this.stunClient = stunClient;
         this.detectionInfo = detectionInfo;
         this.address = address;
@@ -49,7 +48,8 @@ public class P2pDataTunnel implements DataTunnel {
 
     @Override
     public CompletableFuture<Boolean> check() {
-        return stunClient.sendBind(address)
+        Long timeout = properties.getStun().getHeartTimeout();
+        return stunClient.sendBind(address, timeout)
                 .handle((result, error) -> {
                     return null == error;
                 });

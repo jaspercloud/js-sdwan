@@ -1,23 +1,13 @@
 package io.jaspercloud.sdwan.node.support.node;
 
 import com.google.protobuf.ByteString;
-import io.jaspercloud.sdwan.AsyncTask;
-import io.jaspercloud.sdwan.LogHandler;
-import io.jaspercloud.sdwan.NetworkInterfaceInfo;
-import io.jaspercloud.sdwan.NetworkInterfaceUtil;
-import io.jaspercloud.sdwan.NioEventLoopFactory;
+import io.jaspercloud.sdwan.*;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.node.config.SDWanNodeProperties;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.*;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.protobuf.ProtobufDecoder;
 import io.netty.handler.codec.protobuf.ProtobufEncoder;
@@ -168,7 +158,8 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
         if (!localChannel.isActive()) {
             throw new ProcessException("channel closed");
         }
-        CompletableFuture<SDWanProtos.Message> future = AsyncTask.waitTask(request.getReqId(), 3000);
+        Long callTimeout = properties.getController().getCallTimeout();
+        CompletableFuture<SDWanProtos.Message> future = AsyncTask.waitTask(request.getReqId(), callTimeout);
         localChannel.writeAndFlush(request);
         return future;
     }

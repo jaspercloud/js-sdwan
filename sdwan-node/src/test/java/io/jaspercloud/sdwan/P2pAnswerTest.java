@@ -37,7 +37,7 @@ public class P2pAnswerTest {
         sdWanNode.afterPropertiesSet();
         InetSocketAddress sdWanNodeLocalAddress = (InetSocketAddress) sdWanNode.getChannel().localAddress();
         //stunClient
-        StunClient stunClient = new StunClient();
+        StunClient stunClient = new StunClient(3000);
         stunClient.afterPropertiesSet();
         InetSocketAddress stunClientLocalAddress = (InetSocketAddress) stunClient.getChannel().localAddress();
         //relayClient
@@ -49,9 +49,9 @@ public class P2pAnswerTest {
         MappingAddress mappingAddress = mappingManager.getMappingAddress();
         //p2pManager
         P2pManager p2pManager = new P2pManager(properties, sdWanNode, stunClient, relayClient);
-        p2pManager.addP2pDetection(new HostP2pDetection(stunClient));
-        p2pManager.addP2pDetection(new SrflxP2pDetection(stunClient));
-        p2pManager.addP2pDetection(new PrflxP2pDetection(stunClient));
+        p2pManager.addP2pDetection(new HostP2pDetection(properties, stunClient));
+        p2pManager.addP2pDetection(new SrflxP2pDetection(properties, stunClient));
+        p2pManager.addP2pDetection(new PrflxP2pDetection(properties, stunClient));
         p2pManager.addP2pDetection(new RelayP2pDetection(relayClient));
         p2pManager.afterPropertiesSet();
         ConnectionManager connectionManager = new ConnectionManager(properties, sdWanNode, stunClient, relayClient, mappingManager, p2pManager);

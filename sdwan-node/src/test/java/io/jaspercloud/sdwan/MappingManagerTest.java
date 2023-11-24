@@ -12,7 +12,7 @@ public class MappingManagerTest {
         SDWanNodeProperties properties = new SDWanNodeProperties();
         properties.setStun(new SDWanNodeProperties.Stun());
         properties.getStun().setAddress("stun.miwifi.com:3478");
-        StunClient stunClient = new StunClient(0);
+        StunClient stunClient = new StunClient(3000);
         stunClient.afterPropertiesSet();
         MappingManager mappingManager = new MappingManager(properties, stunClient);
         mappingManager.afterPropertiesSet();

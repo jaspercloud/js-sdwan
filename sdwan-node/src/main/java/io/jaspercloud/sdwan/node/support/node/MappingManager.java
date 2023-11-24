@@ -62,7 +62,7 @@ public class MappingManager implements InitializingBean, Runnable {
     }
 
     private MappingAddress check(InetSocketAddress remote) throws Exception {
-        Long timeout = properties.getStun().getMappingTimeout();
+        Long timeout = properties.getStun().getHeartTimeout();
         StunPacket response = stunClient.sendBind(remote, timeout).get();
         Map<AttrType, Attr> attrs = response.content().getAttrs();
         AddressAttr changedAddressAttr = (AddressAttr) attrs.get(AttrType.ChangedAddress);
