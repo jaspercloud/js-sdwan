@@ -1,5 +1,6 @@
 package io.jaspercloud.sdwan.tun.linux;
 
+import io.jaspercloud.sdwan.Cidr;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.tun.CheckInvoke;
 import io.jaspercloud.sdwan.tun.ProcessUtil;
@@ -8,11 +9,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import org.springframework.util.FileCopyUtils;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.io.*;
 
 public class LinuxTunDevice extends TunDevice {
 
@@ -71,7 +68,9 @@ public class LinuxTunDevice extends TunDevice {
 
     @Override
     public void setIP(String addr, int netmaskPrefix) throws Exception {
-        int addAddr = ProcessUtil.exec(String.format("/sbin/ip addr add %s/%s dev %s", addr, netmaskPrefix, getName()));
+        Cidr cidr = Cidr.parseCidr(String.format("%s/%s", addr, netmaskPrefix));
+        int addAddr = ProcessUtil.exec(String.format("ifconfig %s inet %s netmask %s",
+                getName(), addr, cidr.getMaskAddress()));
         CheckInvoke.check(addAddr, 0);
         int up = ProcessUtil.exec(String.format("/sbin/ip link set dev %s up", getName()));
         CheckInvoke.check(up, 0);
