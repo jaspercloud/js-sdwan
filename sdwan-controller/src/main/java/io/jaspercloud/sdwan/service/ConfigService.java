@@ -22,4 +22,6 @@ public interface ConfigService {
     List<NodeDTO> getNodeList();
 
     List<NodeDTO> getMeshNodeList();
+
+    void disconnectNode(Long id);
 }

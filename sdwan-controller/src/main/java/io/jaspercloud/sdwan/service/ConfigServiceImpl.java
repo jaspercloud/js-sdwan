@@ -218,4 +218,13 @@ public class ConfigServiceImpl implements ConfigService {
         }).collect(Collectors.toList());
         return resultList;
     }
+
+    @Override
+    public void disconnectNode(Long id) {
+        Node node = nodeRepository.queryById(id);
+        if (null == node) {
+            return;
+        }
+        nodeManager.deleteChannel(node.getVip());
+    }
 }

@@ -1,8 +1,8 @@
 package io.jaspercloud.sdwan.controller;
 
+import io.jaspercloud.sdwan.controller.param.NodeDTO;
 import io.jaspercloud.sdwan.controller.param.Result;
 import io.jaspercloud.sdwan.service.ConfigService;
-import io.jaspercloud.sdwan.controller.param.NodeDTO;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -37,5 +37,11 @@ public class NodeController {
     public Result meshList() {
         List<NodeDTO> nodeList = configService.getMeshNodeList();
         return new Result(0, "ok", nodeList);
+    }
+
+    @PostMapping("/{id}/disconnect")
+    public Result disconnect(@PathVariable("id") Long id) {
+        configService.disconnectNode(id);
+        return Result.OK;
     }
 }
