@@ -27,7 +27,7 @@ public class StunTest {
         StunClient stunClient2 = new StunClient(1002, 3000);
         stunClient2.afterPropertiesSet();
 
-        StunPacket stunPacket = stunClient1.sendBind(new InetSocketAddress("127.0.0.1", 1002)).get();
+        StunPacket stunPacket = stunClient1.sendBind(new InetSocketAddress("127.0.0.1", 1002), 300).get();
         AddressAttr addressAttr = stunPacket.content().getAttr(AttrType.MappedAddress);
         InetSocketAddress address = addressAttr.getAddress();
         System.out.println();
