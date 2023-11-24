@@ -111,68 +111,74 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
     @Override
     public void run() {
         while (true) {
-            try {
-                InetSocketAddress sdWanNodeLocalAddress = (InetSocketAddress) sdWanNode.getChannel().localAddress();
-                InetSocketAddress stunClientLocalAddress = (InetSocketAddress) stunClient.getChannel().localAddress();
-                MappingAddress mappingAddress = mappingManager.getMappingAddress();
-                //address
-                String host = UriComponentsBuilder.newInstance()
-                        .scheme(AddressType.HOST)
-                        .host(sdWanNodeLocalAddress.getHostString())
-                        .port(stunClientLocalAddress.getPort())
-                        .build().toString();
-                String srflx = UriComponentsBuilder.newInstance()
-                        .scheme(AddressType.SRFLX)
-                        .host(mappingAddress.getMappingAddress().getHostString())
-                        .port(mappingAddress.getMappingAddress().getPort())
-                        .queryParam("mappingType", mappingAddress.getMappingType().name())
-                        .build().toString();
-                String relay = UriComponentsBuilder.newInstance()
-                        .scheme(AddressType.RELAY)
-                        .host(properties.getRelay().getAddress().getHostString())
-                        .port(properties.getRelay().getAddress().getPort())
-                        .queryParam("token", relayClient.getRelayToken())
-                        .build().toString();
-                NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(sdWanNodeLocalAddress.getHostString());
-                String hardwareAddress = interfaceInfo.getHardwareAddress();
-                SDWanProtos.RegResp regResp;
-                try {
-                    regResp = sdWanNode.regist(hardwareAddress, Arrays.asList(host, srflx, relay));
-                } catch (TimeoutException e) {
-                    throw new ProcessException("sdWANNode.regist timeout");
-                } catch (ExecutionException e) {
-                    Throwable cause = e.getCause();
-                    if (cause instanceof TimeoutException) {
-                        throw new ProcessException("sdWANNode.regist timeout");
-                    }
-                    throw e;
-                }
-                if (SDWanProtos.MessageCode.NotEnough_VALUE == regResp.getCode()) {
-                    throw new ProcessException("no more vip");
-                } else if (SDWanProtos.MessageCode.VipBound_VALUE == regResp.getCode()) {
-                    throw new ProcessException("vip bound");
-                } else if (SDWanProtos.MessageCode.SysError_VALUE == regResp.getCode()) {
-                    throw new ProcessException("server error");
-                }
-                //配置地址
-                tunChannel.setAddress(regResp.getVip(), regResp.getMaskBits());
-                log.info("tunAddress: {}/{}", regResp.getVip(), regResp.getMaskBits());
-                //配置路由
-                routeManager.initRoute(tunChannel);
-                log.info("TunEngine started");
-                //wait closed reconnect
-                sdWanNode.getChannel().closeFuture().sync();
-                routeManager.releaseRoute(tunChannel);
-            } catch (ProcessException e) {
-                log.error(e.getMessage(), e);
-            } catch (Throwable e) {
-                log.error(e.getMessage(), e);
+            if (sdWanNode.getChannel().isActive()) {
+                autoBoot();
             }
             try {
                 Thread.sleep(5000);
             } catch (Throwable e) {
                 log.error(e.getMessage(), e);
             }
+        }
+    }
+
+    private void autoBoot() {
+        try {
+            InetSocketAddress sdWanNodeLocalAddress = (InetSocketAddress) sdWanNode.getChannel().localAddress();
+            InetSocketAddress stunClientLocalAddress = (InetSocketAddress) stunClient.getChannel().localAddress();
+            MappingAddress mappingAddress = mappingManager.getMappingAddress();
+            //address
+            String host = UriComponentsBuilder.newInstance()
+                    .scheme(AddressType.HOST)
+                    .host(sdWanNodeLocalAddress.getHostString())
+                    .port(stunClientLocalAddress.getPort())
+                    .build().toString();
+            String srflx = UriComponentsBuilder.newInstance()
+                    .scheme(AddressType.SRFLX)
+                    .host(mappingAddress.getMappingAddress().getHostString())
+                    .port(mappingAddress.getMappingAddress().getPort())
+                    .queryParam("mappingType", mappingAddress.getMappingType().name())
+                    .build().toString();
+            String relay = UriComponentsBuilder.newInstance()
+                    .scheme(AddressType.RELAY)
+                    .host(properties.getRelay().getAddress().getHostString())
+                    .port(properties.getRelay().getAddress().getPort())
+                    .queryParam("token", relayClient.getRelayToken())
+                    .build().toString();
+            NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(sdWanNodeLocalAddress.getHostString());
+            String hardwareAddress = interfaceInfo.getHardwareAddress();
+            SDWanProtos.RegResp regResp;
+            try {
+                regResp = sdWanNode.regist(hardwareAddress, Arrays.asList(host, srflx, relay));
+            } catch (TimeoutException e) {
+                throw new ProcessException("sdWANNode.regist timeout");
+            } catch (ExecutionException e) {
+                Throwable cause = e.getCause();
+                if (cause instanceof TimeoutException) {
+                    throw new ProcessException("sdWANNode.regist timeout");
+                }
+                throw e;
+            }
+            if (SDWanProtos.MessageCode.NotEnough_VALUE == regResp.getCode()) {
+                throw new ProcessException("no more vip");
+            } else if (SDWanProtos.MessageCode.VipBound_VALUE == regResp.getCode()) {
+                throw new ProcessException("vip bound");
+            } else if (SDWanProtos.MessageCode.SysError_VALUE == regResp.getCode()) {
+                throw new ProcessException("server error");
+            }
+            //配置地址
+            tunChannel.setAddress(regResp.getVip(), regResp.getMaskBits());
+            log.info("tunAddress: {}/{}", regResp.getVip(), regResp.getMaskBits());
+            //配置路由
+            routeManager.initRoute(tunChannel);
+            log.info("TunEngine started");
+            //wait closed reconnect
+            sdWanNode.getChannel().closeFuture().sync();
+            routeManager.releaseRoute(tunChannel);
+        } catch (ProcessException e) {
+            log.error(e.getMessage(), e);
+        } catch (Throwable e) {
+            log.error(e.getMessage(), e);
         }
     }
 
