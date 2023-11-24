@@ -38,6 +38,7 @@ public class SDWanNodeProperties {
 
         private InetSocketAddress address;
         private Long callTimeout;
+        private Long mappingTimeout;
         private Long heartTimeout;
 
         public void setAddress(String address) {

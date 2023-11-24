@@ -9,6 +9,7 @@ sdwan:
     stun:
       address: stun.miwifi.com:3478
       callTimeout: 3000
+      mappingTimeout: 3000
       heartTimeout: 300
     relay:
       address: 127.0.0.1:8082

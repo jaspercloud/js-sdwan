@@ -2,7 +2,12 @@ package io.jaspercloud.sdwan.node.support.node;
 
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.node.config.SDWanNodeProperties;
-import io.jaspercloud.sdwan.stun.*;
+import io.jaspercloud.sdwan.stun.AddressAttr;
+import io.jaspercloud.sdwan.stun.Attr;
+import io.jaspercloud.sdwan.stun.AttrType;
+import io.jaspercloud.sdwan.stun.MappingAddress;
+import io.jaspercloud.sdwan.stun.StunClient;
+import io.jaspercloud.sdwan.stun.StunPacket;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 
@@ -62,20 +67,20 @@ public class MappingManager implements InitializingBean, Runnable {
     }
 
     private MappingAddress check(InetSocketAddress remote) throws Exception {
-        Long timeout = properties.getStun().getHeartTimeout();
-        StunPacket response = stunClient.sendBind(remote, timeout).get();
+        Long mappingTimeout = properties.getStun().getMappingTimeout();
+        StunPacket response = stunClient.sendBind(remote, mappingTimeout).get();
         Map<AttrType, Attr> attrs = response.content().getAttrs();
         AddressAttr changedAddressAttr = (AddressAttr) attrs.get(AttrType.ChangedAddress);
         InetSocketAddress changedAddress = changedAddressAttr.getAddress();
         AddressAttr mappedAddressAttr = (AddressAttr) attrs.get(AttrType.MappedAddress);
         InetSocketAddress mappedAddress1 = mappedAddressAttr.getAddress();
-        if (null != (response = testChangeBind(remote, true, true, timeout))) {
+        if (null != (response = testChangeBind(remote, true, true, mappingTimeout))) {
             return new MappingAddress(SDWanProtos.MappingTypeCode.FullCone, mappedAddress1);
-        } else if (null != (response = testChangeBind(remote, false, true, timeout))) {
+        } else if (null != (response = testChangeBind(remote, false, true, mappingTimeout))) {
             return new MappingAddress(SDWanProtos.MappingTypeCode.RestrictedCone, mappedAddress1);
         }
         try {
-            response = stunClient.sendBind(changedAddress, timeout).get();
+            response = stunClient.sendBind(changedAddress, mappingTimeout).get();
             attrs = response.content().getAttrs();
             mappedAddressAttr = (AddressAttr) attrs.get(AttrType.MappedAddress);
             InetSocketAddress mappedAddress2 = mappedAddressAttr.getAddress();
