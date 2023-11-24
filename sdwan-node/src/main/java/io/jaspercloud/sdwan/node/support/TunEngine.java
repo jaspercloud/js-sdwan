@@ -7,15 +7,12 @@ import io.jaspercloud.sdwan.NetworkInterfaceUtil;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.node.config.SDWanNodeProperties;
-import io.jaspercloud.sdwan.node.support.connection.ConnectionDataHandler;
 import io.jaspercloud.sdwan.node.support.connection.ConnectionManager;
-import io.jaspercloud.sdwan.node.support.connection.PeerConnection;
 import io.jaspercloud.sdwan.node.support.detection.AddressType;
 import io.jaspercloud.sdwan.node.support.node.MappingManager;
 import io.jaspercloud.sdwan.node.support.node.RelayClient;
 import io.jaspercloud.sdwan.node.support.node.SDWanNode;
 import io.jaspercloud.sdwan.node.support.route.RouteManager;
-import io.jaspercloud.sdwan.node.support.route.UpdateRouteHandler;
 import io.jaspercloud.sdwan.stun.MappingAddress;
 import io.jaspercloud.sdwan.stun.StunClient;
 import io.jaspercloud.sdwan.tun.Ipv4Packet;
@@ -25,14 +22,7 @@ import io.jaspercloud.sdwan.tun.TunChannelConfig;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.DefaultEventLoopGroup;
-import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.DisposableBean;
@@ -83,20 +73,14 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
     @Override
     public void afterPropertiesSet() throws Exception {
         tunChannel = bootTun();
-        routeManager.addUpdateRouteHandler(new UpdateRouteHandler() {
-            @Override
-            public void onUpdate(List<SDWanProtos.Route> routeList) {
-                routeManager.updateRouteList(tunChannel, routeList);
-            }
+        routeManager.addUpdateRouteHandler(routeList -> {
+            routeManager.updateRouteList(tunChannel, routeList);
         });
-        connectionManager.addConnectionDataHandler(new ConnectionDataHandler() {
-            @Override
-            public void onData(PeerConnection connection, SDWanProtos.IpPacket packet) {
-                try {
-                    processWriteTun(tunChannel, packet);
-                } catch (Throwable e) {
-                    log.error(e.getMessage(), e);
-                }
+        connectionManager.addConnectionDataHandler((connection, packet) -> {
+            try {
+                processWriteTun(tunChannel, packet);
+            } catch (Throwable e) {
+                log.error(e.getMessage(), e);
             }
         });
         Thread thread = new Thread(this, "tun-device");

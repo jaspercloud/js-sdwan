@@ -8,7 +8,6 @@ import io.jaspercloud.sdwan.node.support.detection.AddressType;
 import io.jaspercloud.sdwan.node.support.detection.DetectionInfo;
 import io.jaspercloud.sdwan.node.support.detection.P2pDetection;
 import io.jaspercloud.sdwan.node.support.node.RelayClient;
-import io.jaspercloud.sdwan.node.support.node.SDWanDataHandler;
 import io.jaspercloud.sdwan.node.support.node.SDWanNode;
 import io.jaspercloud.sdwan.stun.*;
 import io.netty.channel.ChannelHandlerContext;
@@ -81,19 +80,16 @@ public class P2pManager implements InitializingBean {
                 }
             }
         });
-        sdWanNode.addDataHandler(new SDWanDataHandler() {
-            @Override
-            public void onData(ChannelHandlerContext ctx, SDWanProtos.Message msg) {
-                try {
-                    switch (msg.getType().getNumber()) {
-                        case SDWanProtos.MsgTypeCode.P2pOfferType_VALUE: {
-                            processP2pOffer(ctx, msg);
-                            break;
-                        }
+        sdWanNode.addDataHandler((ctx, msg) -> {
+            try {
+                switch (msg.getType().getNumber()) {
+                    case SDWanProtos.MsgTypeCode.P2pOfferType_VALUE: {
+                        processP2pOffer(ctx, msg);
+                        break;
                     }
-                } catch (Throwable e) {
-                    log.error(e.getMessage(), e);
                 }
+            } catch (Throwable e) {
+                log.error(e.getMessage(), e);
             }
         });
         Thread tunnelHeartThread = new Thread(() -> {

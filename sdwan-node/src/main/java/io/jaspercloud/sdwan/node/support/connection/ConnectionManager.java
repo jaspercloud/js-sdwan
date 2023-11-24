@@ -9,7 +9,6 @@ import io.jaspercloud.sdwan.node.support.node.RelayClient;
 import io.jaspercloud.sdwan.node.support.node.SDWanNode;
 import io.jaspercloud.sdwan.node.support.tunnel.DataTunnel;
 import io.jaspercloud.sdwan.node.support.tunnel.P2pManager;
-import io.jaspercloud.sdwan.node.support.tunnel.TunnelDataHandler;
 import io.jaspercloud.sdwan.stun.AddressAttr;
 import io.jaspercloud.sdwan.stun.AttrType;
 import io.jaspercloud.sdwan.stun.MappingAddress;
@@ -57,38 +56,35 @@ public class ConnectionManager implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        p2pManager.addDataHandler(new TunnelDataHandler() {
-            @Override
-            public void onData(DataTunnel dataTunnel, SDWanProtos.RoutePacket routePacket) {
-                try {
-                    CompletableFuture<PeerConnection> future = connectionMap.computeIfAbsent(routePacket.getSrcVIP(), key -> {
-                        PeerConnection connection = PeerConnection.create(dataTunnel);
-                        dataTunnel.addCloseListener(new Consumer<DataTunnel>() {
-                            @Override
-                            public void accept(DataTunnel dataTunnel) {
-                                connection.close();
-                            }
-                        });
-                        connection.addCloseListener(new Consumer<PeerConnection>() {
-                            @Override
-                            public void accept(PeerConnection peerConnection) {
-                                connectionMap.remove(routePacket.getSrcVIP());
-                            }
-                        });
-                        return CompletableFuture.completedFuture(connection);
-                    });
-                    future.whenComplete((connection, throwable) -> {
-                        if (null != throwable) {
-                            return;
-                        }
-                        SDWanProtos.IpPacket ipPacket = connection.receive(routePacket);
-                        for (ConnectionDataHandler handler : connectionDataHandlerList) {
-                            handler.onData(connection, ipPacket);
+        p2pManager.addDataHandler((dataTunnel, routePacket) -> {
+            try {
+                CompletableFuture<PeerConnection> future = connectionMap.computeIfAbsent(routePacket.getSrcVIP(), key -> {
+                    PeerConnection connection = PeerConnection.create(dataTunnel);
+                    dataTunnel.addCloseListener(new Consumer<DataTunnel>() {
+                        @Override
+                        public void accept(DataTunnel dataTunnel) {
+                            connection.close();
                         }
                     });
-                } catch (Throwable e) {
-                    log.error(e.getMessage(), e);
-                }
+                    connection.addCloseListener(new Consumer<PeerConnection>() {
+                        @Override
+                        public void accept(PeerConnection peerConnection) {
+                            connectionMap.remove(routePacket.getSrcVIP());
+                        }
+                    });
+                    return CompletableFuture.completedFuture(connection);
+                });
+                future.whenComplete((connection, throwable) -> {
+                    if (null != throwable) {
+                        return;
+                    }
+                    SDWanProtos.IpPacket ipPacket = connection.receive(routePacket);
+                    for (ConnectionDataHandler handler : connectionDataHandlerList) {
+                        handler.onData(connection, ipPacket);
+                    }
+                });
+            } catch (Throwable e) {
+                log.error(e.getMessage(), e);
             }
         });
     }

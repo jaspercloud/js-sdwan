@@ -3,11 +3,9 @@ package io.jaspercloud.sdwan.node.support.route;
 import io.jaspercloud.sdwan.Cidr;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.node.support.connection.ConnectionManager;
-import io.jaspercloud.sdwan.node.support.node.SDWanDataHandler;
 import io.jaspercloud.sdwan.node.support.node.SDWanNode;
 import io.jaspercloud.sdwan.tun.TunAddress;
 import io.jaspercloud.sdwan.tun.TunChannel;
-import io.netty.channel.ChannelHandlerContext;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.InitializingBean;
@@ -39,23 +37,20 @@ public abstract class RouteManager implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        sdWanNode.addDataHandler(new SDWanDataHandler() {
-            @Override
-            public void onData(ChannelHandlerContext ctx, SDWanProtos.Message msg) {
-                try {
-                    switch (msg.getType().getNumber()) {
-                        case SDWanProtos.MsgTypeCode.RefreshRouteListType_VALUE: {
-                            for (UpdateRouteHandler handler : handlerList) {
-                                List<SDWanProtos.Route> routeList = SDWanProtos.RouteList.parseFrom(msg.getData())
-                                        .getRouteList();
-                                handler.onUpdate(routeList);
-                            }
-                            break;
+        sdWanNode.addDataHandler((ctx, msg) -> {
+            try {
+                switch (msg.getType().getNumber()) {
+                    case SDWanProtos.MsgTypeCode.RefreshRouteListType_VALUE: {
+                        for (UpdateRouteHandler handler : handlerList) {
+                            List<SDWanProtos.Route> routeList = SDWanProtos.RouteList.parseFrom(msg.getData())
+                                    .getRouteList();
+                            handler.onUpdate(routeList);
                         }
+                        break;
                     }
-                } catch (Throwable e) {
-                    log.error(e.getMessage(), e);
                 }
+            } catch (Throwable e) {
+                log.error(e.getMessage(), e);
             }
         });
     }
