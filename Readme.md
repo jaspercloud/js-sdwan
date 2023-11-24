@@ -110,8 +110,6 @@ sdwan:
     stunServer: stun.miwifi.com:3478
     #中继服务器地址
     relayServer: 127.0.0.1:8082
-    #配置本机的ip，由于有多个网卡需要配置
-    localIP: 192.168.1.2
 ```
 
 3.本机启动sdwan-node 以管理员权限/ROOT运行
@@ -127,8 +125,6 @@ sdwan:
     stunServer: stun.miwifi.com:3478
     #中继服务器地址
     relayServer: 127.0.0.1:8082
-    #配置本机的ip，由于有多个网卡需要配置
-    localIP: 10.22.6.3
 ```
 
 4.在dashboard中定义路由
@@ -140,3 +136,24 @@ sdwan:
 配置路由信息
 
 ![route](doc/img/route.png)
+
+```shell
+sudo iptables -F
+sudo iptables -X
+sudo iptables -t nat -F
+sudo iptables -t nat -X
+sudo iptables -t mangle -F
+sudo iptables -t mangle -X
+sudo iptables -P INPUT ACCEPT
+sudo iptables -P FORWARD ACCEPT
+sudo iptables -P OUTPUT ACCEPT
+```
+iptables -F：清空所有规则。
+iptables -X：删除所有用户自定义链。
+iptables -t nat -F：清空 NAT 表中的规则。
+iptables -t nat -X：删除 NAT 表中的所有用户自定义链。
+iptables -t mangle -F：清空 Mangle 表中的规则。
+iptables -t mangle -X：删除 Mangle 表中的所有用户自定义链。
+iptables -P INPUT ACCEPT：设置默认的 INPUT 链策略为 ACCEPT。
+iptables -P FORWARD ACCEPT：设置默认的 FORWARD 链策略为 ACCEPT。
+iptables -P OUTPUT ACCEPT：设置默认的 OUTPUT 链策略为 ACCEPT。

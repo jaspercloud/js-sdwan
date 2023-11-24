@@ -54,4 +54,9 @@ public class PeerConnection {
     public void send(SDWanProtos.RoutePacket routePacket) {
         dataTunnel.send(routePacket);
     }
+
+    public SDWanProtos.IpPacket receive(SDWanProtos.RoutePacket routePacket) {
+        SDWanProtos.IpPacket ipPacket = routePacket.getPayload();
+        return ipPacket;
+    }
 }

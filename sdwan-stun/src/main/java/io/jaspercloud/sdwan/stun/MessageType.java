@@ -6,9 +6,7 @@ public enum MessageType {
     BindResponse(0x0101),
     Transfer(0x0301),
     BindRelayRequest(0x0303),
-    BindRelayResponse(0x0304),
-    HeartRequest(0x0305),
-    HeartResponse(0x0306);
+    BindRelayResponse(0x0304);
 
     private int code;
 
