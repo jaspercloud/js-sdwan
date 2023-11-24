@@ -88,10 +88,6 @@ public class RelayServer implements InitializingBean, DisposableBean {
         InetSocketAddress sender = packet.sender();
         if (MessageType.BindRelayRequest.equals(request.getMessageType())) {
             processBindRelay(ctx, packet);
-        } else if (MessageType.HeartRequest.equals(request.getMessageType())) {
-            processRelayHeart(ctx, packet);
-        } else if (MessageType.HeartResponse.equals(request.getMessageType())) {
-            processRelayHeart(ctx, packet);
         } else if (MessageType.Transfer.equals(request.getMessageType())) {
             processTransfer(ctx, packet);
         } else {
@@ -103,7 +99,7 @@ public class RelayServer implements InitializingBean, DisposableBean {
         InetSocketAddress sender = packet.sender();
         StunMessage request = packet.content();
         //parse
-        StringAttr relayTokenAttr = (StringAttr) request.getAttrs().get(AttrType.DstRelayToken);
+        StringAttr relayTokenAttr = (StringAttr) request.getAttrs().get(AttrType.RelayToken);
         String relayToken = relayTokenAttr.getData();
         channelMap.put(relayToken, new RelayNode(sender));
         //resp
@@ -112,26 +108,11 @@ public class RelayServer implements InitializingBean, DisposableBean {
         ctx.writeAndFlush(response);
     }
 
-    private void processRelayHeart(ChannelHandlerContext ctx, StunPacket packet) {
-        InetSocketAddress sender = packet.sender();
-        StunMessage request = packet.content();
-        //parse
-        StringAttr relayTokenAttr = (StringAttr) request.getAttrs().get(AttrType.DstRelayToken);
-        String relayToken = relayTokenAttr.getData();
-        RelayNode node = channelMap.get(relayToken);
-        if (null == node) {
-            return;
-        }
-        //resp
-        StunPacket response = new StunPacket(request, node.getTargetAddress());
-        ctx.writeAndFlush(response);
-    }
-
     private void processTransfer(ChannelHandlerContext ctx, StunPacket packet) {
         InetSocketAddress sender = packet.sender();
         StunMessage request = packet.content();
         //parse
-        StringAttr relayTokenAttr = (StringAttr) request.getAttrs().get(AttrType.DstRelayToken);
+        StringAttr relayTokenAttr = (StringAttr) request.getAttrs().get(AttrType.RelayToken);
         String relayToken = relayTokenAttr.getData();
         RelayNode node = channelMap.get(relayToken);
         if (null == node) {
