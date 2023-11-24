@@ -22,17 +22,17 @@ public class LinuxRouteManager extends RouteManager {
     protected void addRoute(TunChannel tunChannel, SDWanProtos.Route route) throws Exception {
         TunAddress tunAddress = (TunAddress) tunChannel.localAddress();
         NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(tunAddress.getVip());
-        String cmd = String.format("ip route delete %s via %s", route.getDestination(), tunAddress.getVip());
+        String cmd = String.format("ip route add %s via %s dev %s", route.getDestination(), tunAddress.getVip(), interfaceInfo.getName());
         int code = ProcessUtil.exec(cmd);
-        CheckInvoke.check(code, 0, 2);
+        CheckInvoke.check(code, 0);
     }
 
     @Override
     protected void deleteRoute(TunChannel tunChannel, SDWanProtos.Route route) throws Exception {
         TunAddress tunAddress = (TunAddress) tunChannel.localAddress();
         NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(tunAddress.getVip());
-        String cmd = String.format("ip route add %s via %s dev %s", route.getDestination(), tunAddress.getVip(), interfaceInfo.getName());
+        String cmd = String.format("ip route delete %s via %s", route.getDestination(), tunAddress.getVip());
         int code = ProcessUtil.exec(cmd);
-        CheckInvoke.check(code, 0);
+        CheckInvoke.check(code, 0, 2);
     }
 }

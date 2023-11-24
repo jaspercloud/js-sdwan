@@ -22,7 +22,7 @@ public class WindowsRouteManager extends RouteManager {
     protected void addRoute(TunChannel tunChannel, SDWanProtos.Route route) throws Exception {
         TunAddress tunAddress = (TunAddress) tunChannel.localAddress();
         NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(tunAddress.getVip());
-        String cmd = String.format("route delete %s %s", route.getDestination(), tunAddress.getVip());
+        String cmd = String.format("route add %s %s if %s", route.getDestination(), tunAddress.getVip(), interfaceInfo.getIndex());
         int code = ProcessUtil.exec(cmd);
         CheckInvoke.check(code, 0);
     }
@@ -31,7 +31,7 @@ public class WindowsRouteManager extends RouteManager {
     protected void deleteRoute(TunChannel tunChannel, SDWanProtos.Route route) throws Exception {
         TunAddress tunAddress = (TunAddress) tunChannel.localAddress();
         NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(tunAddress.getVip());
-        String cmd = String.format("route add %s %s if %s", route.getDestination(), tunAddress.getVip(), interfaceInfo.getIndex());
+        String cmd = String.format("route delete %s %s", route.getDestination(), tunAddress.getVip());
         int code = ProcessUtil.exec(cmd);
         CheckInvoke.check(code, 0);
     }

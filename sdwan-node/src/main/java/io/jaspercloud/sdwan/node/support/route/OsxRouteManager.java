@@ -20,17 +20,17 @@ public class OsxRouteManager extends RouteManager {
     protected void addRoute(TunChannel tunChannel, SDWanProtos.Route route) throws Exception {
         OsxTunDevice tunDevice = (OsxTunDevice) tunChannel.getTunDevice();
         String ethName = tunDevice.getEthName();
-        String cmd = String.format("route -n delete -net %s -interface %s", route.getDestination(), ethName);
+        String cmd = String.format("route -n add -net %s -interface %s", route.getDestination(), ethName);
         int code = ProcessUtil.exec(cmd);
-        CheckInvoke.check(code, 0, 2);
+        CheckInvoke.check(code, 0);
     }
 
     @Override
     protected void deleteRoute(TunChannel tunChannel, SDWanProtos.Route route) throws Exception {
         OsxTunDevice tunDevice = (OsxTunDevice) tunChannel.getTunDevice();
         String ethName = tunDevice.getEthName();
-        String cmd = String.format("route -n add -net %s -interface %s", route.getDestination(), ethName);
+        String cmd = String.format("route -n delete -net %s -interface %s", route.getDestination(), ethName);
         int code = ProcessUtil.exec(cmd);
-        CheckInvoke.check(code, 0);
+        CheckInvoke.check(code, 0, 2);
     }
 }
