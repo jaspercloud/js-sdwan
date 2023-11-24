@@ -1,0 +1,14 @@
+language: java
+
+jdk:
+  - openjdk8
+
+before_install:
+  - echo 'MAVEN_OPTS="$MAVEN_OPTS -Xmx1024m -XX:MaxPermSize=512m -XX:+BytecodeVerificationLocal"' >> ~/.mavenrc
+  - cat ~/.mavenrc
+
+script:
+  - mvn clean package -DskipTests
+
+after_success:
+  - echo 'build success'
