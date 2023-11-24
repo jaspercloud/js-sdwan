@@ -8,7 +8,7 @@ public class NativeOsxApi {
     static {
         try {
             Native.register(NativeOsxApi.class, Platform.C_LIBRARY_NAME);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw new ExceptionInInitializerError(e);
         }
     }

@@ -3,8 +3,8 @@ package io.jaspercloud.sdwan.node.support.route;
 import io.jaspercloud.sdwan.NetworkInterfaceInfo;
 import io.jaspercloud.sdwan.NetworkInterfaceUtil;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.node.support.node.SDWanNode;
 import io.jaspercloud.sdwan.node.support.connection.ConnectionManager;
+import io.jaspercloud.sdwan.node.support.node.SDWanNode;
 import io.jaspercloud.sdwan.tun.CheckInvoke;
 import io.jaspercloud.sdwan.tun.ProcessUtil;
 import io.jaspercloud.sdwan.tun.TunAddress;
@@ -33,16 +33,6 @@ public class LinuxRouteManager extends RouteManager {
             String cmd = String.format("ip route add %s via %s dev %s", route.getDestination(), tunAddress.getVip(), interfaceInfo.getName());
             int code = ProcessUtil.exec(cmd);
             CheckInvoke.check(code, 0);
-        }
-    }
-
-    @Override
-    public void releaseRoute(TunChannel tunChannel, List<SDWanProtos.Route> routeList) throws Exception {
-        TunAddress tunAddress = (TunAddress) tunChannel.localAddress();
-        for (SDWanProtos.Route route : routeList) {
-            String cmd = String.format("ip route delete %s via %s", route.getDestination(), tunAddress.getVip());
-            int code = ProcessUtil.exec(cmd);
-            CheckInvoke.check(code, 0, 2);
         }
     }
 }

@@ -7,7 +7,7 @@ public class NativeLinuxApi {
     static {
         try {
             Native.register(NativeLinuxApi.class, Platform.C_LIBRARY_NAME);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw new ExceptionInInitializerError(e);
         }
     }

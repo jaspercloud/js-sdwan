@@ -1,8 +1,8 @@
 package io.jaspercloud.sdwan.node.support.route;
 
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.node.support.node.SDWanNode;
 import io.jaspercloud.sdwan.node.support.connection.ConnectionManager;
+import io.jaspercloud.sdwan.node.support.node.SDWanNode;
 import io.jaspercloud.sdwan.tun.CheckInvoke;
 import io.jaspercloud.sdwan.tun.ProcessUtil;
 import io.jaspercloud.sdwan.tun.TunChannel;
@@ -31,17 +31,6 @@ public class OsxRouteManager extends RouteManager {
             String cmd = String.format("route -n add -net %s -interface %s", route.getDestination(), ethName);
             int code = ProcessUtil.exec(cmd);
             CheckInvoke.check(code, 0);
-        }
-    }
-
-    @Override
-    public void releaseRoute(TunChannel tunChannel, List<SDWanProtos.Route> routeList) throws Exception {
-        OsxTunDevice tunDevice = (OsxTunDevice) tunChannel.getTunDevice();
-        String ethName = tunDevice.getEthName();
-        for (SDWanProtos.Route route : routeList) {
-            String cmd = String.format("route -n delete -net %s -interface %s", route.getDestination(), ethName);
-            int code = ProcessUtil.exec(cmd);
-            CheckInvoke.check(code, 0, 2);
         }
     }
 }

@@ -8,7 +8,11 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import org.springframework.util.FileCopyUtils;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 
 public class LinuxTunDevice extends TunDevice {
 
@@ -42,7 +46,7 @@ public class LinuxTunDevice extends TunDevice {
         File file = new File("/proc/sys/net/ipv4/ip_forward");
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), "utf-8"))) {
             FileCopyUtils.copy("1", writer);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw new ProcessException("enableIpForward failed", e);
         }
     }

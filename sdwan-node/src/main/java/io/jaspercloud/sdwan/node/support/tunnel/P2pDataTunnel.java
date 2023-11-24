@@ -2,7 +2,11 @@ package io.jaspercloud.sdwan.node.support.tunnel;
 
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.node.support.detection.DetectionInfo;
-import io.jaspercloud.sdwan.stun.*;
+import io.jaspercloud.sdwan.stun.AttrType;
+import io.jaspercloud.sdwan.stun.BytesAttr;
+import io.jaspercloud.sdwan.stun.MessageType;
+import io.jaspercloud.sdwan.stun.StunClient;
+import io.jaspercloud.sdwan.stun.StunMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -32,12 +36,14 @@ public class P2pDataTunnel implements DataTunnel {
     @Override
     public void addCloseListener(Consumer<DataTunnel> consumer) {
         closeFuture.thenAccept(v -> {
+            log.info("tunnel onClose: {}", toString());
             consumer.accept(this);
         });
     }
 
     @Override
     public void close() {
+        log.info("tunnel close: {}", toString());
         closeFuture.complete(null);
     }
 
@@ -60,7 +66,7 @@ public class P2pDataTunnel implements DataTunnel {
                 .build().getHost();
         String dst = UriComponentsBuilder.fromUriString(p2pPacket.getDstAddress())
                 .build().getHost();
-        System.out.println(String.format("P2pDataTunnel p2pPacket send: src=%s, dst=%s", src, dst));
+        log.debug("P2pDataTunnel p2pPacket send: src={}, dst={}", src, dst);
         StunMessage message = new StunMessage(MessageType.Transfer);
         message.getAttrs().put(AttrType.Data, new BytesAttr(p2pPacket.toByteArray()));
         stunClient.send(address, message);
@@ -72,8 +78,17 @@ public class P2pDataTunnel implements DataTunnel {
                 .build().getHost();
         String dst = UriComponentsBuilder.fromUriString(p2pPacket.getDstAddress())
                 .build().getHost();
-        System.out.println(String.format("P2pDataTunnel p2pPacket recv: src=%s, dst=%s", src, dst));
+        log.debug("P2pDataTunnel p2pPacket recv: src={}, dst={}", src, dst);
         SDWanProtos.RoutePacket routePacket = p2pPacket.getPayload();
         return routePacket;
+    }
+
+    @Override
+    public String toString() {
+        String src = UriComponentsBuilder.fromUriString(detectionInfo.getSrcAddress())
+                .build().getHost();
+        String dst = UriComponentsBuilder.fromUriString(detectionInfo.getDstAddress())
+                .build().getHost();
+        return String.format("%s -> %s", src, dst);
     }
 }

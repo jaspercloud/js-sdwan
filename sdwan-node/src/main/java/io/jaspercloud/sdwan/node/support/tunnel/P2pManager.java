@@ -10,7 +10,13 @@ import io.jaspercloud.sdwan.node.support.detection.P2pDetection;
 import io.jaspercloud.sdwan.node.support.node.RelayClient;
 import io.jaspercloud.sdwan.node.support.node.SDWanDataHandler;
 import io.jaspercloud.sdwan.node.support.node.SDWanNode;
-import io.jaspercloud.sdwan.stun.*;
+import io.jaspercloud.sdwan.stun.AttrType;
+import io.jaspercloud.sdwan.stun.BytesAttr;
+import io.jaspercloud.sdwan.stun.MessageType;
+import io.jaspercloud.sdwan.stun.StunClient;
+import io.jaspercloud.sdwan.stun.StunDataHandler;
+import io.jaspercloud.sdwan.stun.StunMessage;
+import io.jaspercloud.sdwan.stun.StunPacket;
 import io.netty.channel.ChannelHandlerContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
@@ -91,7 +97,7 @@ public class P2pManager implements InitializingBean {
                             break;
                         }
                     }
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     log.error(e.getMessage(), e);
                 }
             }
@@ -118,8 +124,8 @@ public class P2pManager implements InitializingBean {
                             });
                 }
                 try {
-                    Thread.sleep(1 * 1000);
-                } catch (InterruptedException e) {
+                    Thread.sleep(1000);
+                } catch (Throwable e) {
                     log.error(e.getMessage(), e);
                 }
             }

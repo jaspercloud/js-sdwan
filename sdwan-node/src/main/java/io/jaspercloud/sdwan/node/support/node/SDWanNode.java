@@ -144,12 +144,12 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                 }
                 log.info("SDWanNode started");
                 localChannel.closeFuture().sync();
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 log.error(e.getMessage(), e);
             }
             try {
                 Thread.sleep(5 * 1000L);
-            } catch (InterruptedException e) {
+            } catch (Throwable e) {
                 log.error(e.getMessage(), e);
             }
         }
@@ -175,7 +175,7 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                     try {
                         SDWanProtos.RouteList routeList = SDWanProtos.RouteList.parseFrom(resp.getData());
                         return routeList;
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         throw new ProcessException(e.getMessage(), e);
                     }
                 });
@@ -224,7 +224,7 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                     try {
                         SDWanProtos.NodeInfoResp nodeInfo = SDWanProtos.NodeInfoResp.parseFrom(resp.getData());
                         return nodeInfo;
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         throw new ProcessException(e.getMessage(), e);
                     }
                 });
@@ -246,7 +246,7 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                     try {
                         SDWanProtos.P2pAnswer p2pAnswer = SDWanProtos.P2pAnswer.parseFrom(resp.getData());
                         return p2pAnswer;
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         throw new ProcessException(e.getMessage(), e);
                     }
                 });

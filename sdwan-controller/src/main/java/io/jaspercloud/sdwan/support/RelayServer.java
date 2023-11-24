@@ -59,7 +59,7 @@ public class RelayServer implements InitializingBean, DisposableBean {
                 }
                 try {
                     Thread.sleep(5000);
-                } catch (InterruptedException e) {
+                } catch (Throwable e) {
                     log.error(e.getMessage(), e);
                 }
             }

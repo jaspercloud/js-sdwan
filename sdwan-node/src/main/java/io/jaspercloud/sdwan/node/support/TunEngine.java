@@ -14,6 +14,7 @@ import io.jaspercloud.sdwan.node.support.node.MappingManager;
 import io.jaspercloud.sdwan.node.support.node.RelayClient;
 import io.jaspercloud.sdwan.node.support.node.SDWanNode;
 import io.jaspercloud.sdwan.node.support.route.RouteManager;
+import io.jaspercloud.sdwan.node.support.route.UpdateRouteHandler;
 import io.jaspercloud.sdwan.stun.MappingAddress;
 import io.jaspercloud.sdwan.stun.StunClient;
 import io.jaspercloud.sdwan.tun.Ipv4Packet;
@@ -81,6 +82,16 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
     @Override
     public void afterPropertiesSet() throws Exception {
         tunChannel = bootTun();
+        routeManager.addUpdateRouteHandler(new UpdateRouteHandler() {
+            @Override
+            public void onUpdate(List<SDWanProtos.Route> routeList) {
+                try {
+                    routeManager.updateRouteList(tunChannel, routeList);
+                } catch (Throwable e) {
+                    log.error(e.getMessage(), e);
+                }
+            }
+        });
         connectionManager.addConnectionDataHandler(new ConnectionDataHandler() {
             @Override
             public void onData(PeerConnection connection, SDWanProtos.IpPacket packet) {
@@ -154,14 +165,15 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                 log.info("TunEngine started");
                 //wait closed reconnect
                 sdWanNode.getChannel().closeFuture().sync();
+                routeManager.releaseRoute(tunChannel);
             } catch (ProcessException e) {
                 log.error(e.getMessage(), e);
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 log.error(e.getMessage(), e);
             }
             try {
                 Thread.sleep(5000);
-            } catch (InterruptedException e) {
+            } catch (Throwable e) {
                 log.error(e.getMessage(), e);
             }
         }
@@ -210,7 +222,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
         if (ig.contains(ipv4Packet.getDstIP())) {
             return;
         }
-        System.out.println(String.format("tun read: src=%s, dst=%s", ipv4Packet.getSrcIP(), ipv4Packet.getDstIP()));
+        log.debug("tun read: src={}, dst={}", ipv4Packet.getSrcIP(), ipv4Packet.getDstIP());
         byte[] data = ByteBufUtil.toBytes(msg);
         SDWanProtos.IpPacket ipPacket = SDWanProtos.IpPacket.newBuilder()
                 .setSrcIP(ipv4Packet.getSrcIP())
@@ -221,7 +233,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
     }
 
     private void processWriteTun(TunChannel tunChannel, SDWanProtos.IpPacket ipPacket) {
-        System.out.println(String.format("tun write: src=%s, dst=%s", ipPacket.getSrcIP(), ipPacket.getDstIP()));
+        log.debug("tun write: src={}, dst={}", ipPacket.getSrcIP(), ipPacket.getDstIP());
         byte[] data = ipPacket.getPayload().toByteArray();
         tunChannel.writeAndFlush(ByteBufUtil.toByteBuf(data));
     }

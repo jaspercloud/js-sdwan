@@ -3,26 +3,58 @@ package io.jaspercloud.sdwan.node.support.route;
 import io.jaspercloud.sdwan.Cidr;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.node.support.connection.ConnectionManager;
+import io.jaspercloud.sdwan.node.support.node.SDWanDataHandler;
 import io.jaspercloud.sdwan.node.support.node.SDWanNode;
 import io.jaspercloud.sdwan.tun.TunAddress;
 import io.jaspercloud.sdwan.tun.TunChannel;
+import io.netty.channel.ChannelHandlerContext;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.InitializingBean;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-public abstract class RouteManager {
+@Slf4j
+public abstract class RouteManager implements InitializingBean {
 
     protected AtomicReference<List<SDWanProtos.Route>> cache = new AtomicReference<>(Collections.emptyList());
 
     private SDWanNode sdWanNode;
     private ConnectionManager connectionManager;
 
+    private List<UpdateRouteHandler> handlerList = new ArrayList<>();
+
+    public void addUpdateRouteHandler(UpdateRouteHandler updateRouteHandler) {
+        handlerList.add(updateRouteHandler);
+    }
+
     public RouteManager(SDWanNode sdWanNode, ConnectionManager connectionManager) {
         this.sdWanNode = sdWanNode;
         this.connectionManager = connectionManager;
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        sdWanNode.addDataHandler(new SDWanDataHandler() {
+            @Override
+            public void onData(ChannelHandlerContext ctx, SDWanProtos.Message msg) {
+                try {
+                    if (SDWanProtos.MsgTypeCode.RefreshRouteListType.equals(msg.getType())) {
+                        for (UpdateRouteHandler handler : handlerList) {
+                            List<SDWanProtos.Route> routeList = SDWanProtos.RouteList.parseFrom(msg.getData())
+                                    .getRouteList();
+                            handler.onUpdate(routeList);
+                        }
+                    }
+                } catch (Throwable e) {
+                    log.error(e.getMessage(), e);
+                }
+            }
+        });
     }
 
     public void route(String localVIP, SDWanProtos.IpPacket ipPacket) {
@@ -65,7 +97,21 @@ public abstract class RouteManager {
         cache.set(newList);
     }
 
-    protected abstract void doUpdateRouteList(TunChannel tunChannel, List<SDWanProtos.Route> oldList, List<SDWanProtos.Route> newList) throws Exception;
+    public void updateRouteList(TunChannel tunChannel, List<SDWanProtos.Route> routeList) throws Exception {
+        TunAddress tunAddress = (TunAddress) tunChannel.localAddress();
+        String vip = tunAddress.getVip();
+        List<SDWanProtos.Route> newList = routeList.stream()
+                .filter(e -> !StringUtils.equals(e.getNexthop(), vip))
+                .collect(Collectors.toList());
+        doUpdateRouteList(tunChannel, cache.get(), newList);
+        cache.set(newList);
+    }
 
-    public abstract void releaseRoute(TunChannel tunChannel, List<SDWanProtos.Route> routeList) throws Exception;
+    public void releaseRoute(TunChannel tunChannel) throws Exception {
+        List<SDWanProtos.Route> newList = Collections.emptyList();
+        doUpdateRouteList(tunChannel, cache.get(), newList);
+        cache.set(newList);
+    }
+
+    protected abstract void doUpdateRouteList(TunChannel tunChannel, List<SDWanProtos.Route> oldList, List<SDWanProtos.Route> newList) throws Exception;
 }

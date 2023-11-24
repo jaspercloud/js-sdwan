@@ -22,7 +22,7 @@ public final class CompletableFutures {
                 try {
                     T item = f.get();
                     resultList.add(item);
-                } catch (Exception ex) {
+                } catch (Throwable ex) {
                 }
             }
             result.complete(resultList);

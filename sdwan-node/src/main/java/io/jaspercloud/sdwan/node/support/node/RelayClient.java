@@ -51,12 +51,12 @@ public class RelayClient implements InitializingBean {
                     } else {
                         log.error(e.getMessage(), e);
                     }
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     log.error(e.getMessage(), e);
                 }
                 try {
                     Thread.sleep(1000);
-                } catch (InterruptedException e) {
+                } catch (Throwable e) {
                     log.error(e.getMessage(), e);
                 }
             }

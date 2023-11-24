@@ -23,7 +23,6 @@ enum MsgTypeCode {
   //
   HeartType = 101;
   RefreshRouteListType = 102;
-  PushPunchType = 103;
 }
 
 enum MappingTypeCode {

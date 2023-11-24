@@ -50,12 +50,12 @@ public class MappingManager implements InitializingBean, Runnable {
                 } else {
                     log.error(e.getMessage(), e);
                 }
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 log.error(e.getMessage(), e);
             }
             try {
                 Thread.sleep(5 * 1000L);
-            } catch (InterruptedException e) {
+            } catch (Throwable e) {
                 log.error(e.getMessage(), e);
             }
         }
@@ -96,7 +96,7 @@ public class MappingManager implements InitializingBean, Runnable {
         try {
             StunPacket response = stunClient.sendChangeBind(address, changeIP, changePort).get();
             return response;
-        } catch (Exception e) {
+        } catch (Throwable e) {
             return null;
         }
     }

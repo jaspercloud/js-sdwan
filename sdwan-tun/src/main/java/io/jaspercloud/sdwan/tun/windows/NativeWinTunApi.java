@@ -10,7 +10,7 @@ public class NativeWinTunApi {
     static {
         try {
             Native.register(NativeWinTunApi.class, "wintun");
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw new ExceptionInInitializerError(e);
         }
     }

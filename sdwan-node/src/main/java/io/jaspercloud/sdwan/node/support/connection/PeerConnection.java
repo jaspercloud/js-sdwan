@@ -3,20 +3,21 @@ package io.jaspercloud.sdwan.node.support.connection;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.node.support.tunnel.DataTunnel;
 import io.jaspercloud.sdwan.node.support.tunnel.P2pManager;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
+@Slf4j
 public class PeerConnection {
 
     private DataTunnel dataTunnel;
     private CompletableFuture<Void> closeFuture = new CompletableFuture<>();
 
     public void addCloseListener(Consumer<PeerConnection> consumer) {
-        System.out.println("connection addCloseListener");
         closeFuture.thenAccept(v -> {
-            System.out.println("connection onClose");
+            log.info("connection onClose: {}", dataTunnel.toString());
             consumer.accept(this);
         });
     }
@@ -26,7 +27,7 @@ public class PeerConnection {
     }
 
     public void close() {
-        System.out.println("connection close");
+        log.info("connection close: {}", dataTunnel.toString());
         closeFuture.complete(null);
     }
 
