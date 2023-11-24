@@ -3,7 +3,11 @@ package io.jaspercloud.sdwan.node.config;
 import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
 import io.jaspercloud.sdwan.node.support.TunEngine;
 import io.jaspercloud.sdwan.node.support.connection.ConnectionManager;
-import io.jaspercloud.sdwan.node.support.detection.*;
+import io.jaspercloud.sdwan.node.support.detection.HostP2pDetection;
+import io.jaspercloud.sdwan.node.support.detection.P2pDetection;
+import io.jaspercloud.sdwan.node.support.detection.PrflxP2pDetection;
+import io.jaspercloud.sdwan.node.support.detection.RelayP2pDetection;
+import io.jaspercloud.sdwan.node.support.detection.SrflxP2pDetection;
 import io.jaspercloud.sdwan.node.support.node.MappingManager;
 import io.jaspercloud.sdwan.node.support.node.RelayClient;
 import io.jaspercloud.sdwan.node.support.node.SDWanNode;
@@ -49,12 +53,12 @@ public class AppConfig {
     }
 
     @Bean
-    public ConnectionManager tunnelManager(SDWanNodeProperties properties,
-                                           SDWanNode sdWanNode,
-                                           StunClient stunClient,
-                                           RelayClient relayClient,
-                                           MappingManager mappingManager,
-                                           P2pManager p2pManager) {
+    public ConnectionManager connectionManager(SDWanNodeProperties properties,
+                                               SDWanNode sdWanNode,
+                                               StunClient stunClient,
+                                               RelayClient relayClient,
+                                               MappingManager mappingManager,
+                                               P2pManager p2pManager) {
         return new ConnectionManager(properties, sdWanNode, stunClient, relayClient, mappingManager, p2pManager);
     }
 

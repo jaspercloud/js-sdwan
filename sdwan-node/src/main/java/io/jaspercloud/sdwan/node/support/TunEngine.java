@@ -23,7 +23,14 @@ import io.jaspercloud.sdwan.tun.TunChannelConfig;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.DefaultEventLoopGroup;
+import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.DisposableBean;
@@ -77,7 +84,11 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
         connectionManager.addConnectionDataHandler(new ConnectionDataHandler() {
             @Override
             public void onData(PeerConnection connection, SDWanProtos.IpPacket packet) {
-                processWriteTun(tunChannel, packet);
+                try {
+                    processWriteTun(tunChannel, packet);
+                } catch (Throwable e) {
+                    log.error(e.getMessage(), e);
+                }
             }
         });
         Thread thread = new Thread(this, "tun-device");

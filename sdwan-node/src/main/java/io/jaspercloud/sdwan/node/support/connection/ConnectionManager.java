@@ -14,6 +14,7 @@ import io.jaspercloud.sdwan.stun.AddressAttr;
 import io.jaspercloud.sdwan.stun.AttrType;
 import io.jaspercloud.sdwan.stun.MappingAddress;
 import io.jaspercloud.sdwan.stun.StunClient;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -28,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class ConnectionManager implements InitializingBean {
 
     private Map<String, CompletableFuture<PeerConnection>> connectionMap = new ConcurrentHashMap<>();
@@ -58,31 +60,35 @@ public class ConnectionManager implements InitializingBean {
         p2pManager.addDataHandler(new TunnelDataHandler() {
             @Override
             public void onData(DataTunnel dataTunnel, SDWanProtos.RoutePacket routePacket) {
-                CompletableFuture<PeerConnection> future = connectionMap.computeIfAbsent(routePacket.getSrcVIP(), key -> {
-                    PeerConnection connection = PeerConnection.create(dataTunnel);
-                    dataTunnel.addCloseListener(new Consumer<DataTunnel>() {
-                        @Override
-                        public void accept(DataTunnel dataTunnel) {
-                            connection.close();
+                try {
+                    CompletableFuture<PeerConnection> future = connectionMap.computeIfAbsent(routePacket.getSrcVIP(), key -> {
+                        PeerConnection connection = PeerConnection.create(dataTunnel);
+                        dataTunnel.addCloseListener(new Consumer<DataTunnel>() {
+                            @Override
+                            public void accept(DataTunnel dataTunnel) {
+                                connection.close();
+                            }
+                        });
+                        connection.addCloseListener(new Consumer<PeerConnection>() {
+                            @Override
+                            public void accept(PeerConnection peerConnection) {
+                                connectionMap.remove(routePacket.getSrcVIP());
+                            }
+                        });
+                        return CompletableFuture.completedFuture(connection);
+                    });
+                    future.whenComplete((connection, throwable) -> {
+                        if (null != throwable) {
+                            return;
+                        }
+                        SDWanProtos.IpPacket ipPacket = connection.receive(routePacket);
+                        for (ConnectionDataHandler handler : connectionDataHandlerList) {
+                            handler.onData(connection, ipPacket);
                         }
                     });
-                    connection.addCloseListener(new Consumer<PeerConnection>() {
-                        @Override
-                        public void accept(PeerConnection peerConnection) {
-                            connectionMap.remove(routePacket.getSrcVIP());
-                        }
-                    });
-                    return CompletableFuture.completedFuture(connection);
-                });
-                future.whenComplete((connection, throwable) -> {
-                    if (null != throwable) {
-                        return;
-                    }
-                    SDWanProtos.IpPacket ipPacket = connection.receive(routePacket);
-                    for (ConnectionDataHandler handler : connectionDataHandlerList) {
-                        handler.onData(connection, ipPacket);
-                    }
-                });
+                } catch (Throwable e) {
+                    log.error(e.getMessage(), e);
+                }
             }
         });
     }
@@ -98,9 +104,11 @@ public class ConnectionManager implements InitializingBean {
                     })
                     .thenCompose(f -> f);
         });
-        result.exceptionally(throwable -> {
+        result.whenComplete((connection, error) -> {
+            if (null == error) {
+                return;
+            }
             connectionMap.remove(dstVIP);
-            return null;
         });
         return result;
     }

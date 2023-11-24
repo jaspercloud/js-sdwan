@@ -44,6 +44,12 @@ public class MappingManager implements InitializingBean, Runnable {
             try {
                 MappingAddress mappingAddress = check(properties.getStunServer());
                 ref.set(mappingAddress);
+            } catch (ExecutionException e) {
+                if (e.getCause() instanceof TimeoutException) {
+                    log.error("mapping heart timeout");
+                } else {
+                    log.error(e.getMessage(), e);
+                }
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
             }

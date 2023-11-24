@@ -2,10 +2,22 @@ package io.jaspercloud.sdwan.support;
 
 import io.jaspercloud.sdwan.NioEventLoopFactory;
 import io.jaspercloud.sdwan.config.SDWanRelayProperties;
-import io.jaspercloud.sdwan.stun.*;
+import io.jaspercloud.sdwan.stun.AttrType;
+import io.jaspercloud.sdwan.stun.BytesAttr;
+import io.jaspercloud.sdwan.stun.MessageType;
+import io.jaspercloud.sdwan.stun.StringAttr;
+import io.jaspercloud.sdwan.stun.StunDecoder;
+import io.jaspercloud.sdwan.stun.StunEncoder;
+import io.jaspercloud.sdwan.stun.StunMessage;
+import io.jaspercloud.sdwan.stun.StunPacket;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
@@ -116,6 +128,7 @@ public class RelayServer implements InitializingBean, DisposableBean {
         String relayToken = relayTokenAttr.getData();
         RelayNode node = channelMap.get(relayToken);
         if (null == node) {
+            log.warn("not found node: relayToken={}", relayToken);
             return;
         }
         //resp

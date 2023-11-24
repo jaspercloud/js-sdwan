@@ -1,6 +1,5 @@
 package io.jaspercloud.sdwan.model;
 
-import io.jaspercloud.sdwan.Cidr;
 import io.jaspercloud.sdwan.exception.ProcessCodeException;
 import io.jaspercloud.sdwan.support.ErrorCode;
 import io.jaspercloud.sdwan.support.MacAddressUtil;
@@ -8,7 +7,6 @@ import io.jaspercloud.sdwan.support.NodeType;
 import lombok.Data;
 import sun.net.util.IPAddressUtil;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -21,7 +19,6 @@ public class Node {
     private String remark;
 
     private List<String> addressList;
-    private List<Cidr> routeList = new ArrayList<>();
 
     public void setVip(String vip) {
         if (!IPAddressUtil.isIPv4LiteralAddress(vip)) {

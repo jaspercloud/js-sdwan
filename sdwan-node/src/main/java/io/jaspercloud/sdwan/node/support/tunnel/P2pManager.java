@@ -34,6 +34,7 @@ public class P2pManager implements InitializingBean {
     private StunClient stunClient;
     private RelayClient relayClient;
     private Map<String, DataTunnel> tunnelMap = new ConcurrentHashMap<>();
+
     private Map<String, P2pDetection> detectionMap = new HashMap<>();
     private List<TunnelDataHandler> tunnelDataHandlerList = new ArrayList<>();
 
@@ -75,7 +76,7 @@ public class P2pManager implements InitializingBean {
                             handler.onData(dataTunnel, routePacket);
                         }
                     }
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     log.error(e.getMessage(), e);
                 }
             }

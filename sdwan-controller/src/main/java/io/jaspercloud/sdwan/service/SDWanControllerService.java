@@ -2,7 +2,6 @@ package io.jaspercloud.sdwan.service;
 
 import io.jaspercloud.sdwan.Cidr;
 import io.jaspercloud.sdwan.config.SDWanControllerProperties;
-import io.jaspercloud.sdwan.controller.param.RouteDTO;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessCodeException;
 import io.jaspercloud.sdwan.model.Node;
@@ -67,15 +66,6 @@ public class SDWanControllerService implements InitializingBean {
                 node.setMacAddress(regReq.getMacAddress());
                 node.setNodeType(NodeType.valueOf(regReq.getNodeType().getNumber()));
                 node.setAddressList(regReq.getAddressListList());
-                if (SDWanProtos.NodeTypeCode.MeshType.equals(regReq.getNodeType())) {
-                    List<RouteDTO> routeList = configService.getRouteList();
-                    for (RouteDTO route : routeList) {
-                        if (StringUtils.equals(route.getNexthop(), node.getVip())) {
-                            continue;
-                        }
-                        node.getRouteList().add(Cidr.parseCidr(route.getDestination()));
-                    }
-                }
                 bindVip(regReq, channel, node);
                 AttributeKeys.node(channel).set(node);
                 log.info("reg: nodeType={}, macAddr={}, vip={}, addressList={}",
@@ -97,6 +87,7 @@ public class SDWanControllerService implements InitializingBean {
                     .build();
             channel.writeAndFlush(response);
         } catch (ProcessCodeException e) {
+            log.error(e.getMessage(), e);
             SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
                     .setCode(e.getCode())
                     .build();
@@ -106,7 +97,8 @@ public class SDWanControllerService implements InitializingBean {
                     .build();
             channel.writeAndFlush(response);
             channel.close();
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            log.error(e.getMessage(), e);
             SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
                     .setCode(SDWanProtos.MessageCode.SysError_VALUE)
                     .build();
@@ -211,7 +203,7 @@ public class SDWanControllerService implements InitializingBean {
                     .setData(nodeInfoResp.toByteString())
                     .build();
             channel.writeAndFlush(resp);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error(e.getMessage(), e);
             SDWanProtos.NodeInfoResp nodeInfoResp = SDWanProtos.NodeInfoResp.newBuilder()
                     .setCode(SDWanProtos.MessageCode.SysError_VALUE)

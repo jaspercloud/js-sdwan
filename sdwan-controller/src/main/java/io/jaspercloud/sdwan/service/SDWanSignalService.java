@@ -19,6 +19,7 @@ public class SDWanSignalService {
             SDWanProtos.P2pOffer p2pOffer = SDWanProtos.P2pOffer.parseFrom(request.getData());
             Channel targetChannel = nodeManager.getChannel(p2pOffer.getDstVIP());
             if (null == targetChannel) {
+                log.debug("processP2pOffer not found channel: vip={}", p2pOffer.getDstVIP());
                 SDWanProtos.P2pAnswer p2pAnswer = SDWanProtos.P2pAnswer.newBuilder()
                         .setCode(SDWanProtos.MessageCode.NotFound_VALUE)
                         .build();
@@ -30,7 +31,7 @@ public class SDWanSignalService {
                 return;
             }
             targetChannel.writeAndFlush(request);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error(e.getMessage(), e);
             SDWanProtos.P2pAnswer p2pAnswer = SDWanProtos.P2pAnswer.newBuilder()
                     .setCode(SDWanProtos.MessageCode.SysError_VALUE)
@@ -48,6 +49,7 @@ public class SDWanSignalService {
             SDWanProtos.P2pAnswer p2pAnswer = SDWanProtos.P2pAnswer.parseFrom(request.getData());
             Channel targetChannel = nodeManager.getChannel(p2pAnswer.getDstVIP());
             if (null == targetChannel) {
+                log.error("processP2pAnswer not found channel: vip={}", p2pAnswer.getDstVIP());
                 return;
             }
             SDWanProtos.Message resp = request.toBuilder()
@@ -55,7 +57,7 @@ public class SDWanSignalService {
                     .setData(p2pAnswer.toByteString())
                     .build();
             targetChannel.writeAndFlush(resp);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error(e.getMessage(), e);
             SDWanProtos.P2pAnswer p2pAnswer = SDWanProtos.P2pAnswer.newBuilder()
                     .setCode(SDWanProtos.MessageCode.SysError_VALUE)
