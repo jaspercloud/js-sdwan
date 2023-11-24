@@ -1,12 +1,19 @@
 package io.jaspercloud.sdwan.node.support.node;
 
 import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
-import io.jaspercloud.sdwan.stun.*;
+import io.jaspercloud.sdwan.stun.AttrType;
+import io.jaspercloud.sdwan.stun.MessageType;
+import io.jaspercloud.sdwan.stun.StringAttr;
+import io.jaspercloud.sdwan.stun.StunClient;
+import io.jaspercloud.sdwan.stun.StunMessage;
+import io.jaspercloud.sdwan.stun.StunPacket;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 
 import java.net.InetSocketAddress;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 @Slf4j
 public class RelayClient implements InitializingBean {
@@ -38,6 +45,12 @@ public class RelayClient implements InitializingBean {
             while (true) {
                 try {
                     bind();
+                } catch (ExecutionException e) {
+                    if (e.getCause() instanceof TimeoutException) {
+                        log.error("relayClient heart timeout");
+                    } else {
+                        log.error(e.getMessage(), e);
+                    }
                 } catch (Exception e) {
                     log.error(e.getMessage(), e);
                 }
