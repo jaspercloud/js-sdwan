@@ -1,6 +1,5 @@
 package io.jaspercloud.sdwan.node.support.route;
 
-import com.google.protobuf.ByteString;
 import io.jaspercloud.sdwan.Cidr;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.node.support.connection.ConnectionManager;
@@ -11,7 +10,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -56,13 +54,7 @@ public abstract class RouteManager {
     }
 
     public void initRoute(TunChannel tunChannel) throws Exception {
-        SDWanProtos.Message req = SDWanProtos.Message.newBuilder()
-                .setReqId(UUID.randomUUID().toString())
-                .setType(SDWanProtos.MsgTypeCode.RouteListReqType)
-                .setData(ByteString.EMPTY)
-                .build();
-        SDWanProtos.Message resp = sdWanNode.invokeAsync(req).get();
-        SDWanProtos.RouteList routeList = SDWanProtos.RouteList.parseFrom(resp.getData());
+        SDWanProtos.RouteList routeList = sdWanNode.getRouteList().get();
         TunAddress tunAddress = (TunAddress) tunChannel.localAddress();
         String vip = tunAddress.getVip();
         List<SDWanProtos.Route> newList = routeList.getRouteList()
