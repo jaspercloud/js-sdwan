@@ -85,11 +85,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
         routeManager.addUpdateRouteHandler(new UpdateRouteHandler() {
             @Override
             public void onUpdate(List<SDWanProtos.Route> routeList) {
-                try {
-                    routeManager.updateRouteList(tunChannel, routeList);
-                } catch (Throwable e) {
-                    log.error(e.getMessage(), e);
-                }
+                routeManager.updateRouteList(tunChannel, routeList);
             }
         });
         connectionManager.addConnectionDataHandler(new ConnectionDataHandler() {

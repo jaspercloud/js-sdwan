@@ -11,8 +11,6 @@ import io.jaspercloud.sdwan.tun.TunAddress;
 import io.jaspercloud.sdwan.tun.TunChannel;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.List;
-
 @Slf4j
 public class WindowsRouteManager extends RouteManager {
 
@@ -21,18 +19,20 @@ public class WindowsRouteManager extends RouteManager {
     }
 
     @Override
-    protected void doUpdateRouteList(TunChannel tunChannel, List<SDWanProtos.Route> oldList, List<SDWanProtos.Route> newList) throws Exception {
+    protected void addRoute(TunChannel tunChannel, SDWanProtos.Route route) throws Exception {
         TunAddress tunAddress = (TunAddress) tunChannel.localAddress();
         NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(tunAddress.getVip());
-        for (SDWanProtos.Route route : oldList) {
-            String cmd = String.format("route delete %s %s", route.getDestination(), tunAddress.getVip());
-            int code = ProcessUtil.exec(cmd);
-            CheckInvoke.check(code, 0);
-        }
-        for (SDWanProtos.Route route : newList) {
-            String cmd = String.format("route add %s %s if %s", route.getDestination(), tunAddress.getVip(), interfaceInfo.getIndex());
-            int code = ProcessUtil.exec(cmd);
-            CheckInvoke.check(code, 0);
-        }
+        String cmd = String.format("route delete %s %s", route.getDestination(), tunAddress.getVip());
+        int code = ProcessUtil.exec(cmd);
+        CheckInvoke.check(code, 0);
+    }
+
+    @Override
+    protected void deleteRoute(TunChannel tunChannel, SDWanProtos.Route route) throws Exception {
+        TunAddress tunAddress = (TunAddress) tunChannel.localAddress();
+        NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(tunAddress.getVip());
+        String cmd = String.format("route add %s %s if %s", route.getDestination(), tunAddress.getVip(), interfaceInfo.getIndex());
+        int code = ProcessUtil.exec(cmd);
+        CheckInvoke.check(code, 0);
     }
 }

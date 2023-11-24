@@ -97,7 +97,7 @@ public abstract class RouteManager implements InitializingBean {
         cache.set(newList);
     }
 
-    public void updateRouteList(TunChannel tunChannel, List<SDWanProtos.Route> routeList) throws Exception {
+    public void updateRouteList(TunChannel tunChannel, List<SDWanProtos.Route> routeList) {
         TunAddress tunAddress = (TunAddress) tunChannel.localAddress();
         String vip = tunAddress.getVip();
         List<SDWanProtos.Route> newList = routeList.stream()
@@ -107,11 +107,32 @@ public abstract class RouteManager implements InitializingBean {
         cache.set(newList);
     }
 
-    public void releaseRoute(TunChannel tunChannel) throws Exception {
+    public void releaseRoute(TunChannel tunChannel) {
         List<SDWanProtos.Route> newList = Collections.emptyList();
         doUpdateRouteList(tunChannel, cache.get(), newList);
         cache.set(newList);
     }
 
-    protected abstract void doUpdateRouteList(TunChannel tunChannel, List<SDWanProtos.Route> oldList, List<SDWanProtos.Route> newList) throws Exception;
+    private void doUpdateRouteList(TunChannel tunChannel, List<SDWanProtos.Route> oldList, List<SDWanProtos.Route> newList) {
+        for (SDWanProtos.Route route : oldList) {
+            try {
+                log.info("deleteRoute: destination={}, nexthop={}", route.getDestination(), route.getNexthop());
+                deleteRoute(tunChannel, route);
+            } catch (Throwable e) {
+                log.error(e.getMessage(), e);
+            }
+        }
+        for (SDWanProtos.Route route : newList) {
+            try {
+                log.info("addRoute: destination={}, nexthop={}", route.getDestination(), route.getNexthop());
+                addRoute(tunChannel, route);
+            } catch (Throwable e) {
+                log.error(e.getMessage(), e);
+            }
+        }
+    }
+
+    protected abstract void addRoute(TunChannel tunChannel, SDWanProtos.Route route) throws Exception;
+
+    protected abstract void deleteRoute(TunChannel tunChannel, SDWanProtos.Route route) throws Exception;
 }

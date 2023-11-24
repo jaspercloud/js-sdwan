@@ -11,8 +11,6 @@ import io.jaspercloud.sdwan.tun.TunAddress;
 import io.jaspercloud.sdwan.tun.TunChannel;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.List;
-
 @Slf4j
 public class LinuxRouteManager extends RouteManager {
 
@@ -21,18 +19,20 @@ public class LinuxRouteManager extends RouteManager {
     }
 
     @Override
-    protected void doUpdateRouteList(TunChannel tunChannel, List<SDWanProtos.Route> oldList, List<SDWanProtos.Route> newList) throws Exception {
+    protected void addRoute(TunChannel tunChannel, SDWanProtos.Route route) throws Exception {
         TunAddress tunAddress = (TunAddress) tunChannel.localAddress();
         NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(tunAddress.getVip());
-        for (SDWanProtos.Route route : oldList) {
-            String cmd = String.format("ip route delete %s via %s", route.getDestination(), tunAddress.getVip());
-            int code = ProcessUtil.exec(cmd);
-            CheckInvoke.check(code, 0, 2);
-        }
-        for (SDWanProtos.Route route : newList) {
-            String cmd = String.format("ip route add %s via %s dev %s", route.getDestination(), tunAddress.getVip(), interfaceInfo.getName());
-            int code = ProcessUtil.exec(cmd);
-            CheckInvoke.check(code, 0);
-        }
+        String cmd = String.format("ip route delete %s via %s", route.getDestination(), tunAddress.getVip());
+        int code = ProcessUtil.exec(cmd);
+        CheckInvoke.check(code, 0, 2);
+    }
+
+    @Override
+    protected void deleteRoute(TunChannel tunChannel, SDWanProtos.Route route) throws Exception {
+        TunAddress tunAddress = (TunAddress) tunChannel.localAddress();
+        NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(tunAddress.getVip());
+        String cmd = String.format("ip route add %s via %s dev %s", route.getDestination(), tunAddress.getVip(), interfaceInfo.getName());
+        int code = ProcessUtil.exec(cmd);
+        CheckInvoke.check(code, 0);
     }
 }
