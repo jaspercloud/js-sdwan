@@ -1,6 +1,5 @@
 package io.jaspercloud.sdwan.node.config;
 
-import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
 import io.jaspercloud.sdwan.node.support.TunEngine;
 import io.jaspercloud.sdwan.node.support.connection.ConnectionManager;
 import io.jaspercloud.sdwan.node.support.detection.HostP2pDetection;

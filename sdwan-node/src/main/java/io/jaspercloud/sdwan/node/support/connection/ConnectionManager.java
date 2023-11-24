@@ -2,7 +2,7 @@ package io.jaspercloud.sdwan.node.support.connection;
 
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
-import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
+import io.jaspercloud.sdwan.node.config.SDWanNodeProperties;
 import io.jaspercloud.sdwan.node.support.detection.AddressType;
 import io.jaspercloud.sdwan.node.support.node.MappingManager;
 import io.jaspercloud.sdwan.node.support.node.RelayClient;
@@ -131,8 +131,8 @@ public class ConnectionManager implements InitializingBean {
                 .build().toString();
         String relay = UriComponentsBuilder.newInstance()
                 .scheme(AddressType.RELAY)
-                .host(properties.getRelayServer().getHostString())
-                .port(properties.getRelayServer().getPort())
+                .host(properties.getRelay().getAddress().getHostString())
+                .port(properties.getRelay().getAddress().getPort())
                 .queryParam("token", relayClient.getRelayToken())
                 .build().toString();
         //try target bind

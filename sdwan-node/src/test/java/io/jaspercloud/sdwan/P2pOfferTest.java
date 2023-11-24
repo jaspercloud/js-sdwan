@@ -6,7 +6,7 @@ import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.node.support.node.MappingManager;
 import io.jaspercloud.sdwan.node.support.node.RelayClient;
 import io.jaspercloud.sdwan.node.support.node.SDWanNode;
-import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
+import io.jaspercloud.sdwan.node.config.SDWanNodeProperties;
 import io.jaspercloud.sdwan.node.support.detection.HostP2pDetection;
 import io.jaspercloud.sdwan.node.support.detection.PrflxP2pDetection;
 import io.jaspercloud.sdwan.node.support.detection.RelayP2pDetection;
@@ -25,9 +25,12 @@ public class P2pOfferTest {
 
     public static void main(String[] args) throws Exception {
         SDWanNodeProperties properties = new SDWanNodeProperties();
-        properties.setControllerServer("127.0.0.1:51002");
-        properties.setStunServer("stun.miwifi.com:3478");
-        properties.setRelayServer("127.0.0.1:51003");
+        properties.setController(new SDWanNodeProperties.Controller());
+        properties.setStun(new SDWanNodeProperties.Stun());
+        properties.setRelay(new SDWanNodeProperties.Relay());
+        properties.getController().setAddress("127.0.0.1:51002");
+        properties.getStun().setAddress("stun.miwifi.com:3478");
+        properties.getRelay().setAddress("127.0.0.1:51003");
         //sdWanNode
         SDWanNode sdWanNode = new SDWanNode(properties);
         sdWanNode.afterPropertiesSet();
@@ -66,8 +69,8 @@ public class P2pOfferTest {
                 .build().toString();
         String relay = UriComponentsBuilder.newInstance()
                 .scheme("relay")
-                .host(properties.getRelayServer().getHostString())
-                .port(properties.getRelayServer().getPort())
+                .host(properties.getRelay().getAddress().getHostString())
+                .port(properties.getRelay().getAddress().getPort())
                 .queryParam("token", relayClient.getRelayToken())
                 .build().toString();
         SDWanProtos.RegResp regResp = sdWanNode.regist("fa:50:03:01:f8:01", Arrays.asList(host, srflx, relay));

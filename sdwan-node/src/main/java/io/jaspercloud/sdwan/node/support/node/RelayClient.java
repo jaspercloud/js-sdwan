@@ -1,6 +1,6 @@
 package io.jaspercloud.sdwan.node.support.node;
 
-import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
+import io.jaspercloud.sdwan.node.config.SDWanNodeProperties;
 import io.jaspercloud.sdwan.stun.AttrType;
 import io.jaspercloud.sdwan.stun.MessageType;
 import io.jaspercloud.sdwan.stun.StringAttr;
@@ -24,7 +24,7 @@ public class RelayClient implements InitializingBean {
     private String localRelayToken;
 
     public InetSocketAddress getRelayAddress() {
-        return properties.getRelayServer();
+        return properties.getRelay().getAddress();
     }
 
     public String getRelayToken() {
@@ -66,6 +66,6 @@ public class RelayClient implements InitializingBean {
     private void bind() throws Exception {
         StunMessage req = new StunMessage(MessageType.BindRelayRequest);
         req.setAttr(AttrType.RelayToken, new StringAttr(localRelayToken));
-        stunClient.invokeAsync(new StunPacket(req, properties.getRelayServer())).get();
+        stunClient.invokeAsync(new StunPacket(req, properties.getRelay().getAddress())).get();
     }
 }

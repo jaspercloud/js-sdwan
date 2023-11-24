@@ -8,7 +8,7 @@ import io.jaspercloud.sdwan.NetworkInterfaceUtil;
 import io.jaspercloud.sdwan.NioEventLoopFactory;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
-import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
+import io.jaspercloud.sdwan.node.config.SDWanNodeProperties;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
@@ -61,7 +61,7 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
         bootstrap = new Bootstrap();
         bootstrap.group(NioEventLoopFactory.BossGroup)
                 .channel(NioSocketChannel.class)
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, properties.getConnectTimeout())
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, properties.getController().getConnectTimeout())
                 .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
                 .handler(new ChannelInitializer<Channel>() {
                     @Override
@@ -129,7 +129,7 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
                         });
                     }
                 });
-        InetSocketAddress address = properties.getControllerServer();
+        InetSocketAddress address = properties.getController().getAddress();
         localChannel = bootstrap.connect(address).syncUninterruptibly().channel();
         Thread thread = new Thread(this, "sdwan-node");
         thread.start();
@@ -148,7 +148,7 @@ public class SDWanNode implements InitializingBean, DisposableBean, Runnable {
         while (true) {
             try {
                 if (null == localChannel || !localChannel.isActive()) {
-                    InetSocketAddress address = properties.getControllerServer();
+                    InetSocketAddress address = properties.getController().getAddress();
                     localChannel = bootstrap.connect(address).syncUninterruptibly().channel();
                 }
                 log.info("SDWanNode started");

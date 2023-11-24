@@ -6,6 +6,7 @@ import io.jaspercloud.sdwan.NetworkInterfaceInfo;
 import io.jaspercloud.sdwan.NetworkInterfaceUtil;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
+import io.jaspercloud.sdwan.node.config.SDWanNodeProperties;
 import io.jaspercloud.sdwan.node.support.connection.ConnectionDataHandler;
 import io.jaspercloud.sdwan.node.support.connection.ConnectionManager;
 import io.jaspercloud.sdwan.node.support.connection.PeerConnection;
@@ -128,8 +129,8 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
                         .build().toString();
                 String relay = UriComponentsBuilder.newInstance()
                         .scheme(AddressType.RELAY)
-                        .host(properties.getRelayServer().getHostString())
-                        .port(properties.getRelayServer().getPort())
+                        .host(properties.getRelay().getAddress().getHostString())
+                        .port(properties.getRelay().getAddress().getPort())
                         .queryParam("token", relayClient.getRelayToken())
                         .build().toString();
                 NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(sdWanNodeLocalAddress.getHostString());
@@ -182,7 +183,7 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
         Bootstrap bootstrap = new Bootstrap()
                 .group(eventLoopGroup)
                 .channel(TunChannel.class)
-                .option(TunChannelConfig.MTU, properties.getMtu())
+                .option(TunChannelConfig.MTU, properties.getTun().getMtu())
                 .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
                 .handler(new ChannelInitializer<Channel>() {
                     @Override

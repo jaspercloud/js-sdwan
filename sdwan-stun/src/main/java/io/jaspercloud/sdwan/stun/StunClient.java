@@ -97,6 +97,12 @@ public class StunClient implements InitializingBean {
         return future;
     }
 
+    public CompletableFuture<StunPacket> invokeAsync(StunPacket request, long timeout) {
+        CompletableFuture<StunPacket> future = AsyncTask.waitTask(request.content().getTranId(), timeout);
+        localChannel.writeAndFlush(request);
+        return future;
+    }
+
     public CompletableFuture<StunPacket> sendBind(InetSocketAddress address) {
         StunMessage message = new StunMessage(MessageType.BindRequest);
         StunPacket request = new StunPacket(message, address);
@@ -104,12 +110,19 @@ public class StunClient implements InitializingBean {
         return future;
     }
 
-    public CompletableFuture<StunPacket> sendChangeBind(InetSocketAddress address, boolean changeIP, boolean changePort) {
+    public CompletableFuture<StunPacket> sendBind(InetSocketAddress address, long timeout) {
+        StunMessage message = new StunMessage(MessageType.BindRequest);
+        StunPacket request = new StunPacket(message, address);
+        CompletableFuture<StunPacket> future = invokeAsync(request, timeout);
+        return future;
+    }
+
+    public CompletableFuture<StunPacket> sendChangeBind(InetSocketAddress address, boolean changeIP, boolean changePort, long timeout) {
         StunMessage message = new StunMessage(MessageType.BindRequest);
         ChangeRequestAttr changeRequestAttr = new ChangeRequestAttr(changeIP, changePort);
         message.getAttrs().put(AttrType.ChangeRequest, changeRequestAttr);
         StunPacket request = new StunPacket(message, address);
-        CompletableFuture<StunPacket> future = invokeAsync(request);
+        CompletableFuture<StunPacket> future = invokeAsync(request, timeout);
         return future;
     }
 

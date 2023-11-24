@@ -1,7 +1,7 @@
 package io.jaspercloud.sdwan.node.support.node;
 
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.node.support.SDWanNodeProperties;
+import io.jaspercloud.sdwan.node.config.SDWanNodeProperties;
 import io.jaspercloud.sdwan.stun.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
@@ -32,7 +32,7 @@ public class MappingManager implements InitializingBean, Runnable {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        MappingAddress mappingAddress = check(properties.getStunServer());
+        MappingAddress mappingAddress = check(properties.getStun().getAddress());
         ref.set(mappingAddress);
         Thread thread = new Thread(this, "mapping-manager");
         thread.start();
@@ -42,7 +42,7 @@ public class MappingManager implements InitializingBean, Runnable {
     public void run() {
         while (true) {
             try {
-                MappingAddress mappingAddress = check(properties.getStunServer());
+                MappingAddress mappingAddress = check(properties.getStun().getAddress());
                 ref.set(mappingAddress);
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof TimeoutException) {
@@ -62,19 +62,20 @@ public class MappingManager implements InitializingBean, Runnable {
     }
 
     private MappingAddress check(InetSocketAddress remote) throws Exception {
-        StunPacket response = stunClient.sendBind(remote).get();
+        Long timeout = properties.getStun().getMappingTimeout();
+        StunPacket response = stunClient.sendBind(remote, timeout).get();
         Map<AttrType, Attr> attrs = response.content().getAttrs();
         AddressAttr changedAddressAttr = (AddressAttr) attrs.get(AttrType.ChangedAddress);
         InetSocketAddress changedAddress = changedAddressAttr.getAddress();
         AddressAttr mappedAddressAttr = (AddressAttr) attrs.get(AttrType.MappedAddress);
         InetSocketAddress mappedAddress1 = mappedAddressAttr.getAddress();
-        if (null != (response = testChangeBind(remote, true, true))) {
+        if (null != (response = testChangeBind(remote, true, true, timeout))) {
             return new MappingAddress(SDWanProtos.MappingTypeCode.FullCone, mappedAddress1);
-        } else if (null != (response = testChangeBind(remote, false, true))) {
+        } else if (null != (response = testChangeBind(remote, false, true, timeout))) {
             return new MappingAddress(SDWanProtos.MappingTypeCode.RestrictedCone, mappedAddress1);
         }
         try {
-            response = stunClient.sendBind(changedAddress).get();
+            response = stunClient.sendBind(changedAddress, timeout).get();
             attrs = response.content().getAttrs();
             mappedAddressAttr = (AddressAttr) attrs.get(AttrType.MappedAddress);
             InetSocketAddress mappedAddress2 = mappedAddressAttr.getAddress();
@@ -92,9 +93,9 @@ public class MappingManager implements InitializingBean, Runnable {
         }
     }
 
-    private StunPacket testChangeBind(InetSocketAddress address, boolean changeIP, boolean changePort) {
+    private StunPacket testChangeBind(InetSocketAddress address, boolean changeIP, boolean changePort, long timeout) {
         try {
-            StunPacket response = stunClient.sendChangeBind(address, changeIP, changePort).get();
+            StunPacket response = stunClient.sendChangeBind(address, changeIP, changePort, timeout).get();
             return response;
         } catch (Throwable e) {
             return null;
