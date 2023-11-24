@@ -31,29 +31,31 @@ SD-WAN：是运行在本机的软路由，可以同时连接多个机房，并�
 ### 特点：
 
 * **点对点连接**
-  
+
 netThunder允许用户建立点对点连接，将分支机构、远程团队和合作伙伴网络集成在一起。这种直接连接消除了网络拓扑中的冗余，提高了性能和效率。
 
 * **端到端加密传输**
-  
+
 安全性是我们的首要任务。我们的SD-WAN解决方案提供ECDH-AES算法做端到端的加密传输，确保敏感数据在传输过程中得到保护，从而降低了数据泄漏的风险。
 
 * **集中化管理**
-  
+
 netThunder集成了强大的集中化管理工具，使您能够轻松管理和监视整个网络，包括流量、安全策略和性能指标。
 
 * **动态负载均衡**
-  
+
 我们的SD-WAN解决方案可自动调整流量路由，以实现最佳性能。这有助于避免拥塞和提供出色的用户体验。
 
 * **高度可扩展**
-  
+
 无论您的网络规模如何增长，我们的产品都能够轻松适应变化。您可以根据需要扩展您的网络，无需担心性能下降。
 
 ### TUN设备原理:
+
 ![tun](doc/img/tun.png)
 ![principle](doc/img/principle.png)
-SD-WAN（Software-Defined Wide Area Network）中使用的TUN设备是一种虚拟网络设备，它允许将数据包从一个物理网络接口路由到另一个网络接口，通常用于创建安全的隧道，实现加密、隔离和路由功能。以下是SD-WAN中使用的TUN设备的工作原理：
+SD-WAN（Software-Defined Wide Area
+Network）中使用的TUN设备是一种虚拟网络设备，它允许将数据包从一个物理网络接口路由到另一个网络接口，通常用于创建安全的隧道，实现加密、隔离和路由功能。以下是SD-WAN中使用的TUN设备的工作原理：
 
 虚拟TUN设备创建： SD-WAN控制器或设备会在操作系统内核中创建一个虚拟的TUN/TAP（Tunnel）设备。TUN代表网络层（Layer 3）设备，而TAP代表数据链路层（Layer 2）设备。
 
@@ -98,7 +100,9 @@ sdwan:
     port: 8082
     timeout: 30000
 ```
+
 2.在需要访问的机房部署sdwan-node(Mesh模式) 以ROOT用户运行
+
 ```yaml
 sdwan:
   node:
@@ -147,13 +151,14 @@ sudo iptables -t mangle -X
 sudo iptables -P INPUT ACCEPT
 sudo iptables -P FORWARD ACCEPT
 sudo iptables -P OUTPUT ACCEPT
+
+# iptables -F：清空所有规则。
+# iptables -X：删除所有用户自定义链。
+# iptables -t nat -F：清空 NAT 表中的规则。
+# iptables -t nat -X：删除 NAT 表中的所有用户自定义链。
+# iptables -t mangle -F：清空 Mangle 表中的规则。
+# iptables -t mangle -X：删除 Mangle 表中的所有用户自定义链。
+# iptables -P INPUT ACCEPT：设置默认的 INPUT 链策略为 ACCEPT。
+# iptables -P FORWARD ACCEPT：设置默认的 FORWARD 链策略为 ACCEPT。
+# iptables -P OUTPUT ACCEPT：设置默认的 OUTPUT 链策略为 ACCEPT。
 ```
-iptables -F：清空所有规则。
-iptables -X：删除所有用户自定义链。
-iptables -t nat -F：清空 NAT 表中的规则。
-iptables -t nat -X：删除 NAT 表中的所有用户自定义链。
-iptables -t mangle -F：清空 Mangle 表中的规则。
-iptables -t mangle -X：删除 Mangle 表中的所有用户自定义链。
-iptables -P INPUT ACCEPT：设置默认的 INPUT 链策略为 ACCEPT。
-iptables -P FORWARD ACCEPT：设置默认的 FORWARD 链策略为 ACCEPT。
-iptables -P OUTPUT ACCEPT：设置默认的 OUTPUT 链策略为 ACCEPT。

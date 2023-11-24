@@ -125,13 +125,14 @@ sudo iptables -t mangle -X
 sudo iptables -P INPUT ACCEPT
 sudo iptables -P FORWARD ACCEPT
 sudo iptables -P OUTPUT ACCEPT
+
+# iptables -F: Flushes all rules in the default chains.
+# iptables -X: Deletes all user-defined chains.
+# iptables -t nat -F: Flushes the rules in the NAT table.
+# iptables -t nat -X: Deletes all user-defined chains in the NAT table.
+# iptables -t mangle -F: Flushes the rules in the Mangle table.
+# iptables -t mangle -X: Deletes all user-defined chains in the Mangle table.
+# iptables -P INPUT ACCEPT: Sets the default policy for the INPUT chain to ACCEPT.
+# iptables -P FORWARD ACCEPT: Sets the default policy for the FORWARD chain to ACCEPT.
+# iptables -P OUTPUT ACCEPT: Sets the default policy for the OUTPUT chain to ACCEPT.
 ```
-iptables -F: Flushes all rules in the default chains.
-iptables -X: Deletes all user-defined chains.
-iptables -t nat -F: Flushes the rules in the NAT table.
-iptables -t nat -X: Deletes all user-defined chains in the NAT table.
-iptables -t mangle -F: Flushes the rules in the Mangle table.
-iptables -t mangle -X: Deletes all user-defined chains in the Mangle table.
-iptables -P INPUT ACCEPT: Sets the default policy for the INPUT chain to ACCEPT.
-iptables -P FORWARD ACCEPT: Sets the default policy for the FORWARD chain to ACCEPT.
-iptables -P OUTPUT ACCEPT: Sets the default policy for the OUTPUT chain to ACCEPT.
