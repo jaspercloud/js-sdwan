@@ -4,8 +4,6 @@ sdwan:
   controller:
     port: 8081
     cidr: 10.1.0.0/20
-    # second
-    sdArpTTL: 300
     dbPath: ${user.dir}/derby.db
     timeout: 30000
   relay:

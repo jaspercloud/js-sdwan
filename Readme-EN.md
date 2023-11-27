@@ -72,10 +72,9 @@ sdwan:
     port: 8081
     # Define an address pool
     cidr: 10.1.0.0/20
-    # ARP expiration time (seconds)
-    sdArpTTL: 300
     # Database path
     dbPath: ${user.dir}/derby.db
+    timeout: 30000
   relay:
     # Relay port (UDP)
     port: 8082
@@ -86,28 +85,46 @@ sdwan:
 ```yaml
 sdwan:
   node:
-    # Controller address
-    controllerServer: 127.0.0.1:8081
-    connectTimeout: 30000
-    mtu: 1400
-    # STUN server address (e.g., MiWiFi's)
-    stunServer: stun.miwifi.com:3478
-    # Relay server address
-    relayServer: 127.0.0.1:8082
+    tun:
+      mtu: 1400
+    controller:
+      # Controller address
+      address: 127.0.0.1:8081
+      connectTimeout: 30000
+      callTimeout: 3000
+    stun:
+      # STUN server address (e.g., MiWiFi's)
+      address: stun.miwifi.com:3478
+      callTimeout: 3000
+      mappingTimeout: 3000
+      heartTimeout: 300
+    relay:
+      # Relay server address
+      address: 127.0.0.1:8082
+      heartTimeout: 300
 ```
 
 3.Starting sdwan-node on Your Local Machine
 ```yaml
 sdwan:
   node:
-    # Controller address
-    controllerServer: 127.0.0.1:8081
-    connectTimeout: 30000
-    mtu: 1400
-    # STUN server address (e.g., MiWiFi's)
-    stunServer: stun.miwifi.com:3478
-    # Relay server address
-    relayServer: 127.0.0.1:8082
+    tun:
+      mtu: 1400
+    controller:
+      # Controller address
+      address: 127.0.0.1:8081
+      connectTimeout: 30000
+      callTimeout: 3000
+    stun:
+      # STUN server address (e.g., MiWiFi's)
+      address: stun.miwifi.com:3478
+      callTimeout: 3000
+      mappingTimeout: 3000
+      heartTimeout: 300
+    relay:
+      # Relay server address
+      address: 127.0.0.1:8082
+      heartTimeout: 300
 ```
 4.Defining Routes in the Dashboard
 

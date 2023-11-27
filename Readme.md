@@ -95,10 +95,9 @@ sdwan:
     port: 8081
     #定义地址池
     cidr: 10.1.0.0/20
-    # arp过期时间second
-    sdArpTTL: 300
     # 数据库路径
     dbPath: ${user.dir}/derby.db
+    timeout: 30000
   relay:
     #中继端口UDP
     port: 8082
@@ -110,14 +109,23 @@ sdwan:
 ```yaml
 sdwan:
   node:
-    #控制器地址
-    controllerServer: 127.0.0.1:8081
-    connectTimeout: 30000
-    mtu: 1400
-    #stun服务器地址，这里使用小米的
-    stunServer: stun.miwifi.com:3478
-    #中继服务器地址
-    relayServer: 127.0.0.1:8082
+    tun:
+      mtu: 1400
+    controller:
+      #控制器地址
+      address: 127.0.0.1:8081
+      connectTimeout: 30000
+      callTimeout: 3000
+    stun:
+      #stun服务器地址，这里使用小米的
+      address: stun.miwifi.com:3478
+      callTimeout: 3000
+      mappingTimeout: 3000
+      heartTimeout: 300
+    relay:
+      #中继服务器地址
+      address: 127.0.0.1:8082
+      heartTimeout: 300
 ```
 
 3.本机启动sdwan-node 以管理员权限/ROOT运行
@@ -125,14 +133,23 @@ sdwan:
 ```yaml
 sdwan:
   node:
-    #控制器地址
-    controllerServer: 127.0.0.1:8081
-    connectTimeout: 30000
-    mtu: 1400
-    #stun服务器地址，这里使用小米的
-    stunServer: stun.miwifi.com:3478
-    #中继服务器地址
-    relayServer: 127.0.0.1:8082
+    tun:
+      mtu: 1400
+    controller:
+      #控制器地址
+      address: 127.0.0.1:8081
+      connectTimeout: 30000
+      callTimeout: 3000
+    stun:
+      #stun服务器地址，这里使用小米的
+      address: stun.miwifi.com:3478
+      callTimeout: 3000
+      mappingTimeout: 3000
+      heartTimeout: 300
+    relay:
+      #中继服务器地址
+      address: 127.0.0.1:8082
+      heartTimeout: 300
 ```
 
 4.在dashboard中定义路由
