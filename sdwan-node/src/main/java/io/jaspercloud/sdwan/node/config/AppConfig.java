@@ -58,15 +58,14 @@ public class AppConfig {
     }
 
     @Bean
-    public RouteManager routeManager(SDWanNode sdWanNode,
-                                     ConnectionManager connectionManager) {
+    public RouteManager routeManager(SDWanNode sdWanNode) {
         RouteManager routeManager;
         if (PlatformDependent.isOsx()) {
-            routeManager = new OsxRouteManager(sdWanNode, connectionManager);
+            routeManager = new OsxRouteManager(sdWanNode);
         } else if (PlatformDependent.isWindows()) {
-            routeManager = new WindowsRouteManager(sdWanNode, connectionManager);
+            routeManager = new WindowsRouteManager(sdWanNode);
         } else {
-            routeManager = new LinuxRouteManager(sdWanNode, connectionManager);
+            routeManager = new LinuxRouteManager(sdWanNode);
         }
         return routeManager;
     }

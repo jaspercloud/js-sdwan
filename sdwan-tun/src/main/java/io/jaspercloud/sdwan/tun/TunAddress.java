@@ -7,6 +7,7 @@ public class TunAddress extends SocketAddress {
     private String tunName;
     private String ethName;
     private String vip;
+    private int maskBits;
 
     public String getTunName() {
         return tunName;
@@ -16,12 +17,20 @@ public class TunAddress extends SocketAddress {
         return ethName;
     }
 
+    public int getMaskBits() {
+        return maskBits;
+    }
+
     public String getVip() {
         return vip;
     }
 
     public void setVip(String vip) {
         this.vip = vip;
+    }
+
+    public void setMaskBits(int maskBits) {
+        this.maskBits = maskBits;
     }
 
     public TunAddress(String tunName, String ethName) {

@@ -3,7 +3,6 @@ package io.jaspercloud.sdwan.node.support.route;
 import io.jaspercloud.sdwan.NetworkInterfaceInfo;
 import io.jaspercloud.sdwan.NetworkInterfaceUtil;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.node.support.connection.ConnectionManager;
 import io.jaspercloud.sdwan.node.support.node.SDWanNode;
 import io.jaspercloud.sdwan.tun.CheckInvoke;
 import io.jaspercloud.sdwan.tun.ProcessUtil;
@@ -14,8 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class WindowsRouteManager extends RouteManager {
 
-    public WindowsRouteManager(SDWanNode sdWanNode, ConnectionManager connectionManager) {
-        super(sdWanNode, connectionManager);
+    public WindowsRouteManager(SDWanNode sdWanNode) {
+        super(sdWanNode);
     }
 
     @Override

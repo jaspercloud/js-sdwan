@@ -5,5 +5,5 @@ import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 @FunctionalInterface
 public interface ConnectionDataHandler {
 
-    void onData(PeerConnection connection, SDWanProtos.IpPacket packet);
+    void onData(PeerConnection connection, SDWanProtos.RoutePacket packet);
 }

@@ -210,16 +210,23 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
             return;
         }
         log.debug("tun read: src={}, dst={}", ipv4Packet.getSrcIP(), ipv4Packet.getDstIP());
-        byte[] data = ByteBufUtil.toBytes(msg);
         SDWanProtos.IpPacket ipPacket = SDWanProtos.IpPacket.newBuilder()
                 .setSrcIP(ipv4Packet.getSrcIP())
                 .setDstIP(ipv4Packet.getDstIP())
-                .setPayload(ByteString.copyFrom(data))
+                .setPayload(ByteString.copyFrom(ByteBufUtil.toBytes(msg)))
                 .build();
-        routeManager.route(localVIP, ipPacket);
+        SDWanProtos.RoutePacket routePacket = routeManager.routeOut(localVIP, ipPacket);
+        if (null == routePacket) {
+            return;
+        }
+        connectionManager.send(routePacket);
     }
 
-    private void processWriteTun(TunChannel tunChannel, SDWanProtos.IpPacket ipPacket) {
+    private void processWriteTun(TunChannel tunChannel, SDWanProtos.RoutePacket routePacket) {
+        SDWanProtos.IpPacket ipPacket = routeManager.routeIn(routePacket);
+        if (null == ipPacket) {
+            return;
+        }
         log.debug("tun write: src={}, dst={}", ipPacket.getSrcIP(), ipPacket.getDstIP());
         byte[] data = ipPacket.getPayload().toByteArray();
         tunChannel.writeAndFlush(ByteBufUtil.toByteBuf(data));

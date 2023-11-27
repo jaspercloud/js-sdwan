@@ -78,9 +78,8 @@ public class ConnectionManager implements InitializingBean {
                     if (null != throwable) {
                         return;
                     }
-                    SDWanProtos.IpPacket ipPacket = connection.receive(routePacket);
                     for (ConnectionDataHandler handler : connectionDataHandlerList) {
-                        handler.onData(connection, ipPacket);
+                        handler.onData(connection, routePacket);
                     }
                 });
             } catch (Throwable e) {

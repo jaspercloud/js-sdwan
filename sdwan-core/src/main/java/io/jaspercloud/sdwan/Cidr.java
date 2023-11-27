@@ -58,6 +58,14 @@ public class Cidr {
         return cidr;
     }
 
+    public static String parseCidr(String vip, int maskBits) {
+        int addr = IPUtil.ip2int(vip);
+        addr = (addr >> (32 - maskBits)) << (32 - maskBits);
+        String address = IPUtil.int2ip(addr);
+        String result = String.format("%s/%d", address, maskBits);
+        return result;
+    }
+
     private static List<String> parseIpList(int address, int maskBits) {
         address = (address >> (32 - maskBits)) << (32 - maskBits);
         int count = (int) Math.pow(2, 32 - maskBits) - 1;

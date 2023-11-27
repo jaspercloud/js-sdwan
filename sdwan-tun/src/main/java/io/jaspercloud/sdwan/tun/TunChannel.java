@@ -56,6 +56,7 @@ public class TunChannel extends AbstractChannel {
         tunDevice.setIP(ip, maskBits);
         waitAddress(ip, 30 * 1000);
         tunAddress.setVip(ip);
+        tunAddress.setMaskBits(maskBits);
     }
 
     private void waitAddress(String vip, int timeout) throws Exception {

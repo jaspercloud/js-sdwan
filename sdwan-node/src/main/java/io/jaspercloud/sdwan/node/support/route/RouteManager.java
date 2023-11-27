@@ -2,7 +2,6 @@ package io.jaspercloud.sdwan.node.support.route;
 
 import io.jaspercloud.sdwan.Cidr;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.node.support.connection.ConnectionManager;
 import io.jaspercloud.sdwan.node.support.node.SDWanNode;
 import io.jaspercloud.sdwan.tun.TunAddress;
 import io.jaspercloud.sdwan.tun.TunChannel;
@@ -20,19 +19,23 @@ import java.util.stream.Collectors;
 public abstract class RouteManager implements InitializingBean {
 
     protected AtomicReference<List<SDWanProtos.Route>> cache = new AtomicReference<>(Collections.emptyList());
+    private String cidr;
 
     private SDWanNode sdWanNode;
-    private ConnectionManager connectionManager;
 
     private List<UpdateRouteHandler> handlerList = new ArrayList<>();
+    private List<RouteChain> routeChainList = new ArrayList<>();
 
     public void addUpdateRouteHandler(UpdateRouteHandler updateRouteHandler) {
         handlerList.add(updateRouteHandler);
     }
 
-    public RouteManager(SDWanNode sdWanNode, ConnectionManager connectionManager) {
+    public void addRouteChain(RouteChain chain) {
+        routeChainList.add(chain);
+    }
+
+    public RouteManager(SDWanNode sdWanNode) {
         this.sdWanNode = sdWanNode;
-        this.connectionManager = connectionManager;
     }
 
     @Override
@@ -55,22 +58,48 @@ public abstract class RouteManager implements InitializingBean {
         });
     }
 
-    public void route(String localVIP, SDWanProtos.IpPacket ipPacket) {
+    public SDWanProtos.RoutePacket routeOut(String localVIP, SDWanProtos.IpPacket ipPacket) {
+        for (RouteChain chain : routeChainList) {
+            ipPacket = chain.routeOut(ipPacket);
+        }
+        if (null == ipPacket) {
+            return null;
+        }
         SDWanProtos.Route route = findRoute(ipPacket.getDstIP());
+        SDWanProtos.RoutePacket routePacket;
         if (null != route) {
-            SDWanProtos.RoutePacket routePacket = SDWanProtos.RoutePacket.newBuilder()
+            routePacket = SDWanProtos.RoutePacket.newBuilder()
                     .setSrcVIP(localVIP)
                     .setDstVIP(route.getNexthop())
                     .setPayload(ipPacket)
                     .build();
-            connectionManager.send(routePacket);
-        } else {
-            SDWanProtos.RoutePacket routePacket = SDWanProtos.RoutePacket.newBuilder()
+        } else if (StringUtils.isNotEmpty(cidr) && Cidr.contains(cidr, ipPacket.getDstIP())) {
+            routePacket = SDWanProtos.RoutePacket.newBuilder()
                     .setSrcVIP(localVIP)
                     .setDstVIP(ipPacket.getDstIP())
                     .setPayload(ipPacket)
                     .build();
-            connectionManager.send(routePacket);
+        } else {
+            return null;
+        }
+        return routePacket;
+    }
+
+    public SDWanProtos.IpPacket routeIn(SDWanProtos.RoutePacket routePacket) {
+        SDWanProtos.IpPacket ipPacket = routePacket.getPayload();
+        for (RouteChain chain : routeChainList) {
+            ipPacket = chain.routeIn(ipPacket);
+        }
+        if (null == ipPacket) {
+            return null;
+        }
+        SDWanProtos.Route route = findRoute(ipPacket.getDstIP());
+        if (null != route) {
+            return ipPacket;
+        } else if (StringUtils.isNotEmpty(cidr) && Cidr.contains(cidr, ipPacket.getDstIP())) {
+            return ipPacket;
+        } else {
+            return null;
         }
     }
 
@@ -87,6 +116,8 @@ public abstract class RouteManager implements InitializingBean {
         SDWanProtos.RouteList routeList = sdWanNode.getRouteList().get();
         TunAddress tunAddress = (TunAddress) tunChannel.localAddress();
         String vip = tunAddress.getVip();
+        int maskBits = tunAddress.getMaskBits();
+        cidr = Cidr.parseCidr(vip, maskBits);
         List<SDWanProtos.Route> newList = routeList.getRouteList()
                 .stream()
                 .filter(e -> !StringUtils.equals(e.getNexthop(), vip))
@@ -109,6 +140,7 @@ public abstract class RouteManager implements InitializingBean {
         List<SDWanProtos.Route> newList = Collections.emptyList();
         doUpdateRouteList(tunChannel, cache.get(), newList);
         cache.set(newList);
+        cidr = null;
     }
 
     private void doUpdateRouteList(TunChannel tunChannel, List<SDWanProtos.Route> oldList, List<SDWanProtos.Route> newList) {
@@ -133,4 +165,5 @@ public abstract class RouteManager implements InitializingBean {
     protected abstract void addRoute(TunChannel tunChannel, SDWanProtos.Route route) throws Exception;
 
     protected abstract void deleteRoute(TunChannel tunChannel, SDWanProtos.Route route) throws Exception;
+
 }
