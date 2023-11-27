@@ -48,6 +48,7 @@ public class OsxTunDevice extends TunDevice {
         CheckInvoke.check(addAddr, 0);
         int up = ProcessUtil.exec(String.format("ifconfig %s up", deviceName));
         CheckInvoke.check(up, 0);
+        //route: mac与其他系统的差异
         int route = ProcessUtil.exec(String.format("route -n add -net %s -interface %s", String.format("%s/%s", cidr.getNetworkIdentifier(), netmaskPrefix), deviceName));
         CheckInvoke.check(route, 0);
     }
