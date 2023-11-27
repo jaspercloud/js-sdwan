@@ -189,7 +189,7 @@ sudo iptables -P OUTPUT ACCEPT
 1.0.x
 - [x] TUN设备读写
 - [x] p2p通信
-- [x] sdwan基本功能完成
+- [x] 基本功能完成
 
 1.1.x
 - [x] p2p通信稳定性优化
@@ -198,6 +198,7 @@ sudo iptables -P OUTPUT ACCEPT
 - [ ] 端到端加密
 - [ ] 安全组
 - [ ] 性能测试
+- [ ] mysql支持
 
 2.0.x
 - [ ] 多租户
