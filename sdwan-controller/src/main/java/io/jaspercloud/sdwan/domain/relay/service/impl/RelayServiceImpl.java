@@ -1,9 +1,10 @@
 package io.jaspercloud.sdwan.domain.relay.service.impl;
 
-import io.jaspercloud.sdwan.domain.relay.vo.RelayNode;
 import io.jaspercloud.sdwan.domain.relay.service.RelayNodeManager;
 import io.jaspercloud.sdwan.domain.relay.service.RelayService;
+import io.jaspercloud.sdwan.domain.relay.vo.RelayNode;
 import io.jaspercloud.sdwan.stun.*;
+import io.netty.channel.Channel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -18,7 +19,7 @@ public class RelayServiceImpl implements RelayService {
     private RelayNodeManager nodeManager;
 
     @Override
-    public StunPacket processBindRelay(StunPacket packet) {
+    public void processBindRelay(Channel channel, StunPacket packet) {
         InetSocketAddress sender = packet.sender();
         StunMessage request = packet.content();
         //parse
@@ -28,11 +29,11 @@ public class RelayServiceImpl implements RelayService {
         //resp
         StunMessage responseMessage = new StunMessage(MessageType.BindRelayResponse, request.getTranId());
         StunPacket response = new StunPacket(responseMessage, sender);
-        return response;
+        channel.writeAndFlush(response);
     }
 
     @Override
-    public StunPacket processTransfer(StunPacket packet) {
+    public void processTransfer(Channel channel, StunPacket packet) {
         InetSocketAddress sender = packet.sender();
         StunMessage request = packet.content();
         //parse
@@ -41,13 +42,13 @@ public class RelayServiceImpl implements RelayService {
         RelayNode node = nodeManager.getNode(relayToken);
         if (null == node) {
             log.warn("not found node: relayToken={}", relayToken);
-            return null;
+            return;
         }
         //resp
         BytesAttr dataAttr = (BytesAttr) request.getAttrs().get(AttrType.Data);
         StunMessage message = new StunMessage(MessageType.Transfer);
         message.getAttrs().put(AttrType.Data, dataAttr);
         StunPacket response = new StunPacket(message, node.getTargetAddress());
-        return response;
+        channel.writeAndFlush(response);
     }
 }

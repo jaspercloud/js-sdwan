@@ -24,14 +24,9 @@ public class RelayHandler extends SimpleChannelInboundHandler<StunPacket> {
         StunMessage request = packet.content();
         InetSocketAddress sender = packet.sender();
         if (MessageType.BindRelayRequest.equals(request.getMessageType())) {
-            StunPacket response = relayService.processBindRelay(packet);
-            ctx.writeAndFlush(response);
+            relayService.processBindRelay(ctx.channel(), packet);
         } else if (MessageType.Transfer.equals(request.getMessageType())) {
-            StunPacket response = relayService.processTransfer(packet);
-            if (null == response) {
-                return;
-            }
-            ctx.writeAndFlush(response);
+            relayService.processTransfer(ctx.channel(), packet);
         } else {
             ctx.fireChannelRead(packet.retain());
         }
