@@ -57,7 +57,7 @@ public class P2pAnswerTest {
         ConnectionManager connectionManager = new ConnectionManager(properties, sdWanNode, stunClient, relayClient, mappingManager, p2pManager);
         connectionManager.addConnectionDataHandler(new ConnectionDataHandler() {
             @Override
-            public void onData(PeerConnection connection, SDWanProtos.IpPacket packet) {
+            public void onData(PeerConnection connection, SDWanProtos.RoutePacket packet) {
                 System.out.println();
             }
         });
