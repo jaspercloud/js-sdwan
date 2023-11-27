@@ -51,6 +51,10 @@ In SD-WAN (Software-Defined Wide Area Network), the TUN device is a virtual netw
 
 In summary, TUN devices in SD-WAN act as virtual tunnel interfaces through which packets can be encrypted, routed, and transmitted, enabling core SD-WAN functionalities like secure connections, traffic management, and optimization. The use of virtualized network devices allows SD-WAN systems to manage and optimize network traffic more flexibly, providing improved performance and security.
 
+## Architecture
+
+![architecture](doc/img/architecture.png)
+
 ## Component Dependencies
 
 ![Component Dependencies](doc/img/componentRel.png)
