@@ -200,25 +200,19 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
             return;
         }
         Ipv4Packet ipv4Packet = Ipv4Packet.decodeMark(msg);
-        // TODO: 2023/11/22
-        List<String> ig = Arrays.asList(
-                "10.1.15.255",
-                "239.255.255.250",
-                "224.0.0.251"
-        );
-        if (ig.contains(ipv4Packet.getDstIP())) {
-            return;
-        }
-        log.debug("tun read: src={}, dst={}", ipv4Packet.getSrcIP(), ipv4Packet.getDstIP());
         SDWanProtos.IpPacket ipPacket = SDWanProtos.IpPacket.newBuilder()
                 .setSrcIP(ipv4Packet.getSrcIP())
                 .setDstIP(ipv4Packet.getDstIP())
                 .setPayload(ByteString.copyFrom(ByteBufUtil.toBytes(msg)))
                 .build();
+        if (ignoreIp(ipPacket.getDstIP())) {
+            return;
+        }
         SDWanProtos.RoutePacket routePacket = routeManager.routeOut(localVIP, ipPacket);
         if (null == routePacket) {
             return;
         }
+        log.debug("tun read: src={}, dst={}", ipPacket.getSrcIP(), ipPacket.getDstIP());
         connectionManager.send(routePacket);
     }
 
@@ -227,8 +221,19 @@ public class TunEngine implements InitializingBean, DisposableBean, Runnable {
         if (null == ipPacket) {
             return;
         }
+        if (ignoreIp(ipPacket.getDstIP())) {
+            return;
+        }
         log.debug("tun write: src={}, dst={}", ipPacket.getSrcIP(), ipPacket.getDstIP());
-        byte[] data = ipPacket.getPayload().toByteArray();
-        tunChannel.writeAndFlush(ByteBufUtil.toByteBuf(data));
+        tunChannel.writeAndFlush(ByteBufUtil.toByteBuf(ipPacket.getPayload().toByteArray()));
+    }
+
+    private boolean ignoreIp(String ip) {
+        List<String> ignoreIpList = properties.getTun().getIgnoreIpList();
+        if (null == ignoreIpList) {
+            return false;
+        }
+        boolean contains = ignoreIpList.contains(ip);
+        return contains;
     }
 }

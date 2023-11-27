@@ -5,6 +5,7 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.net.InetSocketAddress;
+import java.util.List;
 
 @Data
 @ConfigurationProperties("sdwan.node")
@@ -19,6 +20,7 @@ public class SDWanNodeProperties {
     public static class Tun {
 
         private Integer mtu;
+        private List<String> ignoreIpList;
     }
 
     @Data
