@@ -1,7 +1,7 @@
-package io.jaspercloud.sdwan.node.support.tunnel;
+package io.jaspercloud.sdwan.node.tunnel;
 
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.node.support.detection.DetectionInfo;
+import io.jaspercloud.sdwan.node.detection.DetectionInfo;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;

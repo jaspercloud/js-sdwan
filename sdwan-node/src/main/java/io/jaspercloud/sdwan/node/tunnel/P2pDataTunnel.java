@@ -1,8 +1,8 @@
-package io.jaspercloud.sdwan.node.support.tunnel;
+package io.jaspercloud.sdwan.node.tunnel;
 
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.node.config.SDWanNodeProperties;
-import io.jaspercloud.sdwan.node.support.detection.DetectionInfo;
+import io.jaspercloud.sdwan.node.detection.DetectionInfo;
 import io.jaspercloud.sdwan.stun.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.util.UriComponentsBuilder;

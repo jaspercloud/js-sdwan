@@ -1,4 +1,4 @@
-package io.jaspercloud.sdwan.node.support.node;
+package io.jaspercloud.sdwan.node.node;
 
 import com.google.protobuf.ByteString;
 import io.jaspercloud.sdwan.AsyncTask;

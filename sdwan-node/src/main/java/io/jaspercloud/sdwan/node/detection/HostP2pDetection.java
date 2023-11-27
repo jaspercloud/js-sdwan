@@ -1,4 +1,4 @@
-package io.jaspercloud.sdwan.node.support.detection;
+package io.jaspercloud.sdwan.node.detection;
 
 import io.jaspercloud.sdwan.node.config.SDWanNodeProperties;
 import io.jaspercloud.sdwan.stun.AddressAttr;

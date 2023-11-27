@@ -1,9 +1,9 @@
-package io.jaspercloud.sdwan.node.support.route;
+package io.jaspercloud.sdwan.node.route;
 
 import io.jaspercloud.sdwan.NetworkInterfaceInfo;
 import io.jaspercloud.sdwan.NetworkInterfaceUtil;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.node.support.node.SDWanNode;
+import io.jaspercloud.sdwan.node.node.SDWanNode;
 import io.jaspercloud.sdwan.tun.CheckInvoke;
 import io.jaspercloud.sdwan.tun.ProcessUtil;
 import io.jaspercloud.sdwan.tun.TunAddress;
@@ -11,9 +11,9 @@ import io.jaspercloud.sdwan.tun.TunChannel;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class WindowsRouteManager extends RouteManager {
+public class LinuxRouteManager extends RouteManager {
 
-    public WindowsRouteManager(SDWanNode sdWanNode) {
+    public LinuxRouteManager(SDWanNode sdWanNode) {
         super(sdWanNode);
     }
 
@@ -21,7 +21,7 @@ public class WindowsRouteManager extends RouteManager {
     protected void addRoute(TunChannel tunChannel, SDWanProtos.Route route) throws Exception {
         TunAddress tunAddress = (TunAddress) tunChannel.localAddress();
         NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(tunAddress.getVip());
-        String cmd = String.format("route add %s %s if %s", route.getDestination(), tunAddress.getVip(), interfaceInfo.getIndex());
+        String cmd = String.format("ip route add %s via %s dev %s", route.getDestination(), tunAddress.getVip(), interfaceInfo.getName());
         int code = ProcessUtil.exec(cmd);
         CheckInvoke.check(code, 0);
     }
@@ -30,10 +30,8 @@ public class WindowsRouteManager extends RouteManager {
     protected void deleteRoute(TunChannel tunChannel, SDWanProtos.Route route) throws Exception {
         TunAddress tunAddress = (TunAddress) tunChannel.localAddress();
         NetworkInterfaceInfo interfaceInfo = NetworkInterfaceUtil.findNetworkInterfaceInfo(tunAddress.getVip());
-        // TODO: 2023/11/24 路由删除失败: 找不到元素。
-//        String cmd = String.format("route delete %s %s", route.getDestination(), tunAddress.getVip());
-        String cmd = String.format("route delete %s", route.getDestination());
+        String cmd = String.format("ip route delete %s via %s", route.getDestination(), tunAddress.getVip());
         int code = ProcessUtil.exec(cmd);
-        CheckInvoke.check(code, 0);
+        CheckInvoke.check(code, 0, 2);
     }
 }

@@ -2,7 +2,7 @@ package io.jaspercloud.sdwan;
 
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.node.config.SDWanNodeProperties;
-import io.jaspercloud.sdwan.node.support.node.SDWanNode;
+import io.jaspercloud.sdwan.node.node.SDWanNode;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Arrays;

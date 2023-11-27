@@ -1,8 +1,8 @@
-package io.jaspercloud.sdwan.node.support.route;
+package io.jaspercloud.sdwan.node.route;
 
 import io.jaspercloud.sdwan.Cidr;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.node.support.node.SDWanNode;
+import io.jaspercloud.sdwan.node.node.SDWanNode;
 import io.jaspercloud.sdwan.tun.TunAddress;
 import io.jaspercloud.sdwan.tun.TunChannel;
 import lombok.extern.slf4j.Slf4j;

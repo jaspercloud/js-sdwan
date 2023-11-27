@@ -1,14 +1,14 @@
-package io.jaspercloud.sdwan.node.support.tunnel;
+package io.jaspercloud.sdwan.node.tunnel;
 
 import io.jaspercloud.sdwan.CompletableFutures;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.node.config.SDWanNodeProperties;
-import io.jaspercloud.sdwan.node.support.detection.AddressType;
-import io.jaspercloud.sdwan.node.support.detection.DetectionInfo;
-import io.jaspercloud.sdwan.node.support.detection.P2pDetection;
-import io.jaspercloud.sdwan.node.support.node.RelayClient;
-import io.jaspercloud.sdwan.node.support.node.SDWanNode;
+import io.jaspercloud.sdwan.node.detection.AddressType;
+import io.jaspercloud.sdwan.node.detection.DetectionInfo;
+import io.jaspercloud.sdwan.node.detection.P2pDetection;
+import io.jaspercloud.sdwan.node.node.RelayClient;
+import io.jaspercloud.sdwan.node.node.SDWanNode;
 import io.jaspercloud.sdwan.stun.*;
 import io.netty.channel.ChannelHandlerContext;
 import lombok.extern.slf4j.Slf4j;

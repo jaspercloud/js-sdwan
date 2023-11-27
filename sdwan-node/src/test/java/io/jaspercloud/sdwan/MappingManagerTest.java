@@ -1,7 +1,7 @@
 package io.jaspercloud.sdwan;
 
 import io.jaspercloud.sdwan.node.config.SDWanNodeProperties;
-import io.jaspercloud.sdwan.node.support.node.MappingManager;
+import io.jaspercloud.sdwan.node.node.MappingManager;
 import io.jaspercloud.sdwan.stun.StunClient;
 
 import java.util.concurrent.CountDownLatch;

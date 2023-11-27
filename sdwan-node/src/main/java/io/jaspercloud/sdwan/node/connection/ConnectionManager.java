@@ -1,14 +1,14 @@
-package io.jaspercloud.sdwan.node.support.connection;
+package io.jaspercloud.sdwan.node.connection;
 
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 import io.jaspercloud.sdwan.exception.ProcessException;
 import io.jaspercloud.sdwan.node.config.SDWanNodeProperties;
-import io.jaspercloud.sdwan.node.support.detection.AddressType;
-import io.jaspercloud.sdwan.node.support.node.MappingManager;
-import io.jaspercloud.sdwan.node.support.node.RelayClient;
-import io.jaspercloud.sdwan.node.support.node.SDWanNode;
-import io.jaspercloud.sdwan.node.support.tunnel.DataTunnel;
-import io.jaspercloud.sdwan.node.support.tunnel.P2pManager;
+import io.jaspercloud.sdwan.node.detection.AddressType;
+import io.jaspercloud.sdwan.node.node.RelayClient;
+import io.jaspercloud.sdwan.node.node.SDWanNode;
+import io.jaspercloud.sdwan.node.node.MappingManager;
+import io.jaspercloud.sdwan.node.tunnel.DataTunnel;
+import io.jaspercloud.sdwan.node.tunnel.P2pManager;
 import io.jaspercloud.sdwan.stun.AddressAttr;
 import io.jaspercloud.sdwan.stun.AttrType;
 import io.jaspercloud.sdwan.stun.MappingAddress;

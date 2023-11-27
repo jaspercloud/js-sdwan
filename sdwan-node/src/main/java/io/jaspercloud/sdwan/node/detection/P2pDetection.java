@@ -1,4 +1,4 @@
-package io.jaspercloud.sdwan.node.support.detection;
+package io.jaspercloud.sdwan.node.detection;
 
 import java.util.concurrent.CompletableFuture;
 

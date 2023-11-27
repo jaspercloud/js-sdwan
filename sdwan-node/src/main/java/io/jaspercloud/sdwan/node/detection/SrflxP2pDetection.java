@@ -1,4 +1,4 @@
-package io.jaspercloud.sdwan.node.support.detection;
+package io.jaspercloud.sdwan.node.detection;
 
 import io.jaspercloud.sdwan.node.config.SDWanNodeProperties;
 import io.jaspercloud.sdwan.stun.AddressAttr;
@@ -10,19 +10,19 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
 
-public class PrflxP2pDetection implements P2pDetection {
+public class SrflxP2pDetection implements P2pDetection {
 
     private SDWanNodeProperties properties;
     private StunClient stunClient;
 
-    public PrflxP2pDetection(SDWanNodeProperties properties, StunClient stunClient) {
+    public SrflxP2pDetection(SDWanNodeProperties properties, StunClient stunClient) {
         this.properties = properties;
         this.stunClient = stunClient;
     }
 
     @Override
     public String type() {
-        return AddressType.PRFLX;
+        return AddressType.SRFLX;
     }
 
     @Override

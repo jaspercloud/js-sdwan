@@ -1,8 +1,8 @@
-package io.jaspercloud.sdwan.node.support.connection;
+package io.jaspercloud.sdwan.node.connection;
 
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.node.support.tunnel.DataTunnel;
-import io.jaspercloud.sdwan.node.support.tunnel.P2pManager;
+import io.jaspercloud.sdwan.node.tunnel.DataTunnel;
+import io.jaspercloud.sdwan.node.tunnel.P2pManager;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;

@@ -1,7 +1,7 @@
-package io.jaspercloud.sdwan.node.support.route;
+package io.jaspercloud.sdwan.node.route;
 
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.node.support.node.SDWanNode;
+import io.jaspercloud.sdwan.node.node.SDWanNode;
 import io.jaspercloud.sdwan.tun.CheckInvoke;
 import io.jaspercloud.sdwan.tun.ProcessUtil;
 import io.jaspercloud.sdwan.tun.TunChannel;

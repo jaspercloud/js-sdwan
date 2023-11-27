@@ -1,4 +1,4 @@
-package io.jaspercloud.sdwan.node.support.route;
+package io.jaspercloud.sdwan.node.route;
 
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
 

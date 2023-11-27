@@ -1,9 +1,9 @@
-package io.jaspercloud.sdwan.node.support.tunnel;
+package io.jaspercloud.sdwan.node.tunnel;
 
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.node.support.detection.AddressType;
-import io.jaspercloud.sdwan.node.support.detection.DetectionInfo;
-import io.jaspercloud.sdwan.node.support.node.SDWanNode;
+import io.jaspercloud.sdwan.node.detection.AddressType;
+import io.jaspercloud.sdwan.node.detection.DetectionInfo;
+import io.jaspercloud.sdwan.node.node.SDWanNode;
 import io.jaspercloud.sdwan.stun.AttrType;
 import io.jaspercloud.sdwan.stun.BytesAttr;
 import io.jaspercloud.sdwan.stun.MessageType;

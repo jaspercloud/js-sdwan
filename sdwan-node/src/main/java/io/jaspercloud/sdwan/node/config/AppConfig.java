@@ -1,16 +1,16 @@
 package io.jaspercloud.sdwan.node.config;
 
+import io.jaspercloud.sdwan.node.connection.ConnectionManager;
+import io.jaspercloud.sdwan.node.detection.*;
+import io.jaspercloud.sdwan.node.node.MappingManager;
+import io.jaspercloud.sdwan.node.node.RelayClient;
+import io.jaspercloud.sdwan.node.node.SDWanNode;
+import io.jaspercloud.sdwan.node.route.LinuxRouteManager;
+import io.jaspercloud.sdwan.node.route.OsxRouteManager;
+import io.jaspercloud.sdwan.node.route.RouteManager;
+import io.jaspercloud.sdwan.node.route.WindowsRouteManager;
 import io.jaspercloud.sdwan.node.support.TunEngine;
-import io.jaspercloud.sdwan.node.support.connection.ConnectionManager;
-import io.jaspercloud.sdwan.node.support.detection.*;
-import io.jaspercloud.sdwan.node.support.node.MappingManager;
-import io.jaspercloud.sdwan.node.support.node.RelayClient;
-import io.jaspercloud.sdwan.node.support.node.SDWanNode;
-import io.jaspercloud.sdwan.node.support.route.LinuxRouteManager;
-import io.jaspercloud.sdwan.node.support.route.OsxRouteManager;
-import io.jaspercloud.sdwan.node.support.route.RouteManager;
-import io.jaspercloud.sdwan.node.support.route.WindowsRouteManager;
-import io.jaspercloud.sdwan.node.support.tunnel.P2pManager;
+import io.jaspercloud.sdwan.node.tunnel.P2pManager;
 import io.jaspercloud.sdwan.stun.StunClient;
 import io.netty.util.internal.PlatformDependent;
 import org.springframework.beans.factory.ObjectProvider;
