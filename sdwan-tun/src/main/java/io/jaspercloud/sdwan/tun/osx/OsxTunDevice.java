@@ -43,8 +43,8 @@ public class OsxTunDevice extends TunDevice {
         Ifreq ifreq = new Ifreq(deviceName, mtu);
         NativeOsxApi.ioctl(fd, NativeOsxApi.SIOCSIFMTU, ifreq);
         Cidr cidr = Cidr.parseCidr(String.format("%s/%s", addr, netmaskPrefix));
-        int addAddr = ProcessUtil.exec(String.format("ifconfig %s inet %s %s netmask %s",
-                deviceName, addr, cidr.getGatewayAddress(), cidr.getMaskAddress()));
+        int addAddr = ProcessUtil.exec(String.format("ifconfig %s inet %s netmask %s broadcast %s",
+                deviceName, addr, cidr.getMaskAddress(), cidr.getBroadcastAddress()));
         CheckInvoke.check(addAddr, 0);
         int up = ProcessUtil.exec(String.format("ifconfig %s up", deviceName));
         CheckInvoke.check(up, 0);
@@ -78,6 +78,7 @@ public class OsxTunDevice extends TunDevice {
                 continue;
             }
             ByteBuf byteBuf = alloc.buffer(read);
+            //process loopback
             byteBuf.writeBytes(bytes, 4, read);
             return byteBuf;
         }
@@ -89,8 +90,10 @@ public class OsxTunDevice extends TunDevice {
             throw new ProcessException("Device is closed.");
         }
         //TunChannel已回收
-        byte[] bytes = new byte[msg.readableBytes()];
-        msg.readBytes(bytes);
+        byte[] bytes = new byte[msg.readableBytes() + 4];
+        bytes[3] = 0x2;
+        //process loopback
+        msg.readBytes(bytes, 4, msg.readableBytes());
         NativeOsxApi.write(fd, bytes, bytes.length);
     }
 
