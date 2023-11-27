@@ -45,8 +45,7 @@ public abstract class RouteManager implements InitializingBean {
                 switch (msg.getType().getNumber()) {
                     case SDWanProtos.MsgTypeCode.RefreshRouteListType_VALUE: {
                         for (UpdateRouteHandler handler : handlerList) {
-                            List<SDWanProtos.Route> routeList = SDWanProtos.RouteList.parseFrom(msg.getData())
-                                    .getRouteList();
+                            SDWanProtos.RouteList routeList = SDWanProtos.RouteList.parseFrom(msg.getData());
                             handler.onUpdate(routeList);
                         }
                         break;
@@ -118,27 +117,38 @@ public abstract class RouteManager implements InitializingBean {
         String vip = tunAddress.getVip();
         int maskBits = tunAddress.getMaskBits();
         cidr = Cidr.parseCidr(vip, maskBits);
+        List<SDWanProtos.Route> oldList = cache.get();
         List<SDWanProtos.Route> newList = routeList.getRouteList()
                 .stream()
                 .filter(e -> !StringUtils.equals(e.getNexthop(), vip))
                 .collect(Collectors.toList());
-        doUpdateRouteList(tunChannel, cache.get(), newList);
-        cache.set(newList);
+        doUpdateRouteList(tunChannel, oldList, newList);
+        cache.set(routeList.getRouteList());
     }
 
-    public void updateRouteList(TunChannel tunChannel, List<SDWanProtos.Route> routeList) {
+    public void updateRouteList(TunChannel tunChannel, SDWanProtos.RouteList routeList) {
         TunAddress tunAddress = (TunAddress) tunChannel.localAddress();
         String vip = tunAddress.getVip();
-        List<SDWanProtos.Route> newList = routeList.stream()
+        List<SDWanProtos.Route> oldList = cache.get()
+                .stream()
                 .filter(e -> !StringUtils.equals(e.getNexthop(), vip))
                 .collect(Collectors.toList());
-        doUpdateRouteList(tunChannel, cache.get(), newList);
-        cache.set(newList);
+        List<SDWanProtos.Route> newList = routeList.getRouteList()
+                .stream()
+                .filter(e -> !StringUtils.equals(e.getNexthop(), vip))
+                .collect(Collectors.toList());
+        doUpdateRouteList(tunChannel, oldList, newList);
+        cache.set(routeList.getRouteList());
     }
 
     public void releaseRoute(TunChannel tunChannel) {
+        TunAddress tunAddress = (TunAddress) tunChannel.localAddress();
+        String vip = tunAddress.getVip();
         List<SDWanProtos.Route> newList = Collections.emptyList();
-        doUpdateRouteList(tunChannel, cache.get(), newList);
+        List<SDWanProtos.Route> oldList = cache.get().stream()
+                .filter(e -> !StringUtils.equals(e.getNexthop(), vip))
+                .collect(Collectors.toList());
+        doUpdateRouteList(tunChannel, oldList, newList);
         cache.set(newList);
         cidr = null;
     }
