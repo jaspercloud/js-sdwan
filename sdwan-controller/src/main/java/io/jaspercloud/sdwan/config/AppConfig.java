@@ -49,8 +49,8 @@ public class AppConfig {
     }
 
     @Bean
-    public SDWanNodeManager sdWanNodeManager() {
-        return new SDWanNodeManager();
+    public SDWanNodeManager sdWanNodeManager(SDWanControllerProperties properties) {
+        return new SDWanNodeManager(properties);
     }
 
     @Bean
