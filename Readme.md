@@ -162,6 +162,7 @@ sdwan:
 
 ![route](doc/img/route.png)
 
+### 清空iptables错误
 ```shell
 sudo iptables -F
 sudo iptables -X
@@ -183,3 +184,21 @@ sudo iptables -P OUTPUT ACCEPT
 # iptables -P FORWARD ACCEPT：设置默认的 FORWARD 链策略为 ACCEPT。
 # iptables -P OUTPUT ACCEPT：设置默认的 OUTPUT 链策略为 ACCEPT。
 ```
+
+### TodoList
+1.0.x
+- [x] TUN设备读写
+- [x] p2p通信
+- [x] sdwan基本功能完成
+
+1.1.x
+- [x] p2p通信稳定性优化
+- [x] 架构分层
+- [ ] 端到端加密
+- [ ] 安全组
+- [ ] 性能测试
+
+2.0.x
+- [ ] 多租户
+- [ ] 中继负载均衡
+- [ ] mesh负载均衡
