@@ -50,11 +50,15 @@ public class RelayServer implements InitializingBean, DisposableBean {
             while (true) {
                 Iterator<Map.Entry<String, RelayNode>> iterator = channelMap.entrySet().iterator();
                 while (iterator.hasNext()) {
-                    Map.Entry<String, RelayNode> next = iterator.next();
-                    RelayNode node = next.getValue();
-                    long diffTime = System.currentTimeMillis() - node.getLastTime();
-                    if (diffTime > properties.getTimeout()) {
-                        iterator.remove();
+                    try {
+                        Map.Entry<String, RelayNode> next = iterator.next();
+                        RelayNode node = next.getValue();
+                        long diffTime = System.currentTimeMillis() - node.getLastTime();
+                        if (diffTime > properties.getTimeout()) {
+                            iterator.remove();
+                        }
+                    } catch (Throwable e) {
+                        log.error(e.getMessage(), e);
                     }
                 }
                 try {

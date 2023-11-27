@@ -95,23 +95,27 @@ public class P2pManager implements InitializingBean {
         Thread tunnelHeartThread = new Thread(() -> {
             while (true) {
                 for (Map.Entry<String, DataTunnel> entry : tunnelMap.entrySet()) {
-                    String uri = entry.getKey();
-                    DataTunnel dataTunnel = entry.getValue();
-                    dataTunnel.check()
-                            .whenComplete((check, throwable) -> {
-                                boolean doClose = false;
-                                if (null != throwable) {
-                                    doClose = true;
-                                } else if (!check) {
-                                    doClose = true;
-                                }
-                                if (!doClose) {
-                                    return;
-                                }
-                                log.error("p2pHeartTimout: {}", uri);
-                                tunnelMap.remove(uri);
-                                dataTunnel.close();
-                            });
+                    try {
+                        String uri = entry.getKey();
+                        DataTunnel dataTunnel = entry.getValue();
+                        dataTunnel.check()
+                                .whenComplete((check, throwable) -> {
+                                    boolean doClose = false;
+                                    if (null != throwable) {
+                                        doClose = true;
+                                    } else if (!check) {
+                                        doClose = true;
+                                    }
+                                    if (!doClose) {
+                                        return;
+                                    }
+                                    log.error("p2pHeartTimout: {}", uri);
+                                    tunnelMap.remove(uri);
+                                    dataTunnel.close();
+                                });
+                    } catch (Throwable e) {
+                        log.error(e.getMessage(), e);
+                    }
                 }
                 try {
                     Thread.sleep(1000);
