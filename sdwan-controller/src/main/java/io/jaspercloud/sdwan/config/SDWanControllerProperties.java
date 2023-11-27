@@ -3,8 +3,6 @@ package io.jaspercloud.sdwan.config;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import java.util.Map;
-
 @Data
 @ConfigurationProperties("sdwan.controller")
 public class SDWanControllerProperties {
@@ -13,4 +11,5 @@ public class SDWanControllerProperties {
     private String cidr;
     private Integer sdArpTTL;
     private String dbPath;
+    private Long timeout;
 }

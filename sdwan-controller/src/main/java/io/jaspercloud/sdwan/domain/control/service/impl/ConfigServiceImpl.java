@@ -1,20 +1,21 @@
 package io.jaspercloud.sdwan.domain.control.service.impl;
 
 import io.jaspercloud.sdwan.Cidr;
-import io.jaspercloud.sdwan.config.SDWanControllerProperties;
 import io.jaspercloud.sdwan.adapter.controller.param.NodeDTO;
 import io.jaspercloud.sdwan.adapter.controller.param.RouteDTO;
+import io.jaspercloud.sdwan.adapter.server.RelayServer;
+import io.jaspercloud.sdwan.config.SDWanControllerProperties;
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.domain.control.service.ConfigService;
-import io.jaspercloud.sdwan.exception.CidrParseException;
-import io.jaspercloud.sdwan.exception.ProcessCodeException;
 import io.jaspercloud.sdwan.domain.control.entity.Node;
 import io.jaspercloud.sdwan.domain.control.entity.Route;
 import io.jaspercloud.sdwan.domain.control.repository.NodeRepository;
 import io.jaspercloud.sdwan.domain.control.repository.RouteRepository;
-import io.jaspercloud.sdwan.infra.ErrorCode;
+import io.jaspercloud.sdwan.domain.control.service.ConfigService;
+import io.jaspercloud.sdwan.domain.control.service.SDWanNodeManager;
 import io.jaspercloud.sdwan.domain.control.vo.NodeType;
-import io.jaspercloud.sdwan.adapter.server.RelayServer;
+import io.jaspercloud.sdwan.exception.CidrParseException;
+import io.jaspercloud.sdwan.exception.ProcessCodeException;
+import io.jaspercloud.sdwan.infra.ErrorCode;
 import io.netty.channel.Channel;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -40,7 +41,7 @@ public class ConfigServiceImpl implements ConfigService {
     private RouteRepository routeRepository;
 
     @Resource
-    private io.jaspercloud.sdwan.domain.control.service.SDWanNodeManager SDWanNodeManager;
+    private SDWanNodeManager sdWanNodeManager;
 
     @Resource
     private RelayServer relayServer;
@@ -119,7 +120,7 @@ public class ConfigServiceImpl implements ConfigService {
                 .setType(SDWanProtos.MsgTypeCode.RefreshRouteListType)
                 .setData(routeList.toByteString())
                 .build();
-        List<Channel> channelList = SDWanNodeManager.getChannelList();
+        List<Channel> channelList = sdWanNodeManager.getChannelList();
         for (Channel channel : channelList) {
             channel.writeAndFlush(response);
         }
@@ -164,7 +165,7 @@ public class ConfigServiceImpl implements ConfigService {
         node.setRemark(request.getRemark());
         nodeRepository.updateById(node);
         if (!StringUtils.equals(curVIP, newVIP)) {
-            SDWanNodeManager.deleteChannel(curVIP);
+            sdWanNodeManager.deleteChannel(curVIP);
         }
     }
 
@@ -181,12 +182,12 @@ public class ConfigServiceImpl implements ConfigService {
             }
             nodeRepository.deleteById(id);
         });
-        SDWanNodeManager.deleteChannel(node.getVip());
+        sdWanNodeManager.deleteChannel(node.getVip());
     }
 
     @Override
     public List<NodeDTO> getNodeList() {
-        Map<String, Node> onlineMap = SDWanNodeManager.getNodeMap();
+        Map<String, Node> onlineMap = sdWanNodeManager.getNodeMap();
         List<Node> nodeList = nodeRepository.queryList();
         List<NodeDTO> resultList = nodeList.stream().map(e -> {
             NodeDTO nodeDTO = new NodeDTO();
@@ -226,6 +227,6 @@ public class ConfigServiceImpl implements ConfigService {
         if (null == node) {
             return;
         }
-        SDWanNodeManager.deleteChannel(node.getVip());
+        sdWanNodeManager.deleteChannel(node.getVip());
     }
 }

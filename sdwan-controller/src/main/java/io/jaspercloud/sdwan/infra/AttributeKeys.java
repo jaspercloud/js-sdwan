@@ -15,4 +15,9 @@ public class AttributeKeys {
         Attribute<Node> attr = channel.attr(AttributeKey.valueOf("node"));
         return attr;
     }
+
+    public static Attribute<Long> heart(Channel channel) {
+        Attribute<Long> attr = channel.attr(AttributeKey.valueOf("heart"));
+        return attr;
+    }
 }

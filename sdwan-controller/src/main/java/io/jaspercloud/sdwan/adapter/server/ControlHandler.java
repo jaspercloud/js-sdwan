@@ -1,7 +1,7 @@
 package io.jaspercloud.sdwan.adapter.server;
 
 import io.jaspercloud.sdwan.core.proto.SDWanProtos;
-import io.jaspercloud.sdwan.domain.control.service.SDWanControllerService;
+import io.jaspercloud.sdwan.domain.control.service.SDWanControlService;
 import io.jaspercloud.sdwan.domain.control.service.SDWanSignalService;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
@@ -13,12 +13,12 @@ import lombok.extern.slf4j.Slf4j;
 @ChannelHandler.Sharable
 public class ControlHandler extends SimpleChannelInboundHandler<SDWanProtos.Message> {
 
-    private SDWanControllerService controllerService;
+    private SDWanControlService controlService;
     private SDWanSignalService sdWanSignalService;
 
-    public ControlHandler(SDWanControllerService controllerService,
+    public ControlHandler(SDWanControlService controlService,
                           SDWanSignalService sdWanSignalService) {
-        this.controllerService = controllerService;
+        this.controlService = controlService;
         this.sdWanSignalService = sdWanSignalService;
     }
 
@@ -27,19 +27,19 @@ public class ControlHandler extends SimpleChannelInboundHandler<SDWanProtos.Mess
         Channel channel = ctx.channel();
         switch (request.getType().getNumber()) {
             case SDWanProtos.MsgTypeCode.HeartType_VALUE: {
-                processHeart(channel, request);
+                controlService.processHeart(channel, request);
                 break;
             }
             case SDWanProtos.MsgTypeCode.RegReqType_VALUE: {
-                controllerService.regist(channel, request);
+                controlService.regist(channel, request);
                 break;
             }
             case SDWanProtos.MsgTypeCode.RouteListReqType_VALUE: {
-                controllerService.processRouteList(channel, request);
+                controlService.processRouteList(channel, request);
                 break;
             }
             case SDWanProtos.MsgTypeCode.NodeInfoReqType_VALUE: {
-                controllerService.processNodeInfo(channel, request);
+                controlService.processNodeInfo(channel, request);
                 break;
             }
             case SDWanProtos.MsgTypeCode.P2pOfferType_VALUE: {
@@ -53,7 +53,4 @@ public class ControlHandler extends SimpleChannelInboundHandler<SDWanProtos.Mess
         }
     }
 
-    private void processHeart(Channel channel, SDWanProtos.Message request) {
-        channel.writeAndFlush(request);
-    }
 }

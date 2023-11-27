@@ -7,10 +7,11 @@ import io.jaspercloud.sdwan.domain.control.entity.Node;
 import io.jaspercloud.sdwan.domain.control.repository.NodeRepository;
 import io.jaspercloud.sdwan.domain.control.repository.RouteRepository;
 import io.jaspercloud.sdwan.domain.control.service.ConfigService;
-import io.jaspercloud.sdwan.domain.control.service.SDWanControllerService;
+import io.jaspercloud.sdwan.domain.control.service.SDWanControlService;
+import io.jaspercloud.sdwan.domain.control.service.SDWanNodeManager;
+import io.jaspercloud.sdwan.domain.control.vo.NodeType;
 import io.jaspercloud.sdwan.exception.ProcessCodeException;
 import io.jaspercloud.sdwan.infra.AttributeKeys;
-import io.jaspercloud.sdwan.domain.control.vo.NodeType;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
@@ -29,7 +30,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-public class SDWanControllerServiceImpl implements SDWanControllerService, InitializingBean {
+public class SDWanControlServiceImpl implements SDWanControlService, InitializingBean {
 
     @Resource
     private SDWanControllerProperties properties;
@@ -44,7 +45,7 @@ public class SDWanControllerServiceImpl implements SDWanControllerService, Initi
     private ConfigService configService;
 
     @Resource
-    private io.jaspercloud.sdwan.domain.control.service.SDWanNodeManager SDWanNodeManager;
+    private SDWanNodeManager sdWanNodeManager;
 
     //key: ip, value: channel
     private Map<String, AtomicReference<Channel>> bindIPMap = new ConcurrentHashMap<>();
@@ -78,7 +79,7 @@ public class SDWanControllerServiceImpl implements SDWanControllerService, Initi
                         StringUtils.join(node.getAddressList()));
             }
             String vip = node.getVip();
-            SDWanNodeManager.addChannel(vip, channel);
+            sdWanNodeManager.addChannel(vip, channel);
             SDWanProtos.RegResp regResp = SDWanProtos.RegResp.newBuilder()
                     .setCode(SDWanProtos.MessageCode.Success_VALUE)
                     .setVip(vip)
@@ -197,7 +198,7 @@ public class SDWanControllerServiceImpl implements SDWanControllerService, Initi
     public void processNodeInfo(Channel channel, SDWanProtos.Message request) {
         try {
             SDWanProtos.NodeInfoReq nodeInfoReq = SDWanProtos.NodeInfoReq.parseFrom(request.getData());
-            Node onlineNode = SDWanNodeManager.getNodeMap().get(nodeInfoReq.getVip());
+            Node onlineNode = sdWanNodeManager.getNodeMap().get(nodeInfoReq.getVip());
             SDWanProtos.NodeInfoResp nodeInfoResp = SDWanProtos.NodeInfoResp.newBuilder()
                     .setCode(0)
                     .setVip(nodeInfoReq.getVip())
@@ -219,6 +220,12 @@ public class SDWanControllerServiceImpl implements SDWanControllerService, Initi
                     .build();
             channel.writeAndFlush(resp);
         }
+    }
+
+    @Override
+    public void processHeart(Channel channel, SDWanProtos.Message request) {
+        sdWanNodeManager.updateHeart(channel);
+        channel.writeAndFlush(request);
     }
 
 }

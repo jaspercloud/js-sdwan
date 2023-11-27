@@ -14,17 +14,17 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RelayNodeManager implements InitializingBean {
 
     private SDWanRelayProperties properties;
-    private Map<String, RelayNode> channelMap = new ConcurrentHashMap<>();
+    private Map<String, RelayNode> nodeMap = new ConcurrentHashMap<>();
 
     public RelayNodeManager(SDWanRelayProperties properties) {
         this.properties = properties;
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         new Thread(() -> {
             while (true) {
-                Iterator<Map.Entry<String, RelayNode>> iterator = channelMap.entrySet().iterator();
+                Iterator<Map.Entry<String, RelayNode>> iterator = nodeMap.entrySet().iterator();
                 while (iterator.hasNext()) {
                     try {
                         Map.Entry<String, RelayNode> next = iterator.next();
@@ -47,11 +47,11 @@ public class RelayNodeManager implements InitializingBean {
     }
 
     public void addNode(String relayToken, InetSocketAddress address) {
-        channelMap.put(relayToken, new RelayNode(address));
+        nodeMap.put(relayToken, new RelayNode(address));
     }
 
     public RelayNode getNode(String relayToken) {
-        RelayNode node = channelMap.get(relayToken);
+        RelayNode node = nodeMap.get(relayToken);
         return node;
     }
 }

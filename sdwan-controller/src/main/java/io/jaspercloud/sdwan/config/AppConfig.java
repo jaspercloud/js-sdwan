@@ -4,7 +4,7 @@ import io.jaspercloud.sdwan.adapter.server.ControlHandler;
 import io.jaspercloud.sdwan.adapter.server.ControlServer;
 import io.jaspercloud.sdwan.adapter.server.RelayHandler;
 import io.jaspercloud.sdwan.adapter.server.RelayServer;
-import io.jaspercloud.sdwan.domain.control.service.SDWanControllerService;
+import io.jaspercloud.sdwan.domain.control.service.SDWanControlService;
 import io.jaspercloud.sdwan.domain.control.service.SDWanNodeManager;
 import io.jaspercloud.sdwan.domain.control.service.SDWanSignalService;
 import io.jaspercloud.sdwan.domain.relay.service.RelayNodeManager;
@@ -59,9 +59,9 @@ public class AppConfig {
     }
 
     @Bean
-    public ControlHandler controlHandler(SDWanControllerService controllerService,
+    public ControlHandler controlHandler(SDWanControlService controlService,
                                          SDWanSignalService sdWanSignalService) {
-        return new ControlHandler(controllerService, sdWanSignalService);
+        return new ControlHandler(controlService, sdWanSignalService);
     }
 
     @Bean
