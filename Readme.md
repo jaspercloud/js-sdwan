@@ -193,7 +193,8 @@ sudo iptables -P OUTPUT ACCEPT
 
 1.1.x
 - [x] p2p通信稳定性优化
-- [x] 架构分层
+- [x] node端模块分层
+- [x] 管理端DDD设计
 - [ ] 端到端加密
 - [ ] 安全组
 - [ ] 性能测试
