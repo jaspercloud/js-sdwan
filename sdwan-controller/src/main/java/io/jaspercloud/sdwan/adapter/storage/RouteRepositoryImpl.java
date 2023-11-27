@@ -1,4 +1,4 @@
-package io.jaspercloud.sdwan.adapter.repository;
+package io.jaspercloud.sdwan.adapter.storage;
 
 import io.jaspercloud.sdwan.domain.control.entity.Route;
 import io.jaspercloud.sdwan.domain.control.repository.RouteRepository;
