@@ -197,7 +197,7 @@ sudo iptables -P OUTPUT ACCEPT
 - [x] 管理端DDD设计
 - [ ] 端到端加密
 - [ ] 安全组
-- [x] Java21 Native Images
+- [ ] Java21 Native Images
 - [ ] 性能测试
 - [ ] mysql支持
 
