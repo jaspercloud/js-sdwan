@@ -203,5 +203,6 @@ sudo iptables -P OUTPUT ACCEPT
 
 2.0.x
 - [ ] 多租户
+- [ ] 多网络
 - [ ] 中继负载均衡
 - [ ] mesh负载均衡
